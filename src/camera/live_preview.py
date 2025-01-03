@@ -7,6 +7,7 @@ class LivePreview(Image):
     def __init__(self, camera_width=1920, camera_height=1080, **kwargs):
         super().__init__(**kwargs)
         self.capture = cv2.VideoCapture(0)
+        self.capture.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
         self.capture.set(cv2.CAP_PROP_FRAME_WIDTH, camera_width)
         self.capture.set(cv2.CAP_PROP_FRAME_HEIGHT, camera_height)
 
