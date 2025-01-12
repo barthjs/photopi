@@ -1,26 +1,38 @@
-import cv2
 from kivy.graphics.texture import Texture
 from kivy.uix.image import Image
+from libcamera import Transform
+from picamera2 import Picamera2
 
 
 class LivePreview(Image):
-    def __init__(self, camera_width=1920, camera_height=1080, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.capture = cv2.VideoCapture(0)
-        self.capture.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'))
-        self.capture.set(cv2.CAP_PROP_FRAME_WIDTH, camera_width)
-        self.capture.set(cv2.CAP_PROP_FRAME_HEIGHT, camera_height)
+        self.cam = Picamera2()
+        self.cam.options["quality"] = 95
+
+        self.preview_config = self.cam.create_preview_configuration(
+            main={"size": (800, 480), "format": "BGR888"},
+            transform=Transform(hflip=0, vflip=1)
+        )
+
+        self.capture_config = self.cam.create_still_configuration(
+            main={"format": "BGR888"},
+            transform=Transform(hflip=0, vflip=1)
+        )
+
+        self.cam.configure(self.preview_config)
+        self.cam.start()
 
     def update_frame(self, dt):
-        # Read a frame from the camera
-        ret, frame = self.capture.read()
-        if ret:
-            # Convert the frame to a texture
-            buffer = cv2.flip(frame, 0).tobytes()
-            texture = Texture.create(size=(frame.shape[1], frame.shape[0]), colorfmt='bgr')
-            texture.blit_buffer(buffer, colorfmt='bgr', bufferfmt='ubyte')
-            self.texture = texture
+        # Capture a frame from the camera
+        frame = self.cam.capture_array()
+
+        # Convert the frame to a texture
+        buffer = frame.tobytes()
+        texture = Texture.create(size=(frame.shape[1], frame.shape[0]))
+        texture.blit_buffer(buffer)
+        self.texture = texture
 
     def stop(self):
-        # Release the camera resource
-        self.capture.release()
+        # Stop the camera
+        self.cam.stop()

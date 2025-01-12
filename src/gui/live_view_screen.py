@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 
-import cv2
+from PIL import Image
 from kivy.clock import Clock
 from kivy.uix.button import Button
 from kivy.uix.floatlayout import FloatLayout
@@ -86,7 +86,7 @@ class LiveViewScreen(Screen):
 
     def update_progress_label(self):
         """Update the progress label with the current image count"""
-        self.progress_label.text = f"Images: {self.image_count}/4"
+        self.progress_label.text = f"Images: {self.image_count}/{self.max_image_count}"
 
     def start_countdown(self):
         """Starts the countdown and captures images at intervals"""
@@ -101,7 +101,9 @@ class LiveViewScreen(Screen):
 
         if self.countdown <= 0:
             # Capture the current image and reset countdown
+            self.live_preview.cam.switch_mode(self.live_preview.capture_config)
             self.capture_image()
+            self.live_preview.cam.switch_mode(self.live_preview.preview_config)
             self.update_progress_label()
             self.image_count += 1
 
@@ -116,19 +118,20 @@ class LiveViewScreen(Screen):
 
     def capture_image(self):
         """Capture an image and save it to the corresponding folder"""
-        ret, frame = self.live_preview.capture.read()
-        if ret:
+        frame = self.live_preview.cam.capture_array()
+        if frame is not None:
             # Get timestamp for the filename
             timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             filename = f"server/static/images/{self.dir_index:04d}/PhotoPi-{timestamp}_{self.image_count}.jpg"
 
             # Save the captured image
             try:
-                success = cv2.imwrite(filename, frame)
-                if success:
-                    print(f"Image {self.image_count} saved successfully: {filename}")
-                else:
-                    print(f"Failed to save image {self.image_count}: {filename}")
+                # Convert the frame (NumPy array) to a PIL image
+                pil_image = Image.fromarray(frame)
+                pil_image = pil_image.rotate(180)
+                pil_image.save(filename)
+
+                print(f"Image {self.image_count} saved successfully: {filename}")
             except Exception as e:
                 print(f"Error saving image {self.image_count}: {e}")
         else:
