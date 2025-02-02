@@ -12,9 +12,10 @@ from src.camera.live_preview import LivePreview
 
 
 class LiveViewScreen(Screen):
-    def __init__(self, **kwargs):
+    def __init__(self, images_config, **kwargs):
         super().__init__(**kwargs)
         self.layout = FloatLayout()
+        self.images_config = images_config
 
         # Live preview
         self.live_preview = LivePreview(size_hint=(1, 1))
@@ -26,20 +27,21 @@ class LiveViewScreen(Screen):
             font_size=50,
             color=(1, 0, 0, 1),
             size_hint=(None, None),
-            size=(400, 100))
-        self.countdown_label.pos_hint = {"center": (0.5, 0.5)}
+            size=(400, 100),
+            pos_hint={"center": (0.5, 0.5)}
+        )
         self.layout.add_widget(self.countdown_label)
 
         # Progress Label
-        self.max_image_count = 4
+        self.max_image_count = self.images_config["max_image_count"]
         self.progress_label = Label(
             text=f"Images: 0/{self.max_image_count}",
             font_size=20,
             color=(1, 0, 0, 1),
             size_hint=(None, None),
-            size=(200, 50)
+            size=(200, 50),
+            pos_hint={"x": 0.05, "y": 0.05}
         )
-        self.progress_label.pos_hint = {"x": 0.05, "y": 0.05}
         self.layout.add_widget(self.progress_label)
 
         # Button to start countdown and capture
@@ -55,38 +57,41 @@ class LiveViewScreen(Screen):
             bold=True,
             padding=[5, 5]
         )
-        self.capture_button.bind(on_press=self.start_sequence)
+        self.capture_button.bind(on_press=self.on_start_pressed)
         self.layout.add_widget(self.capture_button)
 
         self.add_widget(self.layout)
+        self.prevent_initial_tap = True
+
+    def on_start_pressed(self, instance):
+        """Delay capture start slightly to prevent instant tap from previous screen."""
+        if self.prevent_initial_tap:
+            self.prevent_initial_tap = False
+            return
+        Clock.schedule_once(self.start_sequence, 0.3)
 
     def start_sequence(self, instance):
         """Start the sequence of 4 image captures with countdown"""
-        self.is_capturing = True
-        self.dir_index = self.get_next_dir_index()
-        self.image_count = 1
+        self.set_next_dir_index()
         self.create_image_dir()
+        self.image_count = 1
         self.start_countdown()
 
         # Hide the capture button during countdown
         self.capture_button.opacity = 0
 
-    def get_next_dir_index(self):
+    def set_next_dir_index(self):
         """Find the next available directory index (starting from 0000)"""
         dir_index = 0
         while os.path.exists(f"server/static/images/{dir_index:04d}"):
             dir_index += 1
-        return dir_index
+        self.dir_index = dir_index
 
     def create_image_dir(self):
         """Create a new directory for storing the images"""
         dir_name = f"server/static/images/{self.dir_index:04d}"
         os.makedirs(dir_name, exist_ok=True)
         print(f"Creating directory: {dir_name}")
-
-    def update_progress_label(self):
-        """Update the progress label with the current image count"""
-        self.progress_label.text = f"Images: {self.image_count}/{self.max_image_count}"
 
     def start_countdown(self):
         """Starts the countdown and captures images at intervals"""
@@ -102,9 +107,11 @@ class LiveViewScreen(Screen):
         if self.countdown <= 0:
             # Capture the current image and reset countdown
             self.live_preview.cam.switch_mode(self.live_preview.capture_config)
-            self.capture_image()
+            Clock.schedule_interval(self.capture_image, 1)
             self.live_preview.cam.switch_mode(self.live_preview.preview_config)
-            self.update_progress_label()
+
+            # Update the progress label with the current image count
+            self.progress_label.text = f"Images: {self.image_count}/{self.max_image_count}"
             self.image_count += 1
 
             # If we have captured all 4 images, stop the process
@@ -116,7 +123,7 @@ class LiveViewScreen(Screen):
                 self.countdown = 3
                 self.countdown_label.text = f"Countdown: {self.countdown}"
 
-    def capture_image(self):
+    def capture_image(self, dt):
         """Capture an image and save it to the corresponding folder"""
         frame = self.live_preview.cam.capture_array()
         if frame is not None:
@@ -127,8 +134,7 @@ class LiveViewScreen(Screen):
             # Save the captured image
             try:
                 # Convert the frame (NumPy array) to a PIL image
-                pil_image = Image.fromarray(frame)
-                pil_image = pil_image.rotate(180)
+                pil_image = Image.fromarray(frame).rotate(180)
                 pil_image.save(filename)
 
                 print(f"Image {self.image_count} saved successfully: {filename}")
@@ -141,25 +147,22 @@ class LiveViewScreen(Screen):
         """End the image capture sequence and show completion message"""
         print(f"Image capture sequence completed. All images are saved in directory {self.dir_index:04d}")
         self.countdown_label.text = "Capture Complete!"
-        # Show the button again after 2 seconds
-        Clock.schedule_once(self.reset_live_preview, 2)
-        Clock.schedule_once(self.show_button, 2)
+        Clock.schedule_once(self.reset_live_preview, 4)
 
-        # Schedule transition to the welcome screen after 2 seconds
-        Clock.schedule_once(self.return_to_welcome_screen, 2)
+        # Schedule transition to the email screen after 4 seconds
+        Clock.schedule_once(self.return_to_email_screen, 4)
 
-    def return_to_welcome_screen(self, dt):
-        """Navigate back to the welcome screen."""
-        self.manager.current = 'welcome_screen'
+    def return_to_email_screen(self, dt):
+        """Navigate to the email screen."""
+        email_screen = self.manager.get_screen('email_screen')
+        email_screen.set_attachment_dir(f"server/static/images/{self.dir_index:04d}")
+        self.manager.current = 'email_screen'
 
     def reset_live_preview(self, dt):
         """Resets the screen to live preview after the image capture"""
         self.live_preview.update_frame(dt)
         self.progress_label.text = ""
         self.countdown_label.text = ""
-
-    def show_button(self, dt):
-        """Show the capture button after the sequence ends"""
         self.capture_button.opacity = 1
 
     def on_enter(self):
