@@ -19,7 +19,7 @@ class LiveViewScreen(Screen):
         self.dir_index = None
 
         # Live preview
-        self.live_preview = LivePreview(size_hint=(1, 1))
+        self.live_preview = LivePreview(size_hint=(1, 1), overlay_path=images_config['preview_overlay'])
         self.layout.add_widget(self.live_preview)
 
         # Countdown-Label

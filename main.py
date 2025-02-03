@@ -1,4 +1,5 @@
 import configparser
+import os
 
 import kivy
 
@@ -33,8 +34,16 @@ def load_email_config():
 
 
 def load_images_config():
+    preview_file = None
+
+    for file in os.listdir("overlays"):
+        if "preview" in file.lower():
+            preview_file = os.path.join("overlays", file)
+            break
+
     return {
         "max_image_count": int(config.get("IMAGES", "max_image_count")),
+        "preview_overlay": preview_file if preview_file else ""
     }
 
 
