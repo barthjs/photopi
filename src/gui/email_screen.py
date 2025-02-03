@@ -47,6 +47,7 @@ class EmailScreen(Screen):
         )
         self.button.bind(on_press=self.on_send_pressed)
         self.layout.add_widget(self.button)
+        self.prevent_initial_tap = True
 
         self.add_widget(self.layout)
 
@@ -66,6 +67,9 @@ class EmailScreen(Screen):
         """Starts the email sending process in a separate thread."""
         recipient_email = self.email_input.text.strip()
         if recipient_email:
+            if self.prevent_initial_tap:
+                self.prevent_initial_tap = False
+                return
             self.email_input.opacity = 0
             self.button.opacity = 0
             self.label.text = "Sending email..."
@@ -121,3 +125,6 @@ class EmailScreen(Screen):
     def return_to_welcome_screen(self, dt):
         """Navigate to the welcome screen."""
         self.manager.current = 'welcome_screen'
+
+    def on_leave(self):
+        self.prevent_initial_tap = True
