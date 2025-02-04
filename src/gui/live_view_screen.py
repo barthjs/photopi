@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 
-from PIL import Image
+from PIL import Image as PilImage
 from kivy.clock import Clock
 from kivy.uix.button import Button
 from kivy.uix.floatlayout import FloatLayout
@@ -133,7 +133,12 @@ class LiveViewScreen(Screen):
             # Save the captured image
             try:
                 # Convert the frame (NumPy array) to a PIL image
-                pil_image = Image.fromarray(frame).rotate(180)
+                pil_image = PilImage.fromarray(frame).transpose(PilImage.FLIP_TOP_BOTTOM)
+
+                overlay = PilImage.open(self.images_config['final_overlay']).resize((4000, 2400)).convert("RGBA")
+                pil_image.paste(overlay, (0, 0), overlay)
+
+                # Save the final image
                 pil_image.save(filename)
 
                 print(f"Image {self.image_count} saved successfully: {filename}")

@@ -35,15 +35,22 @@ def load_email_config():
 
 def load_images_config():
     preview_file = None
+    final_file = None
 
     for file in os.listdir("overlays"):
-        if "preview" in file.lower():
+        lower_file = file.lower()
+        if "preview" in lower_file:
             preview_file = os.path.join("overlays", file)
+        elif "final" in lower_file:
+            final_file = os.path.join("overlays", file)
+
+        if preview_file and final_file:
             break
 
     return {
         "max_image_count": int(config.get("IMAGES", "max_image_count")),
-        "preview_overlay": preview_file if preview_file else ""
+        "preview_overlay": preview_file if preview_file else "",
+        "final_overlay": final_file if final_file else ""
     }
 
 

@@ -24,7 +24,7 @@ class LivePreview(Image):
         )
 
         self.capture_config = self.cam.create_still_configuration(
-            main={"format": "BGR888"},
+            main={"size": (4000, 2400), "format": "BGR888"},
             transform=Transform(hflip=0, vflip=1)
         )
 
