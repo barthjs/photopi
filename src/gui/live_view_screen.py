@@ -60,18 +60,10 @@ class LiveViewScreen(Screen):
             bold=True,
             padding=[5, 5]
         )
-        self.capture_button.bind(on_press=self.on_start_pressed)
+        self.capture_button.bind(on_press=self.start_sequence)
         self.layout.add_widget(self.capture_button)
-        self.prevent_initial_tap = True
 
         self.add_widget(self.layout)
-
-    def on_start_pressed(self, instance):
-        """Delay capture start slightly to prevent instant tap from previous screen."""
-        if self.prevent_initial_tap:
-            self.prevent_initial_tap = False
-            return
-        Clock.schedule_once(self.start_sequence, 0.3)
 
     def start_sequence(self, instance):
         """Start the sequence of 4 image captures with countdown"""
@@ -176,6 +168,5 @@ class LiveViewScreen(Screen):
 
     def on_leave(self):
         """Stop updating the camera and release the resources"""
-        self.prevent_initial_tap = True
         self.progress_label.text = f"Images: 0/{self.max_image_count}"
         Clock.unschedule(self.live_preview.update_frame)
