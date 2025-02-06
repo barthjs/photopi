@@ -35,6 +35,8 @@ def load_email_config():
         "SMTP_USER": config.get("EMAIL", "SMTP_USER"),
         "SMTP_PASSWORD": config.get("EMAIL", "SMTP_PASSWORD"),
         "SENDER_EMAIL": config.get("EMAIL", "SENDER_EMAIL"),
+        "ADMIN_EMAIL": config.get("EMAIL", "ADMIN_EMAIL"),
+        "MAX_ERROR_ATTEMPTS": config.getint("EMAIL", "MAX_ERROR_ATTEMPTS"),
     }
 
 
