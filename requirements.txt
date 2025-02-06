@@ -4,3 +4,5 @@ python-dotenv>=1.0.1
 Kivy>=2.3.1
 picamera2>=0.3.9
 pillow>=11.1.0
+kivymd==1.1.1
+numpy>=2.2.1

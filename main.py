@@ -17,7 +17,7 @@ Config.set('kivy', 'keyboard_mode', 'systemanddock')
 Config.set('kivy', 'keyboard_layout', 'src/keyboards/email.json')
 Config.set('input', 'mouse', '')
 
-from kivy.app import App
+from kivymd.app import MDApp
 from kivy.uix.screenmanager import ScreenManager, NoTransition
 
 from src.gui.live_view_screen import LiveViewScreen
@@ -59,7 +59,7 @@ def load_images_config():
     }
 
 
-class PhotoPiApp(App):
+class PhotoPiApp(MDApp):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Load config
@@ -71,6 +71,10 @@ class PhotoPiApp(App):
         self.screen_manager.transition = NoTransition()
 
     def build(self):
+        self.theme_cls.theme_style = "Light"
+        self.theme_cls.primary_palette = "Teal"
+        self.theme_cls.primary_hue = "900"
+
         # Add WelcomeScreen and LiveViewScreen to the ScreenManager
         self.screen_manager.add_widget(WelcomeScreen(name='welcome_screen'))
         self.screen_manager.add_widget(LiveViewScreen(name='live_view_screen', images_config=self.images_config))
