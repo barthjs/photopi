@@ -41,6 +41,7 @@ def load_email_config():
 
 
 def load_images_config():
+    """Loads image configuration from config file and checks for overlay files."""
     preview_file = None
     final_file = None
 
@@ -56,8 +57,8 @@ def load_images_config():
 
     return {
         "max_image_count": int(config.get("IMAGES", "max_image_count")),
-        "preview_overlay": preview_file if preview_file else "",
-        "final_overlay": final_file if final_file else ""
+        "preview_overlay": preview_file if preview_file else "overlays/default_preview.png",
+        "final_overlay": final_file if final_file else "overlays/default_final.png",
     }
 
 

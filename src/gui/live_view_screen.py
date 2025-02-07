@@ -74,8 +74,14 @@ class LiveViewScreen(Screen):
 
             try:
                 pil_image = PilImage.fromarray(frame).transpose(PilImage.FLIP_TOP_BOTTOM)
-                overlay = PilImage.open(self.images_config['final_overlay']).resize((4000, 2400)).convert("RGBA")
-                pil_image.paste(overlay, (0, 0), overlay)
+
+                try:
+                    overlay = PilImage.open(self.images_config['final_overlay']).resize((4000, 2400)).convert("RGBA")
+                    pil_image.paste(overlay, (0, 0), overlay)
+                except Exception as e:
+                    print(f"Warning: Could not load overlay. Error: {e}")
+
+                # Save the image (with or without the overlay)
                 pil_image.save(filename)
                 print(f"Image {self.image_count} saved successfully: {filename}")
             except Exception as e:

@@ -1,22 +1,20 @@
 import numpy as np
 from PIL import Image as PILImage
 from kivy.graphics.texture import Texture
+from kivy.properties import StringProperty
 from kivy.uix.image import Image
 from libcamera import Transform
 from picamera2 import Picamera2
 
 
 class LivePreview(Image):
-    def __init__(self, overlay_path="", **kwargs):
+    overlay_path = StringProperty("")
+
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.overlay_image = None
         self.cam = Picamera2()
         self.cam.options["quality"] = 95
-
-        if overlay_path:
-            self.overlay_path = overlay_path
-            self.overlay_image = PILImage.open(self.overlay_path).resize((800, 480)).transpose(
-                PILImage.FLIP_TOP_BOTTOM).convert("RGBA")
 
         self.preview_config = self.cam.create_preview_configuration(
             main={"size": (800, 480), "format": "BGR888"},
@@ -31,6 +29,14 @@ class LivePreview(Image):
         self.cam.configure(self.preview_config)
         self.cam.start()
 
+    def on_overlay_path(self, instance, value):
+        """Loads the overlay image based on the specified overlay_path."""
+        try:
+            self.overlay_image = PILImage.open(self.overlay_path).resize((800, 480)).transpose(
+                PILImage.FLIP_TOP_BOTTOM).convert("RGBA")
+        except Exception as e:
+            print(f"Error loading overlay: {e}")
+
     def update_frame(self, dt):
         """Captures a frame, applies overlay, and updates the displayed texture."""
         frame = self.cam.capture_array()
@@ -44,7 +50,3 @@ class LivePreview(Image):
         texture = Texture.create(size=(frame.shape[1], frame.shape[0]))
         texture.blit_buffer(frame.tobytes())
         self.texture = texture
-
-    def stop(self):
-        # Stop the camera
-        self.cam.stop()
