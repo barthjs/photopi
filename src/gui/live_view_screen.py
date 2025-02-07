@@ -11,11 +11,14 @@ class LiveViewScreen(Screen):
         super().__init__(**kwargs)
         self.images_config = images_config
         self.dir_index = None
+        self.countdown = None
         self.image_count = 0
-        self.max_image_count = self.images_config["max_image_count"]
+        self.inactive = True
+        self.max_image_count = images_config["max_image_count"]
 
     def start_sequence(self, instance):
         """Start the sequence of 4 image captures with countdown"""
+        self.inactive = False
         self.set_next_dir_index()
         self.create_image_dir()
         self.image_count = 0
@@ -57,7 +60,6 @@ class LiveViewScreen(Screen):
             self.ids.progress_label.text = f"Images: {self.image_count}/{self.max_image_count}"
 
             if self.image_count == self.max_image_count:
-                self.ids.countdown_label.opacity = 1
                 self.end_sequence()
             else:
                 Clock.schedule_once(self.start_countdown, 5)
@@ -86,8 +88,8 @@ class LiveViewScreen(Screen):
     def end_sequence(self):
         """End the image capture sequence and show completion message"""
         print(f"Image capture sequence completed. All images are saved in directory {self.dir_index:04d}")
+        self.ids.countdown_label.opacity = 1
         self.ids.countdown_label.text = "Capture Complete!"
-        Clock.schedule_once(self.reset_live_preview, 4)
 
         # Schedule transition to the email screen after 4 seconds
         Clock.schedule_once(self.return_to_email_screen, 4)
@@ -98,6 +100,10 @@ class LiveViewScreen(Screen):
         email_screen.set_attachment_dir(f"server/static/images/{self.dir_index:04d}")
         self.manager.current = 'email_screen'
 
+    def return_to_welcome_screen(self, dt):
+        """Navigate to the email screen."""
+        self.manager.current = 'welcome_screen'
+
     def reset_live_preview(self, dt):
         """Resets the screen to live preview after the image capture"""
         self.ids.live_preview.update_frame(dt)
@@ -105,11 +111,20 @@ class LiveViewScreen(Screen):
         self.ids.countdown_label.text = ""
         self.ids.capture_button.opacity = 1
 
+    def check_activity(self, dt):
+        """Return to welcome screen after 60 seconds of inactivity"""
+        if self.inactive:
+            Clock.schedule_once(self.reset_live_preview, 1)
+            Clock.schedule_once(self.return_to_welcome_screen, 1)
+
     def on_enter(self):
         """Start updating the camera frame"""
+        self.inactive = True
+        Clock.schedule_once(self.reset_live_preview, 0)
+        Clock.schedule_once(self.check_activity, 60)
         Clock.schedule_interval(self.ids.live_preview.update_frame, 1.0 / 30.0)
 
     def on_leave(self):
         """Stop updating the camera and release the resources"""
-        self.ids.progress_label.text = f"Images: 0/{self.max_image_count}"
+        Clock.schedule_once(self.reset_live_preview, 0)
         Clock.unschedule(self.ids.live_preview.update_frame)
