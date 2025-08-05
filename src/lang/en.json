@@ -1,0 +1,23 @@
+{
+    "Abort": "Abort",
+    "Are you sure you want to cancel sending the email?": "Are you sure you want to cancel sending the email?",
+    "Cancel": "Cancel",
+    "Capture Complete!": "Capture Complete!",
+    "Confirm abort": "Confirm abort",
+    "Confirm": "Confirm",
+    "Email sending is disabled.": "Email sending is disabled.",
+    "Email successfully sent to {}": "Email successfully sent to {}",
+    "Enter your E-Mail": "Enter your E-Mail",
+    "Error limit reached. Please contact: {}": "Error limit reached. Please contact: {}",
+    "Error sending email to: {} (Attempts: {}/{})": "Error sending email to: {} (Attempts: {}/{})",
+    "Images: {}/{}": "Images: {}/{}",
+    "Please enter a valid email address.": "Please enter a valid email address.",
+    "Send": "Send",
+    "Sending email...": "Sending email...",
+    "Start Capture": "Start Capture",
+    "Start": "Start",
+    "Thank you for using PhotoPi!": "Thank you for using PhotoPi!",
+    "Welcome to PhotoPi": "Welcome to PhotoPi",
+    "Your PhotoBox Images": "Your PhotoBox Images",
+    "Your images are attached.": "Your images are attached."
+}

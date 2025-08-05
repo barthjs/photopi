@@ -6,9 +6,9 @@ kivy.require('2.3.1')
 
 from kivy.config import Config
 
-Config.set('kivy', 'log_level', 'error')
+Config.set('kivy', 'log_level', 'warning')
 Config.set('kivy', 'keyboard_mode', 'systemanddock')
-Config.set('kivy', 'keyboard_layout', 'src/keyboards/email.json')
+Config.set('kivy', 'keyboard_layout', 'src/lang/keyboard.json')
 Config.set('graphics', 'fullscreen', '1')
 Config.set('input', 'mouse', '')
 

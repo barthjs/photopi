@@ -1,5 +1,6 @@
+import builtins
 import configparser
-import gettext
+import json
 import locale
 import os
 from typing import Dict, Optional, Tuple
@@ -67,12 +68,11 @@ class ConfigLoader:
         )
 
     def setup_language(self) -> None:
-        """Sets up gettext translation based on config or system locale."""
+        """Sets up JSON-based translation and installs builtins._ for KV/Python."""
         lang = self.config.get("GENERAL", "language", fallback="").lower()
 
         if lang not in ("en", "de"):
-            lang = "en"
-            # Fallback to system default locale
+            # Fallback to system default locale, supported: en, de
             system_lang, _ = locale.getdefaultlocale()
             if system_lang:
                 lang_code = system_lang.split("_")[0].lower()
@@ -80,9 +80,37 @@ class ConfigLoader:
                     lang = lang_code
                 else:
                     lang = "en"
+            else:
+                lang = "en"
 
-        translation_path = os.path.join(self._program_root, "lang")
-        gettext.translation("messages", translation_path, languages=[lang], fallback=True).install()
+        translations = self._load_translations(lang)
+
+        def _(text: str) -> str:
+            return translations.get(text, text)
+
+        builtins._ = _
+
+    @staticmethod
+    def _load_translations(lang: str) -> dict[str, str]:
+        """Load translations from JSON with fallback to English."""
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        lang_dir = os.path.join(base_dir, "lang")
+
+        def read_json(path: str) -> dict[str, str]:
+            try:
+                with open(path, encoding="utf-8") as f:
+                    data = json.load(f)
+                    return {str(k): str(v) for k, v in data.items() if isinstance(data, dict)}
+            except FileNotFoundError:
+                return {}
+            except Exception:
+                return {}
+
+        fallback = read_json(os.path.join(lang_dir, "en.json"))
+        primary = read_json(os.path.join(lang_dir, f"{lang}.json"))
+
+        # primary overrides fallback
+        return {**fallback, **primary}
 
     def load_email(self) -> Dict[str, str | int | bool]:
         """Returns email-related configuration."""

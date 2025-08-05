@@ -1,0 +1,23 @@
+{
+    "Abort": "Abbrechen",
+    "Are you sure you want to cancel sending the email?": "Bist du sicher, dass du das Senden der E-Mail abbrechen möchten?",
+    "Cancel": "Abbrechen",
+    "Capture Complete!": "Aufnahme abgeschlossen!",
+    "Confirm abort": "Abbruch bestätigen",
+    "Confirm": "Bestätigen",
+    "Email sending is disabled.": "E-Mail-Versand ist deaktiviert.",
+    "Email successfully sent to {}": "E-Mail erfolgreich gesendet an {}",
+    "Enter your E-Mail": "Gib deine E-Mail ein",
+    "Error limit reached. Please contact: {}": "Fehlerlimit erreicht. Bitte kontaktiere: {}",
+    "Error sending email to: {} (Attempts: {}/{})": "Fehler beim Senden der E-Mail an: {} (Versuche: {}/{})",
+    "Images: {}/{}": "Bilder: {}/{}",
+    "Please enter a valid email address.": "Bitte gib eine gültige E-Mail-Adresse ein.",
+    "Send": "Senden",
+    "Sending email...": "E-Mail wird gesendet...",
+    "Start Capture": "Aufnahme starten",
+    "Start": "Starten",
+    "Thank you for using PhotoPi!": "Danke für das Nutzen von PhotoPi",
+    "Welcome to PhotoPi": "Willkommen bei PhotoPi",
+    "Your PhotoBox Images": "Dein PhotoBox-Bilder",
+    "Your images are attached.": "Deine Bilder befinden sich im Anhang."
+}
