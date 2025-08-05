@@ -1,8 +1,9 @@
-import mimetypes
+import builtins
 import os
 import smtplib
 import threading
 from email.message import EmailMessage
+from typing import Any, Dict, Optional
 
 from kivy.clock import Clock
 from kivy.uix.screenmanager import Screen
@@ -10,143 +11,178 @@ from kivymd.uix.button import MDFlatButton
 from kivymd.uix.dialog import MDDialog
 
 
+# noinspection PyProtectedMember,PyUnresolvedReferences,PyUnusedLocal
 class EmailScreen(Screen):
-    def __init__(self, email_config, **kwargs):
-        super().__init__(**kwargs)
-        self.email_config = email_config
-        self.attachment_dir = None
-        self.dialog = None
-        self.error_attempts = 0
-        self.max_error_attempts = self.email_config["MAX_ERROR_ATTEMPTS"]
+    """Kivy screen that handles sending images via email."""
 
-    def set_attachment_dir(self, attachment_dir):
-        """Set the file paths for email attachments."""
+    def __init__(self, email_config: Dict[str, str | int | bool], **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self.email_config: Dict[str, str | int | bool] = email_config
+        self.attachment_dir: Optional[str] = None
+        self.dialog: Optional[MDDialog] = None
+        self.attempts: int = 0
+        self.max_attempts: int = 5
+
+    def set_attachment_dir(self, attachment_dir: str) -> None:
+        """Set the directory containing attachments to send."""
         self.attachment_dir = attachment_dir
 
-    def on_send_pressed(self, instance):
+    def on_send_pressed(self, instance: Any) -> None:
         """Starts the email sending process in a separate thread."""
         recipient_email = self.ids.email_input.text.strip()
-        if recipient_email:
-            self.ids.email_label.text = "Sending email..."
-            self.ids.email_input.text = ""
-            self.ids.email_input.opacity = 0
-            self.ids.email_send.opacity = 0
-            self.ids.email_abort.opacity = 0
+        if "@" in recipient_email and 254 >= len(recipient_email) >= 6:
+            self.ids.email_label.text = builtins._("Sending email...")
+            self.hide_input_fields()
 
-            threading.Thread(target=self.send_email, args=(recipient_email,), daemon=True).start()
+            threading.Thread(target=self._send_email, args=(recipient_email,), daemon=True).start()
         else:
-            self.ids.email_label.text = "Please enter a valid email address."
+            self.ids.email_label.text = builtins._("Please enter a valid email address.")
 
-    def send_email(self, recipient_email):
+    def _send_email(self, recipient_email):
         """
-        Sends an email with multiple attachments using SSL.
+        Sends an email with the captured images as attachments.
         Runs in a separate thread to prevent UI blocking.
         """
         try:
-            msg = EmailMessage()
-            msg["From"] = self.email_config["SENDER_EMAIL"]
-            msg["To"] = recipient_email
-            msg["Subject"] = "Your PhotoBox Images"
+            msg = self._create_email_message(recipient_email)
+            self._attach_images(msg)
 
-            # HTML Body
-            html_body = "<h1>Thank you for using PhotoPi!</h1><p>Your images are attached.</p>"
-            plain_body = "Thank you for using PhotoPi!\nYour images are attached."
-            msg.set_content(plain_body)
-            msg.add_alternative(html_body, subtype="html")
-
-            if os.path.exists(self.attachment_dir) and os.path.isdir(self.attachment_dir):
-                for filename in os.listdir(self.attachment_dir):
-                    file_path = os.path.join(self.attachment_dir, filename)
-
-                    if os.path.isfile(file_path):
-                        mime_type, _ = mimetypes.guess_type(file_path)
-                        mime_type = mime_type or "application/octet-stream"
-                        with open(file_path, "rb") as file:
-                            msg.add_attachment(file.read(),
-                                               maintype=mime_type.split("/")[0],
-                                               subtype=mime_type.split("/")[1],
-                                               filename=os.path.basename(file_path))
-
-            with smtplib.SMTP_SSL(self.email_config["SMTP_SERVER"], self.email_config["SMTP_PORT"]) as server:
-                server.login(self.email_config["SMTP_USER"], self.email_config["SMTP_PASSWORD"])
+            with smtplib.SMTP_SSL(
+                self.email_config["smtp_server"],
+                self.email_config["smtp_port"]
+            ) as server:
+                server.login(
+                    self.email_config["smtp_user"],
+                    self.email_config["smtp_password"]
+                )
                 server.send_message(msg)
 
-            self.error_attempts = 0
-            print(f"Email successfully sent to {recipient_email}")
-            Clock.schedule_once(lambda dt: self.update_label(f"Email successfully sent to {recipient_email}"), 0)
+            Clock.schedule_once(
+                lambda dt: self.update_label(
+                    builtins._("Email successfully sent to {}").format(recipient_email)
+                )
+            )
             Clock.schedule_once(self.return_to_welcome_screen, 10)
 
         except Exception as e:
-            print(f"Error sending email to: {recipient_email} {e}")
-            self.error_attempts += 1
-            self.log_email_attempt(
-                f"Error sending email to: {recipient_email} - Attempt {self.error_attempts}/{self.max_error_attempts}")
-            if self.error_attempts < self.max_error_attempts:
-                Clock.schedule_once(lambda dt: self.update_label(
-                    f"Error sending email to: {recipient_email} (Attempts: {self.error_attempts}/{self.max_error_attempts})"),
-                                    0)
-                Clock.schedule_once(self.reset_screen_after_error, 0)
-            else:
-                # Log error limit reached
-                self.log_email_attempt("Error limit reached for sending emails.")
-                Clock.schedule_once(lambda dt: self.update_label(
-                    f"Error limit reached. Please contact: {self.email_config['ADMIN_EMAIL']}"), 0)
-                Clock.schedule_once(self.return_to_welcome_screen, 30)
+            self.attempts += 1
+            self._log_email_attempt(
+                f"Error sending email to: {recipient_email} - Attempts: {self.attempts}/{self.max_attempts} - Error: {e}"
+            )
 
-    def log_email_attempt(self, message):
-        """Log email attempt or error in the attachment directory."""
-        log_file_path = os.path.join(self.attachment_dir, "email_attempts_log.txt")
-        with open(log_file_path, "a") as log_file:
+            if self.attempts < self.max_attempts:
+                # Display an error and show input again
+                Clock.schedule_once(
+                    lambda dt: self.update_label(
+                        builtins._("Error sending email to: {} (Attempts: {}/{})").format(
+                            recipient_email, self.attempts, self.max_attempts
+                        )
+                    )
+                )
+                Clock.schedule_once(self.show_input_fields)
+            else:
+                # Display an error and return to the welcome screen
+                Clock.schedule_once(
+                    lambda dt: self.update_label(
+                        builtins._("Error limit reached. Please contact: {}").format(
+                            self.email_config["admin_email"]
+                        )
+                    )
+                )
+                Clock.schedule_once(self.return_to_welcome_screen, 60)
+
+    def _create_email_message(self, recipient_email: str) -> EmailMessage:
+        """Create and return the email message object."""
+        msg = EmailMessage()
+        msg["From"] = self.email_config["sender_email"]
+        msg["To"] = recipient_email
+        msg["Subject"] = builtins._("Your PhotoBox Images")
+
+        html_body = f"<h1>{builtins._('Thank you for using PhotoPi!')}</h1><p>{builtins._('Your images are attached.')}</p>"
+        plain_body = f"{builtins._('Thank you for using PhotoPi!')}\n{builtins._('Your images are attached.')}"
+        msg.set_content(plain_body)
+        msg.add_alternative(html_body, subtype="html")
+        return msg
+
+    def _attach_images(self, msg: EmailMessage) -> None:
+        """Attach all .jpg images from the attachment directory."""
+        if not self.attachment_dir:
+            return
+
+        for filename in os.listdir(self.attachment_dir):
+            file_path = os.path.join(self.attachment_dir, filename)
+            if os.path.isfile(file_path) and filename.lower().endswith(".jpg"):
+                with open(file_path, "rb") as file:
+                    msg.add_attachment(
+                        file.read(),
+                        maintype="image",
+                        subtype="jpeg",
+                        filename=os.path.basename(file_path)
+                    )
+
+    def _log_email_attempt(self, message: str) -> None:
+        """Log email sending attempts in the image directory."""
+        if not self.attachment_dir:
+            return
+        log_file_path = os.path.join(self.attachment_dir, "log.txt")
+        with open(log_file_path, "a", encoding="utf-8") as log_file:
             log_file.write(f"{message}\n")
 
-    def update_label(self, text):
-        """Updates the label text on the main UI thread."""
+    def update_label(self, text: str) -> None:
+        """Update the label text on the UI thread."""
         self.ids.email_label.text = text
 
-    def on_abort_pressed(self):
-        """Handles the abort button press and shows a confirmation dialog."""
+    def on_abort_pressed(self) -> None:
+        """Show a confirmation dialog to abort sending the email."""
         if self.dialog:
             self.dialog.dismiss()
+
         self.dialog = MDDialog(
-            title="Confirm abort",
-            text="Are you sure you want to cancel sending the email?",
+            title=builtins._("Confirm abort"),
+            text=builtins._("Are you sure you want to cancel sending the email?"),
             buttons=[
-                MDFlatButton(text="Cancel", on_press=self.dismiss_dialog),
-                MDFlatButton(text="Confirm", on_press=self.abort_email_send)
+                MDFlatButton(text=builtins._("Cancel"), on_press=self.dismiss_dialog),
+                MDFlatButton(text=builtins._("Confirm"), on_press=self.abort_email_send)
             ]
         )
         self.dialog.open()
 
-    def dismiss_dialog(self, instance):
-        """Dismiss the dialog."""
-        self.dialog.dismiss()
+    def dismiss_dialog(self, instance: Any) -> None:
+        """Dismiss the abort confirmation dialog."""
+        if self.dialog:
+            self.dialog.dismiss()
 
-    def abort_email_send(self, instance):
-        """Handle the abort action, and log user action."""
-        self.dialog.dismiss()
-        self.ids.email_input.text = ""
-        self.ids.email_label.text = "Email sending aborted."
+    def abort_email_send(self, instance: Any) -> None:
+        """Abort the email sending process and return to the welcome screen."""
+        if self.dialog:
+            self.dialog.dismiss()
+        self.return_to_welcome_screen()
 
-        # Log to file
-        self.log_email_attempt("User aborted the email sending process.")
-
-        # Reset the attempts and show the welcome screen
-        self.error_attempts = 0
-        self.manager.current = 'welcome_screen'
-
-    def reset_screen_after_error(self, dt):
+    def show_input_fields(self, dt: Optional[float] = None) -> None:
+        """Make the email input fields visible."""
         self.ids.email_input.opacity = 1
         self.ids.email_send.opacity = 1
         self.ids.email_abort.opacity = 1
 
-    def return_to_welcome_screen(self, dt):
-        """Navigate to the welcome screen."""
-        self.manager.current = 'welcome_screen'
+    def hide_input_fields(self, dt: Optional[float] = None) -> None:
+        """Make the email input fields invisible."""
+        self.ids.email_input.opacity = 0
+        self.ids.email_send.opacity = 0
+        self.ids.email_abort.opacity = 0
 
-    def on_enter(self):
-        """Resets the screen UI to the initial state."""
-        self.ids.email_label.text = "Enter your E-Mail"
-        self.ids.email_input.text = ""
-        self.ids.email_input.opacity = 1
-        self.ids.email_send.opacity = 1
-        self.ids.email_abort.opacity = 1
+    def return_to_welcome_screen(self, dt: Optional[float] = None) -> None:
+        """Navigate back to the welcome screen."""
+        self.manager.current = "welcome_screen"
+
+    def on_enter(self) -> None:
+        """Reset the screen state when it is entered."""
+        if self.email_config["enabled"]:
+            self.ids.email_label.text = builtins._("Enter your E-Mail")
+            self.ids.email_input.text = ""
+            self.show_input_fields()
+            self.attempts = 0
+            return
+
+        self.ids.email_label.text = builtins._("Email sending is disabled.")
+        self.hide_input_fields()
+        Clock.schedule_once(self.return_to_welcome_screen, 10)

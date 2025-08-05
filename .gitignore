@@ -1,3 +1,4 @@
+*.py[codz]
 server/static
 .env
 config.ini
