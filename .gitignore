@@ -1,4 +1,6 @@
 *.py[codz]
+dist/
+*.egg-info/
 server/static
 .env
 config.ini
