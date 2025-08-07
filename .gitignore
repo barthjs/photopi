@@ -1,6 +1,6 @@
 *.py[codz]
 dist/
 *.egg-info/
-server/static
-.env
+images/
+overlays/
 config.ini

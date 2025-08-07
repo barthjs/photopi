@@ -65,7 +65,11 @@ class ConfigLoader:
             "admin_email = \n\n"
             "[IMAGES]\n"
             "base_image_dir = ~/.local/share/photopi/images\n"
-            "max_image_count = 4\n"
+            "max_image_count = 4\n\n"
+            "[SERVER]\n"
+            "enabled = false\n"
+            "host = *\n"
+            "port = 8080\n"
         )
 
     def setup_language(self) -> None:
@@ -189,6 +193,7 @@ class ConfigLoader:
             fallback="~/.local/share/photopi/images"
         )
         base_image_dir = os.path.expanduser(base_image_dir)
+        base_image_dir = os.path.abspath(base_image_dir)
 
         max_image_count = 4
         try:
@@ -201,4 +206,21 @@ class ConfigLoader:
             "max_image_count": max_image_count,
             "preview_overlay": preview_file,
             "final_overlay": final_file,
+        }
+
+    def load_server(self) -> Dict[str, Optional[str] | int]:
+        if not self.config.getboolean("SERVER", "enabled", fallback=False):
+            return {"enabled": False}
+
+        host = self.config.get("SERVER", "host", fallback="*").strip()
+
+        try:
+            port = self.config.getint("SERVER", "port", fallback=8080)
+        except ValueError:
+            port = 8080
+
+        return {
+            "enabled": True,
+            "host": host,
+            "port": port,
         }

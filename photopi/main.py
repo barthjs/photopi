@@ -1,5 +1,9 @@
+from threading import Thread
+
 import kivy
 from kivy.lang import Builder
+
+from photopi.server import create_app
 
 kivy.require('2.3.1')
 
@@ -55,10 +59,30 @@ class PhotoPiApp(MDApp):
         return self.screen_manager
 
 
+def _start_flask(config_loader: ConfigLoader) -> Thread:
+    """
+    Start the Flask app in a background daemon thread. The thread will exit with the main process.
+    """
+    app = create_app(config_loader)
+    config = config_loader.load_server()
+
+    def _run():
+        app.run(host=config['host'], port=config['port'], debug=False, use_reloader=False)
+
+    t = Thread(target=_run, daemon=True)
+    t.start()
+
+    return t
+
+
 def main() -> None:
-    loader = ConfigLoader()
-    loader.setup_language()
-    PhotoPiApp(config_loader=loader).run()
+    config_loader = ConfigLoader()
+    config_loader.setup_language()
+
+    if config_loader.config.getboolean("SERVER", "enabled", fallback=False):
+        _start_flask(config_loader)
+
+    PhotoPiApp(config_loader=config_loader).run()
 
 
 if __name__ == '__main__':
