@@ -3,6 +3,7 @@ import configparser
 import json
 import locale
 import os
+from importlib import resources
 from typing import Dict, Optional, Tuple
 
 
@@ -93,8 +94,7 @@ class ConfigLoader:
     @staticmethod
     def _load_translations(lang: str) -> dict[str, str]:
         """Load translations from JSON with fallback to English."""
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        lang_dir = os.path.join(base_dir, "lang")
+        lang_dir = str(resources.files("photopi").joinpath("lang"))
 
         def read_json(path: str) -> dict[str, str]:
             try:
@@ -185,7 +185,7 @@ class ConfigLoader:
 
         base_image_dir = self.config.get(
             "IMAGES",
-            "base_dir",
+            "base_image_dir",
             fallback="~/.local/share/photopi/images"
         )
         base_image_dir = os.path.expanduser(base_image_dir)
