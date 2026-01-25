@@ -14,8 +14,6 @@ from kivy.config import Config
 # Kivy configuration must be set before importing other Kivy modules
 Config.set('kivy', 'log_level', 'warning')
 Config.set('kivy', 'keyboard_mode', 'systemanddock')
-kb_path = str(resources.files('photopi').joinpath('lang/keyboard.json'))
-Config.set('kivy', 'keyboard_layout', kb_path)
 Config.set('graphics', 'fullscreen', '1')
 Config.set('graphics', 'show_cursor', '0')
 
@@ -76,7 +74,14 @@ def _start_flask(config: Dict[str, Any]) -> Thread:
 def main() -> None:
     config_loader = ConfigLoader()
     config = config_loader.load_all()
-    config_loader.setup_language(config['general'].get("language", "en"))
+    lang = config['general'].get("language", "en")
+    config_loader.setup_language(lang)
+
+    kb_name = f"lang/keyboard_{lang}.json"
+    kb_path = resources.files('photopi').joinpath(kb_name)
+    if not kb_path.is_file():
+        kb_path = resources.files('photopi').joinpath('lang/keyboard_en.json')
+    Config.set('kivy', 'keyboard_layout', str(kb_path))
 
     if config['server'].get('enabled', False):
         _start_flask(config)
