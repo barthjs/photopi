@@ -1,3 +1,4 @@
+from threading import Lock
 from typing import Optional, Any
 
 import numpy as np
@@ -18,11 +19,19 @@ class LivePreview(Image):
     """
     overlay_path: StringProperty = StringProperty("")
 
+    _cam_instance = None
+    _cam_running = False
+    _lock = Lock()
+
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         self.overlay_image: Optional[PILImage.Image] = None
-        self.cam = Picamera2()
-        self.cam.options["quality"] = 95
+
+        with LivePreview._lock:
+            if LivePreview._cam_instance is None:
+                LivePreview._cam_instance = Picamera2()
+                LivePreview._cam_instance.options["quality"] = 95
+            self.cam = LivePreview._cam_instance
 
         self.preview_config = self.cam.create_preview_configuration(
             main={"size": (800, 480), "format": "BGR888"},
@@ -34,8 +43,17 @@ class LivePreview(Image):
             transform=Transform(hflip=0, vflip=1)
         )
 
-        self.cam.configure(self.preview_config)
-        self.cam.start()
+        with LivePreview._lock:
+            if not LivePreview._cam_running:
+                try:
+                    self.cam.configure(self.preview_config)
+                    self.cam.start()
+                    LivePreview._cam_running = True
+                except RuntimeError as e:
+                    if "Camera in Running state" in str(e):
+                        LivePreview._cam_running = True
+                    else:
+                        raise e
 
     def on_overlay_path(self, instance: Any, value: str) -> None:
         """
@@ -56,7 +74,8 @@ class LivePreview(Image):
 
     def update_frame(self, dt: float) -> None:
         """Capture a frame from the camera, apply overlay if available, and update texture."""
-        frame = self.cam.capture_array()
+        with LivePreview._lock:
+            frame = self.cam.capture_array()
 
         if self.overlay_image:
             frame_image = PILImage.fromarray(frame)

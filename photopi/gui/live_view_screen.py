@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional
 from PIL import Image as PilImage
 from kivy.clock import Clock
 from kivy.uix.screenmanager import Screen
+from photopi.camera.live_preview import LivePreview
 
 
 # noinspection PyProtectedMember,PyUnresolvedReferences,PyUnusedLocal
@@ -91,8 +92,10 @@ class LiveViewScreen(Screen):
     def _capture_image(self) -> None:
         """Capture an image from the camera and save it with an optional overlay."""
         live_preview = self.ids.live_preview
-        live_preview.cam.switch_mode(live_preview.capture_config)
-        frame = live_preview.cam.capture_array()
+        with LivePreview._lock:
+            live_preview.cam.switch_mode(live_preview.capture_config)
+            frame = live_preview.cam.capture_array()
+            live_preview.cam.switch_mode(live_preview.preview_config)
 
         if frame is None:
             raise RuntimeError("Failed to capture image from camera.")
@@ -119,8 +122,6 @@ class LiveViewScreen(Screen):
             ) from e
         except Exception as e:
             raise RuntimeError(f"Unexpected error while saving image '{filename}': {e}") from e
-        finally:
-            live_preview.cam.switch_mode(live_preview.preview_config)
 
     def _apply_overlay(self, pil_image: PilImage.Image) -> None:
         """Apply an overlay to the image if available."""
