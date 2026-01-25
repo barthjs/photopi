@@ -31,12 +31,14 @@ class EmailScreen(Screen):
         """Starts the email sending process in a separate thread."""
         recipient_email = self.ids.email_input.text.strip()
         if "@" in recipient_email and 254 >= len(recipient_email) >= 6:
-            self.ids.email_label.text = builtins._("Sending email...")
             self.hide_input_fields()
+            self.update_label(builtins._("Sending email..."))
 
-            threading.Thread(target=self._send_email, args=(recipient_email,), daemon=True).start()
+            Clock.schedule_once(
+                lambda dt: threading.Thread(target=self._send_email, args=(recipient_email,), daemon=True).start()
+            )
         else:
-            self.ids.email_label.text = builtins._("Please enter a valid email address.")
+            self.update_label(builtins._("Please enter a valid email address."))
 
     def _send_email(self, recipient_email):
         """
@@ -161,14 +163,20 @@ class EmailScreen(Screen):
     def show_input_fields(self, dt: Optional[float] = None) -> None:
         """Make the email input fields visible."""
         self.ids.email_input.opacity = 1
+        self.ids.email_input.disabled = False
         self.ids.email_send.opacity = 1
+        self.ids.email_send.disabled = False
         self.ids.email_abort.opacity = 1
+        self.ids.email_abort.disabled = False
 
     def hide_input_fields(self, dt: Optional[float] = None) -> None:
         """Make the email input fields invisible."""
         self.ids.email_input.opacity = 0
+        self.ids.email_input.disabled = True
         self.ids.email_send.opacity = 0
+        self.ids.email_send.disabled = True
         self.ids.email_abort.opacity = 0
+        self.ids.email_abort.disabled = True
 
     def return_to_welcome_screen(self, dt: Optional[float] = None) -> None:
         """Navigate back to the welcome screen."""
@@ -177,12 +185,12 @@ class EmailScreen(Screen):
     def on_enter(self) -> None:
         """Reset the screen state when it is entered."""
         if self.email_config["enabled"]:
-            self.ids.email_label.text = builtins._("Enter your E-Mail")
-            self.ids.email_input.text = ""
             self.show_input_fields()
+            self.update_label(builtins._("Enter your E-Mail"))
+            self.ids.email_input.text = ""
             self.attempts = 0
             return
 
-        self.ids.email_label.text = builtins._("Email sending is disabled.")
+        self.update_label(builtins._("Email sending is disabled."))
         self.hide_input_fields()
         Clock.schedule_once(self.return_to_welcome_screen, 10)
