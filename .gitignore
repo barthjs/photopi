@@ -1,6 +1,8 @@
+.idea
+.venv
 *.py[codz]
-dist/
 *.egg-info/
+dist/
 images/
 overlays/
 config.ini
