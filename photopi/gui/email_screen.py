@@ -24,6 +24,7 @@ class EmailScreen(Screen):
         self.dialog: Optional[MDDialog] = None
         self.attempts: int = 0
         self.max_attempts: int = 5
+        self.is_sending: bool = False
 
     def set_attachment_dir(self, attachment_dir: str) -> None:
         """Set the directory containing attachments to send."""
@@ -31,14 +32,17 @@ class EmailScreen(Screen):
 
     def on_send_pressed(self, instance: Any) -> None:
         """Starts the email sending process in a separate thread."""
+        if self.is_sending:
+            return
+
         recipient_email = self.ids.email_input.text.strip()
         if "@" in recipient_email and 254 >= len(recipient_email) >= 6:
+            self.is_sending = True
             self.hide_input_fields()
             self.update_label(builtins._("Sending email..."))
 
             Clock.schedule_once(
-                lambda dt: threading.Thread(target=self._send_email, args=(recipient_email,), daemon=True).start()
-            )
+                lambda dt: threading.Thread(target=self._send_email, args=(recipient_email,), daemon=True).start())
         else:
             self.update_label(builtins._("Please enter a valid email address."))
 
@@ -94,6 +98,8 @@ class EmailScreen(Screen):
                     )
                 )
                 Clock.schedule_once(self.return_to_welcome_screen, 60)
+        finally:
+            self.is_sending = False
 
     def _create_email_message(self, recipient_email: str) -> EmailMessage:
         """Create and return the email message object."""
