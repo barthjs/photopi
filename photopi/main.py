@@ -1,4 +1,5 @@
 from threading import Thread
+from typing import Any, Dict
 
 import kivy
 from kivy.lang import Builder
@@ -16,7 +17,7 @@ Config.set('kivy', 'keyboard_mode', 'systemanddock')
 kb_path = str(resources.files('photopi').joinpath('lang/keyboard.json'))
 Config.set('kivy', 'keyboard_layout', kb_path)
 Config.set('graphics', 'fullscreen', '1')
-Config.set('input', 'mouse', '')
+Config.set('graphics', 'show_cursor', '0')
 
 from kivymd.app import MDApp
 from kivy.uix.screenmanager import ScreenManager, NoTransition
@@ -28,11 +29,9 @@ from photopi.config.config_loader import ConfigLoader
 
 
 class PhotoPiApp(MDApp):
-    def __init__(self, config_loader: ConfigLoader, **kwargs):
+    def __init__(self, config: Dict[str, Any], **kwargs):
         super().__init__(**kwargs)
-        self.config_loader = config_loader
-        self.email_config = self.config_loader.load_email()
-        self.images_config = self.config_loader.load_images()
+        self.config_data = config
 
         # Create a ScreenManager to switch between screens
         self.screen_manager = ScreenManager()
@@ -52,22 +51,21 @@ class PhotoPiApp(MDApp):
         self.theme_cls.primary_hue = "900"
 
         # Add Screens to the ScreenManager
-        self.screen_manager.add_widget(WelcomeScreen(name='welcome_screen'))
-        self.screen_manager.add_widget(LiveViewScreen(name='live_view_screen', images_config=self.images_config))
-        self.screen_manager.add_widget(EmailScreen(name='email_screen', email_config=self.email_config))
+        self.screen_manager.add_widget(WelcomeScreen(name='welcome_screen', config=self.config_data))
+        self.screen_manager.add_widget(LiveViewScreen(name='live_view_screen', config=self.config_data))
+        self.screen_manager.add_widget(EmailScreen(name='email_screen', config=self.config_data))
 
         return self.screen_manager
 
 
-def _start_flask(config_loader: ConfigLoader) -> Thread:
+def _start_flask(config: Dict[str, Any]) -> Thread:
     """
     Start the Flask app in a background daemon thread. The thread will exit with the main process.
     """
-    app = create_app(config_loader)
-    config = config_loader.load_server()
+    app = create_app(config)
 
     def _run():
-        app.run(host=config['host'], port=config['port'], debug=False, use_reloader=False)
+        app.run(host=config['server']['host'], port=config['server']['port'], debug=False, use_reloader=False)
 
     t = Thread(target=_run, daemon=True)
     t.start()
@@ -77,12 +75,13 @@ def _start_flask(config_loader: ConfigLoader) -> Thread:
 
 def main() -> None:
     config_loader = ConfigLoader()
-    config_loader.setup_language()
+    config = config_loader.load_all()
+    config_loader.setup_language(config['general'].get("language", "en"))
 
-    if config_loader.config.getboolean("SERVER", "enabled", fallback=False):
-        _start_flask(config_loader)
+    if config['server'].get('enabled', False):
+        _start_flask(config)
 
-    PhotoPiApp(config_loader=config_loader).run()
+    PhotoPiApp(config=config).run()
 
 
 if __name__ == '__main__':

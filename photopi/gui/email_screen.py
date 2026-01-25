@@ -15,9 +15,11 @@ from kivymd.uix.dialog import MDDialog
 class EmailScreen(Screen):
     """Kivy screen that handles sending images via email."""
 
-    def __init__(self, email_config: Dict[str, str | int | bool], **kwargs: Any) -> None:
+    def __init__(self, config: Dict[str, Any], **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.email_config: Dict[str, str | int | bool] = email_config
+        self.config = config
+        self.email_config: Dict[str, str | int | bool] = config["email"]
+        self.general_config = config["general"]
         self.attachment_dir: Optional[str] = None
         self.dialog: Optional[MDDialog] = None
         self.attempts: int = 0
@@ -98,10 +100,11 @@ class EmailScreen(Screen):
         msg = EmailMessage()
         msg["From"] = self.email_config["sender_email"]
         msg["To"] = recipient_email
-        msg["Subject"] = builtins._("Your PhotoBox Images")
+        msg["Subject"] = builtins._("Your {} Images").format(self.general_config["name"])
 
-        html_body = f"<h1>{builtins._('Thank you for using PhotoPi!')}</h1><p>{builtins._('Your images are attached.')}</p>"
-        plain_body = f"{builtins._('Thank you for using PhotoPi!')}\n{builtins._('Your images are attached.')}"
+        thank_you = builtins._("Thank you for using {}!").format(self.general_config["name"])
+        html_body = f"<h1>{thank_you}</h1><p>{builtins._('Your images are attached.')}</p>"
+        plain_body = f"{thank_you}\n{builtins._('Your images are attached.')}"
         msg.set_content(plain_body)
         msg.add_alternative(html_body, subtype="html")
         return msg

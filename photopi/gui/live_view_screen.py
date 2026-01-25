@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional
 from PIL import Image as PilImage
 from kivy.clock import Clock
 from kivy.uix.screenmanager import Screen
+
 from photopi.camera.live_preview import LivePreview
 
 
@@ -13,12 +14,13 @@ from photopi.camera.live_preview import LivePreview
 class LiveViewScreen(Screen):
     """Kivy screen handling live camera preview and image capture sequence."""
 
-    def __init__(self, images_config: Dict[str, Optional[str] | int], **kwargs: Any) -> None:
+    def __init__(self, config: Dict[str, Any], **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.inactive: bool = True
         self.dir_index: Optional[int] = None
         self.countdown: Optional[int] = None
         self.image_count: int = 0
+        images_config = config["images"]
         self.base_image_dir = images_config.get("base_image_dir")
         self.max_image_count = images_config["max_image_count"]
         self.overlay_path = images_config.get("final_overlay")

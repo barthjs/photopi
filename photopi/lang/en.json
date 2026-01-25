@@ -16,8 +16,8 @@
     "Sending email...": "Sending email...",
     "Start Capture": "Start Capture",
     "Start": "Start",
-    "Thank you for using PhotoPi!": "Thank you for using PhotoPi!",
-    "Welcome to PhotoPi": "Welcome to PhotoPi",
-    "Your PhotoBox Images": "Your PhotoBox Images",
+    "Thank you for using {}!": "Thank you for using {}!",
+    "Welcome to {}": "Welcome to {}",
+    "Your {} Images": "Your {} Images",
     "Your images are attached.": "Your images are attached."
 }

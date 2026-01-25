@@ -4,7 +4,7 @@ import json
 import locale
 import os
 from importlib import resources
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 
 class ConfigLoader:
@@ -12,7 +12,6 @@ class ConfigLoader:
 
     - Reads config.ini from the program's current working directory if present; otherwise from ~/.config/photopi.
     - If no config.ini exists, creates ~/.config/photopi and writes a sample config.ini with defaults.
-    - Provides helpers to set up language (gettext), load email and image-related config.
     """
 
     def __init__(self, config_path: Optional[str] = None) -> None:
@@ -54,7 +53,8 @@ class ConfigLoader:
         """Hardcoded minimal default config in case config.ini is missing."""
         return (
             "[GENERAL]\n"
-            "language = en\n\n"
+            "language = en\n"
+            "name = PhotoPi\n\n"
             "[EMAIL]\n"
             "enabled = true\n"
             "smtp_server = \n"
@@ -72,9 +72,19 @@ class ConfigLoader:
             "port = 8080\n"
         )
 
-    def setup_language(self) -> None:
+    def load_all(self) -> Dict[str, Any]:
+        """Returns all configuration in a single dictionary."""
+        return {
+            "general": self.load_general(),
+            "email": self.load_email(),
+            "images": self.load_images(),
+            "server": self.load_server(),
+        }
+
+    def setup_language(self, lang: Optional[str] = None) -> None:
         """Sets up JSON-based translation and installs builtins._ for KV/Python."""
-        lang = self.config.get("GENERAL", "language", fallback="").lower()
+        if lang is None:
+            lang = self.config.get("GENERAL", "language", fallback="").lower()
 
         if lang not in ("en", "de"):
             # Fallback to system default locale, supported: en, de
@@ -116,6 +126,13 @@ class ConfigLoader:
         # primary overrides fallback
         return {**fallback, **primary}
 
+    def load_general(self) -> Dict[str, str]:
+        """Returns general configuration."""
+        name = self.config.get("GENERAL", "name", fallback="PhotoPi").strip()
+        language = self.config.get("GENERAL", "language", fallback="en").strip().lower()
+
+        return {"name": name, "language": language}
+
     def load_email(self) -> Dict[str, str | int | bool]:
         """Returns email-related configuration."""
         try:
@@ -148,12 +165,13 @@ class ConfigLoader:
             return {"enabled": False}
 
         email_config["enabled"] = True
+
         return email_config
 
     def load_images(self) -> Dict[str, Optional[str] | int]:
         """
         Loads images configuration and determines overlay files.
-        Searches first in program overlays/, then in ~/.config/photopi/overlays/.
+        Searches first in program relative path overlays/, then in ~/.config/photopi/overlays/.
         Returns absolute file paths for overlays.
         """
         preview_file: Optional[str] = None
@@ -174,7 +192,7 @@ class ConfigLoader:
                 pass
             return p, f
 
-        # Search programm root overlays first
+        # Search program root overlays first
         program_overlays = os.path.join(self._program_root, "overlays")
         p1, f1 = find_overlays_in_dir(program_overlays)
         preview_file = preview_file or p1
