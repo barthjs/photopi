@@ -16,6 +16,9 @@ Config.set('kivy', 'log_level', 'warning')
 Config.set('kivy', 'keyboard_mode', 'systemanddock')
 Config.set('graphics', 'fullscreen', '1')
 Config.set('graphics', 'show_cursor', '0')
+# When using the RaspberryPi Touch Display, inputs are duplicated
+# https://github.com/kivy/kivy/issues/4253
+Config.set('input', 'mouse', '')
 
 from kivymd.app import MDApp
 from kivy.uix.screenmanager import ScreenManager, NoTransition
@@ -31,7 +34,6 @@ class PhotoPiApp(MDApp):
         super().__init__(**kwargs)
         self.config_data = config
 
-        # Create a ScreenManager to switch between screens
         self.screen_manager = ScreenManager()
         self.screen_manager.transition = NoTransition()
 
@@ -48,7 +50,6 @@ class PhotoPiApp(MDApp):
         self.theme_cls.primary_palette = "Teal"
         self.theme_cls.primary_hue = "900"
 
-        # Add Screens to the ScreenManager
         self.screen_manager.add_widget(WelcomeScreen(name='welcome_screen', config=self.config_data))
         self.screen_manager.add_widget(LiveViewScreen(name='live_view_screen', config=self.config_data))
         self.screen_manager.add_widget(EmailScreen(name='email_screen', config=self.config_data))
@@ -74,6 +75,7 @@ def _start_flask(config: Dict[str, Any]) -> Thread:
 def main() -> None:
     config_loader = ConfigLoader()
     config = config_loader.load_all()
+
     lang = config['general'].get("language", "en")
     config_loader.setup_language(lang)
 
