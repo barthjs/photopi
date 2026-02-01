@@ -53,8 +53,8 @@ class ConfigLoader:
         """Hardcoded minimal default config in case config.ini is missing."""
         return (
             "[GENERAL]\n"
-            "language = en\n"
-            "name = PhotoPi\n\n"
+            "name = PhotoPi\n"
+            "language = en\n\n"
             "[EMAIL]\n"
             "enabled = true\n"
             "smtp_server = \n"
@@ -130,11 +130,16 @@ class ConfigLoader:
         """Returns general configuration."""
         name = self.config.get("GENERAL", "name", fallback="PhotoPi").strip()
         language = self.config.get("GENERAL", "language", fallback="en").strip().lower()
+        welcome_message = self.config.get("GENERAL", "welcome_message", fallback="").strip()
 
-        return {"name": name, "language": language}
+        return {
+            "name": name,
+            "language": language,
+            "welcome_message": welcome_message
+        }
 
     def load_email(self) -> Dict[str, str | int | bool]:
-        """Returns email-related configuration."""
+        """Returns email-related configuration including optional custom texts."""
         try:
             enabled = self.config.getboolean("EMAIL", "enabled", fallback=False)
         except ValueError:
@@ -143,8 +148,8 @@ class ConfigLoader:
         if not enabled:
             return {"enabled": False}
 
-        email_config = {}
-        keys = [
+        email_config: Dict[str, str | int | bool] = {}
+        mandatory_keys = [
             "smtp_server",
             "smtp_port",
             "smtp_user",
@@ -153,11 +158,15 @@ class ConfigLoader:
             "admin_email",
         ]
 
-        for key in keys:
+        for key in mandatory_keys:
             value = self.config.get("EMAIL", key, fallback="").strip()
             if not value:
                 return {"enabled": False}
             email_config[key] = value
+
+        optional_keys = ["subject", "headline", "body", "footer"]
+        for key in optional_keys:
+            email_config[key] = self.config.get("EMAIL", key, fallback="").strip()
 
         try:
             email_config["smtp_port"] = int(email_config["smtp_port"])

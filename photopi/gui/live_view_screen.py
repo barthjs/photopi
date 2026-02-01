@@ -147,8 +147,8 @@ class LiveViewScreen(Screen):
         if self.dir_index is None:
             return
 
-        email_screen = self.manager.get_screen("email_screen")
         attachment_dir = os.path.join(self.base_image_dir, f"{self.dir_index:04d}")
+        email_screen = self.manager.get_screen("email_screen")
         email_screen.set_attachment_dir(attachment_dir)
         self.manager.current = "email_screen"
 

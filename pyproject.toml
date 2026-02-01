@@ -53,6 +53,6 @@ packages = ["photopi"]
 [tool.setuptools.package-data]
 photopi = [
     "photopi.kv",
-    "lang/*.json",
-    "templates/*.html"
+    "lang/*",
+    "templates/*"
 ]
