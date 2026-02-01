@@ -22,8 +22,9 @@ class LiveViewScreen(Screen):
         self.image_count: int = 0
         images_config = config["images"]
         self.base_image_dir = images_config.get("base_image_dir")
-        self.max_image_count = images_config["max_image_count"]
+        self.max_image_count = images_config.get("max_image_count")
         self.overlay_path = images_config.get("final_overlay")
+        self.file_prefix = images_config.get("file_prefix")
 
     def start_sequence(self, instance: Any) -> None:
         """Start the image capture sequence."""
@@ -107,7 +108,8 @@ class LiveViewScreen(Screen):
 
         dir_path = os.path.join(self.base_image_dir, f"{self.dir_index:04d}")
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        filename = os.path.join(dir_path, f"PhotoPi-{timestamp}_{self.image_count}.jpg")
+
+        filename = os.path.join(dir_path, f"{self.file_prefix}-{timestamp}_{self.image_count}.jpg")
 
         try:
             pil_image = PilImage.fromarray(frame).transpose(PilImage.FLIP_TOP_BOTTOM)
@@ -140,17 +142,17 @@ class LiveViewScreen(Screen):
         """Show a completion message and schedule transition to the email screen."""
         self.ids.countdown_label.opacity = 1
         self.ids.countdown_label.text = builtins._("Capture Complete!")
-        Clock.schedule_once(self._return_to_email_screen, 4)
+        Clock.schedule_once(self._return_to_preview_screen, 4)
 
-    def _return_to_email_screen(self, dt: float) -> None:
-        """Navigate to the email screen with an attachment directory set."""
+    def _return_to_preview_screen(self, dt: float) -> None:
+        """Navigate to the preview screen with an attachment directory set."""
         if self.dir_index is None:
             return
 
         attachment_dir = os.path.join(self.base_image_dir, f"{self.dir_index:04d}")
-        email_screen = self.manager.get_screen("email_screen")
-        email_screen.set_attachment_dir(attachment_dir)
-        self.manager.current = "email_screen"
+        preview_screen = self.manager.get_screen("preview_screen")
+        preview_screen.set_attachment_dir(attachment_dir)
+        self.manager.current = "preview_screen"
 
     def _return_to_welcome_screen(self, dt: float) -> None:
         """Navigate to the welcome screen."""

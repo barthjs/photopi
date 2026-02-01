@@ -54,7 +54,23 @@ class EmailScreen(Screen):
         self._update_label(builtins._("email_disabled"), is_error=True)
         self._hide_input_fields()
 
+        # Fallback if email is disabled: return to the welcome screen
         Clock.schedule_once(self._return_to_welcome_screen, 10)
+
+    def on_abort_pressed(self) -> None:
+        """Show a confirmation dialog to abort sending the email."""
+        if self.dialog:
+            self.dialog.dismiss()
+
+        self.dialog = MDDialog(
+            title=builtins._("email_abort_dialog_title"),
+            text=builtins._("email_abort_dialog_text"),
+            buttons=[
+                MDFlatButton(text=builtins._("email_abort_dialog_back"), on_press=self._dismiss_dialog),
+                MDFlatButton(text=builtins._("email_abort_dialog_confirm"), on_press=self._abort_email_send)
+            ]
+        )
+        self.dialog.open()
 
     def on_send_pressed(self, instance: Any) -> None:
         """Starts the email sending process in a separate thread if validation passes."""
@@ -74,21 +90,6 @@ class EmailScreen(Screen):
         else:
             self._update_label(builtins._("email_invalid"), is_error=True)
 
-    def on_abort_pressed(self) -> None:
-        """Show a confirmation dialog to abort sending the email."""
-        if self.dialog:
-            self.dialog.dismiss()
-
-        self.dialog = MDDialog(
-            title=builtins._("abort_dialog_title"),
-            text=builtins._("abort_dialog_text"),
-            buttons=[
-                MDFlatButton(text=builtins._("abort_dialog_back"), on_press=self._dismiss_dialog),
-                MDFlatButton(text=builtins._("abort_dialog_confirm"), on_press=self._abort_email_send)
-            ]
-        )
-        self.dialog.open()
-
     def _update_label(self, text: str, is_error: bool = False) -> None:
         """Update the label text and color on the UI thread."""
         self.ids.email_label.text = text
@@ -100,7 +101,12 @@ class EmailScreen(Screen):
             self.ids.email_label.text_color = App.get_running_app().theme_cls.primary_color
 
     def _return_to_welcome_screen(self, dt: Optional[float] = None) -> None:
+        """Return to the welcome screen after sending the email or to many failed attempts."""
         self.manager.current = "welcome_screen"
+
+    def _return_to_preview_screen(self, dt: Optional[float] = None) -> None:
+        """Return to the preview screen if the user aborts manually."""
+        self.manager.current = "preview_screen"
 
     def _show_input_fields(self, dt: Optional[float] = None) -> None:
         """Reset UI to interactive state."""
@@ -234,4 +240,4 @@ class EmailScreen(Screen):
     def _abort_email_send(self, instance: Any) -> None:
         if self.dialog:
             self.dialog.dismiss()
-        self._return_to_welcome_screen()
+        self._return_to_preview_screen()

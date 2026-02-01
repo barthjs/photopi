@@ -65,7 +65,8 @@ class ConfigLoader:
             "admin_email = \n\n"
             "[IMAGES]\n"
             "base_image_dir = ~/.local/share/photopi/images\n"
-            "max_image_count = 4\n\n"
+            "max_image_count = 4\n"
+            "file_prefix = PhotoPi\n\n"
             "[SERVER]\n"
             "enabled = false\n"
             "host = *\n"
@@ -228,11 +229,17 @@ class ConfigLoader:
         except ValueError:
             max_image_count = 4
 
+        file_prefix = self.config.get("IMAGES", "file_prefix", fallback="").strip()
+
+        if not file_prefix:
+            file_prefix = self.config.get("GENERAL", "name", fallback="PhotoPi").strip()
+
         return {
             "base_image_dir": base_image_dir,
             "max_image_count": max_image_count,
             "preview_overlay": preview_file,
             "final_overlay": final_file,
+            "file_prefix": file_prefix
         }
 
     def load_server(self) -> Dict[str, Optional[str] | int]:

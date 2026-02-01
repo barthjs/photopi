@@ -6,6 +6,8 @@
 #:import MDLabel kivymd.uix.label
 #:import MDSeparator kivymd.uix.card.MDSeparator
 #:import MDSpinner kivymd.uix.spinner.MDSpinner
+#:import MDGridLayout kivymd.uix.gridlayout.MDGridLayout
+#:import ScrollView kivy.uix.scrollview.ScrollView
 
 <WelcomeScreen>:
     MDFloatLayout:
@@ -63,6 +65,52 @@
             size: dp(300), dp(100)
             pos_hint: {"center_x": 0.5, "center_y": 0.1}
             on_press: root.start_sequence(self)
+
+<PreviewScreen>:
+    MDFloatLayout:
+        MDLabel:
+            text: _("preview_title")
+            font_style: "H4"
+            theme_text_color: "Custom"
+            text_color: app.theme_cls.primary_color
+            halign: "center"
+            size_hint_y: None
+            height: dp(50)
+            pos_hint: {"center_x": 0.5, "top": 0.98}
+
+        ScrollView:
+            size_hint: 0.9, 0.70
+            pos_hint: {"center_x": 0.5, "top": 0.88}
+            do_scroll_x: False
+            do_scroll_y: True
+            bar_width: dp(10)
+
+            GridLayout:
+                id: preview_grid
+                cols: 2
+                spacing: dp(10)
+                padding: dp(10)
+                size_hint_y: None
+                height: self.minimum_height
+
+        MDFillRoundFlatIconButton:
+            text: _("preview_btn_discard")
+            font_size: "24sp"
+            icon: "delete"
+            md_bg_color: 0.8, 0, 0, 1
+            size_hint: None, None
+            size: dp(220), dp(80)
+            pos_hint: {"center_x": 0.3, "center_y": 0.08}
+            on_press: root.on_discard_pressed()
+
+        MDFillRoundFlatIconButton:
+            text: _("preview_btn_continue")
+            font_size: "24sp"
+            icon: "check"
+            size_hint: None, None
+            size: dp(220), dp(80)
+            pos_hint: {"center_x": 0.7, "center_y": 0.08}
+            on_press: root.on_keep_pressed()
 
 <EmailScreen>:
     MDFloatLayout:
