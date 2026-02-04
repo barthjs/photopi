@@ -1,11 +1,12 @@
 import builtins
 import os
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from PIL import Image as PilImage
 from kivy.clock import Clock
 from kivy.uix.screenmanager import Screen
+from kivymd.app import MDApp
 
 from photopi.camera.live_preview import LivePreview
 
@@ -14,17 +15,12 @@ from photopi.camera.live_preview import LivePreview
 class LiveViewScreen(Screen):
     """Kivy screen handling live camera preview and image capture sequence."""
 
-    def __init__(self, config: Dict[str, Any], **kwargs: Any) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.inactive: bool = True
         self.dir_index: Optional[int] = None
         self.countdown: Optional[int] = None
         self.image_count: int = 0
-        images_config = config["images"]
-        self.base_image_dir = images_config.get("base_image_dir")
-        self.max_image_count = images_config.get("max_image_count")
-        self.overlay_path = images_config.get("final_overlay")
-        self.file_prefix = images_config.get("file_prefix")
 
     def start_sequence(self, instance: Any) -> None:
         """Start the image capture sequence."""
@@ -35,10 +31,15 @@ class LiveViewScreen(Screen):
         self.ids.capture_button.opacity = 0
         Clock.schedule_once(self._start_countdown, 1)
 
+    @property
+    def config(self):
+        """Return the application configuration."""
+        return MDApp.get_running_app().app_config
+
     def _set_next_dir_index(self) -> None:
         """Find the next available directory index starting from 0000."""
         dir_index = 0
-        while os.path.exists(os.path.join(self.base_image_dir, f"{dir_index:04d}")):
+        while os.path.exists(os.path.join(self.config.images.base_image_dir, f"{dir_index:04d}")):
             dir_index += 1
         self.dir_index = dir_index
 
@@ -47,7 +48,7 @@ class LiveViewScreen(Screen):
         if self.dir_index is None:
             raise ValueError("Directory index must be set before creating image directory.")
 
-        dir_name = os.path.join(self.base_image_dir, f"{self.dir_index:04d}")
+        dir_name = os.path.join(self.config.images.base_image_dir, f"{self.dir_index:04d}")
         try:
             os.makedirs(dir_name, exist_ok=False)
         except FileExistsError:
@@ -84,10 +85,10 @@ class LiveViewScreen(Screen):
             self._capture_image()
             self.image_count += 1
             self.ids.progress_label.text = builtins._("Images: {}/{}").format(
-                self.image_count, self.max_image_count
+                self.image_count, self.config.images.max_image_count
             )
 
-            if self.image_count >= self.max_image_count:
+            if self.image_count >= self.config.images.max_image_count:
                 self._end_sequence()
             else:
                 Clock.schedule_once(self._start_countdown, 5)
@@ -106,10 +107,10 @@ class LiveViewScreen(Screen):
         if self.dir_index is None:
             raise ValueError("Directory index is not set for saving images.")
 
-        dir_path = os.path.join(self.base_image_dir, f"{self.dir_index:04d}")
+        dir_path = os.path.join(self.config.images.base_image_dir, f"{self.dir_index:04d}")
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
-        filename = os.path.join(dir_path, f"{self.file_prefix}-{timestamp}_{self.image_count}.jpg")
+        filename = os.path.join(dir_path, f"{self.config.images.file_prefix}-{timestamp}_{self.image_count}.jpg")
 
         try:
             pil_image = PilImage.fromarray(frame).transpose(PilImage.FLIP_TOP_BOTTOM)
@@ -129,11 +130,11 @@ class LiveViewScreen(Screen):
 
     def _apply_overlay(self, pil_image: PilImage.Image) -> None:
         """Apply an overlay to the image if available."""
-        if not self.overlay_path:
+        if not self.config.images.final_overlay:
             return
 
         try:
-            overlay = PilImage.open(self.overlay_path).resize((4000, 2400)).convert("RGBA")
+            overlay = PilImage.open(self.config.images.final_overlay).resize((4000, 2400)).convert("RGBA")
             pil_image.paste(overlay, (0, 0), overlay)
         except Exception as e:
             print(f"Warning: Could not load overlay. Error: {e}")
@@ -149,7 +150,7 @@ class LiveViewScreen(Screen):
         if self.dir_index is None:
             return
 
-        attachment_dir = os.path.join(self.base_image_dir, f"{self.dir_index:04d}")
+        attachment_dir = os.path.join(self.config.images.base_image_dir, f"{self.dir_index:04d}")
         preview_screen = self.manager.get_screen("preview_screen")
         preview_screen.set_attachment_dir(attachment_dir)
         self.manager.current = "preview_screen"

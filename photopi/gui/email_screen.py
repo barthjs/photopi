@@ -12,6 +12,7 @@ from jinja2 import Environment, PackageLoader, select_autoescape
 from kivy.clock import Clock
 from kivy.properties import BooleanProperty
 from kivy.uix.screenmanager import Screen
+from kivymd.app import MDApp
 from kivymd.uix.button import MDFlatButton
 from kivymd.uix.dialog import MDDialog
 
@@ -21,11 +22,8 @@ class EmailScreen(Screen):
     ui_active = BooleanProperty(True)
     is_sending = BooleanProperty(False)
 
-    def __init__(self, config: Dict[str, Any], **kwargs: Any) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.config: Dict[str, Any] = config
-        self.email_config: Dict[str, str | int | bool] = config["email"]
-        self.general_config: Dict[str, Any] = config["general"]
         self.attachment_dir: Optional[str] = None
         self.attempts: int = 0
         self.max_attempts: int = 5
@@ -38,13 +36,18 @@ class EmailScreen(Screen):
             autoescape=select_autoescape(["html", "xml"])
         )
 
+    @property
+    def config(self):
+        """Return the application configuration."""
+        return MDApp.get_running_app().app_config
+
     def set_attachment_dir(self, attachment_dir: str) -> None:
         """Set the directory containing attachments to send."""
         self.attachment_dir = attachment_dir
 
     def on_enter(self) -> None:
         """Prepare screen on entry."""
-        if self.email_config.get("enabled"):
+        if self.config.email.enabled:
             self.ids.email_input.text = ""
             self._update_label(builtins._("email_prompt"))
             self._show_input_fields()
@@ -124,13 +127,13 @@ class EmailScreen(Screen):
             self._attach_images(msg)
 
             with smtplib.SMTP_SSL(
-                self.email_config["smtp_server"],
-                self.email_config["smtp_port"],
+                self.config.email.smtp_server,
+                self.config.email.smtp_port,
                 timeout=20
             ) as server:
                 server.login(
-                    self.email_config["smtp_user"],
-                    self.email_config["smtp_password"]
+                    self.config.email.smtp_user,
+                    self.config.email.smtp_password
                 )
                 server.send_message(msg)
 
@@ -177,7 +180,7 @@ class EmailScreen(Screen):
                 Clock.schedule_once(
                     lambda dt: self._update_label(
                         builtins._("email_limit").format(
-                            self.email_config["admin_email"]
+                            self.config.email.admin_email
                         ), is_error=True
                     )
                 )
@@ -188,17 +191,17 @@ class EmailScreen(Screen):
     def _create_email_message(self, recipient_email: str) -> EmailMessage:
         """Create the EmailMessage using rendered Jinja2 templates."""
         msg = EmailMessage()
-        msg["From"] = self.email_config.get("sender_email")
+        msg["From"] = self.config.email.sender_email
         msg["To"] = recipient_email
 
         # Prioritize config values, fallback to translation keys
-        msg["Subject"] = self.email_config.get("subject") or builtins._("email_subject")
+        msg["Subject"] = self.config.email.subject or builtins._("email_subject")
 
         context: Dict[str, str] = {
-            "language": self.general_config.get("language"),
-            "headline": self.email_config.get("headline") or builtins._("email_headline"),
-            "body_text": self.email_config.get("body") or builtins._("email_body"),
-            "footer_text": self.email_config.get("footer")
+            "language": self.config.general.language,
+            "headline": self.config.email.headline or builtins._("email_headline"),
+            "body_text": self.config.email.body or builtins._("email_body"),
+            "footer_text": self.config.email.footer
         }
 
         # Render both text and HTML versions

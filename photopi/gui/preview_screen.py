@@ -2,13 +2,14 @@ import builtins
 import io
 import os
 import shutil
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from PIL import Image as PilImage
 from kivy.core.image import Image as CoreImage
 from kivy.metrics import dp
 from kivy.uix.image import Image
 from kivy.uix.screenmanager import Screen
+from kivymd.app import MDApp
 from kivymd.uix.button import MDFlatButton
 from kivymd.uix.dialog import MDDialog
 
@@ -16,11 +17,15 @@ from kivymd.uix.dialog import MDDialog
 class PreviewScreen(Screen):
     """Kivy screen that displays a scrollable preview grid and handles discarding/keeping images."""
 
-    def __init__(self, config: Dict[str, Any], **kwargs: Any) -> None:
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.config = config
         self.attachment_dir: Optional[str] = None
         self.dialog: Optional[MDDialog] = None
+
+    @property
+    def config(self):
+        """Return the application configuration."""
+        return MDApp.get_running_app().app_config
 
     def set_attachment_dir(self, attachment_dir: str) -> None:
         """Set the directory containing images to preview."""
@@ -96,7 +101,7 @@ class PreviewScreen(Screen):
 
         if self.attachment_dir and os.path.exists(self.attachment_dir):
             try:
-                base_dir = self.config.get('images').get('base_image_dir')
+                base_dir = self.config.images.base_image_dir
                 trash_root = os.path.join(base_dir, "Trash")
 
                 os.makedirs(trash_root, exist_ok=True)

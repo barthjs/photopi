@@ -1,22 +1,22 @@
 import builtins
-from typing import Any, Dict
+from typing import Any
 
 from kivy.uix.screenmanager import Screen
+from kivymd.app import MDApp
 
 
 class WelcomeScreen(Screen):
-    """Kivy screen for the entrypoint of the application."""
+    """Entrypoint screen of the application."""
 
-    def __init__(self, config: Dict[str, Any], **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-        self.config = config
+    @property
+    def config(self):
+        """Return the application configuration."""
+        return MDApp.get_running_app().app_config
 
     def on_enter(self) -> None:
         """Called when the screen is entered."""
-        custom_msg = self.config.get("general").get("welcome_message")
-
-        if custom_msg:
-            self.ids.welcome_label.text = custom_msg
+        if self.config.general.welcome_message:
+            self.ids.welcome_label.text = self.config.general.welcome_message
         else:
             self.ids.welcome_label.text = builtins._("welcome_message")
 
