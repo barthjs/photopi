@@ -36,6 +36,7 @@ dependencies = [
     "numpy>=2.3.2",
     "picamera2>=0.3.30",
     "pillow>=11.3.0",
+    "pydantic>=2.12.5",
     "Flask>=3.1.1"
 ]
 
