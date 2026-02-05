@@ -9,6 +9,7 @@ class GeneralConfig(BaseModel):
     """Configuration for general application settings."""
     name: str = "PhotoPi"
     language: Literal["en", "de"] = "en"
+    cloud_provider: Optional[Literal["nextcloud"]] = None
     welcome_message: str = ""
 
     @field_validator("language", mode="before")
@@ -70,7 +71,7 @@ class ImageConfig(BaseModel):
 
 
 class EmailConfig(BaseModel):
-    """Configuration for email functionality."""
+    """Configuration for email sharing."""
     enabled: bool = False
     smtp_server: str = ""
     smtp_port: int = Field(default=587, ge=1, le=65535)
@@ -84,8 +85,17 @@ class EmailConfig(BaseModel):
     footer: str = ""
 
 
+class NextcloudConfig(BaseModel):
+    """Configuration for Nextcloud sharing."""
+    url: str = ""
+    username: str = ""
+    password: str = ""
+    folder: str = ""
+
+
 class AppConfig(BaseModel):
     """Configuration object containing all the app's settings."""
     general: GeneralConfig
-    email: EmailConfig
     images: ImageConfig
+    email: EmailConfig
+    nextcloud: NextcloudConfig

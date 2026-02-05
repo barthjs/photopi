@@ -5,7 +5,7 @@ from typing import Optional
 
 from platformdirs import user_config_dir
 
-from photopi.config.models import AppConfig, GeneralConfig, ImageConfig, EmailConfig
+from photopi.config.models import AppConfig, EmailConfig, GeneralConfig, ImageConfig, NextcloudConfig
 
 
 class ConfigLoader:
@@ -35,6 +35,7 @@ class ConfigLoader:
             general=GeneralConfig(**get_section("GENERAL")),
             images=ImageConfig(**get_section("IMAGES")),
             email=EmailConfig(**get_section("EMAIL")),
+            nextcloud=NextcloudConfig(**get_section("NEXTCLOUD"))
         )
 
     def _resolve_config_path(self, custom_path: Optional[str]) -> Path:
@@ -71,6 +72,7 @@ class ConfigLoader:
             "[GENERAL]\n"
             "name = PhotoPi\n"
             "language = en\n\n"
+            "cloud_provider = none\n\n"
             "[IMAGES]\n"
             "base_image_dir = ~/.local/share/photopi/images\n"
             "max_image_count = 4\n"
@@ -82,7 +84,12 @@ class ConfigLoader:
             "smtp_user = \n"
             "smtp_password = \n"
             "sender_email = \n"
-            "admin_email = \n"
+            "admin_email = \n\n"
+            "[NEXTCLOUD]\n"
+            "url = \n"
+            "username = \n"
+            "password = \n"
+            "folder = \n"
         )
 
         try:
