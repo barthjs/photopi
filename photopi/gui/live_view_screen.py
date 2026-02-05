@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any, Optional
 
 from PIL import Image as PilImage
+from kivy.animation import Animation
 from kivy.clock import Clock
 from kivy.uix.screenmanager import Screen
 from kivymd.app import MDApp
@@ -117,6 +118,7 @@ class LiveViewScreen(Screen):
 
     def _capture_image(self) -> None:
         """Capture an image from the camera and save it with an optional overlay."""
+        self._trigger_flash()
         live_preview = self.ids.live_preview
         with LivePreview._lock:
             live_preview.cam.switch_mode(live_preview.capture_config)
@@ -130,7 +132,8 @@ class LiveViewScreen(Screen):
             raise ValueError("Capture directory is not set for saving images.")
 
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        filename = os.path.join(self.current_capture_dir, f"{self.config.images.file_prefix}-{timestamp}_{self.image_count}.jpg")
+        filename = os.path.join(self.current_capture_dir,
+                                f"{self.config.images.file_prefix}-{timestamp}_{self.image_count}.jpg")
 
         try:
             pil_image = PilImage.fromarray(frame).transpose(PilImage.FLIP_TOP_BOTTOM)
@@ -147,6 +150,13 @@ class LiveViewScreen(Screen):
             ) from e
         except Exception as e:
             raise RuntimeError(f"Unexpected error while saving image '{filename}': {e}") from e
+
+    def _trigger_flash(self) -> None:
+        """Trigger a brief white flash animation."""
+        flash = self.ids.flash_widget
+        flash.opacity = 1
+        anim = Animation(opacity=0, duration=0.5)
+        anim.start(flash)
 
     def _apply_overlay(self, pil_image: PilImage.Image) -> None:
         """Apply an overlay to the image if available."""

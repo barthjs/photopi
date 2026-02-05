@@ -8,6 +8,7 @@
 #:import MDSpinner kivymd.uix.spinner.MDSpinner
 #:import MDGridLayout kivymd.uix.gridlayout.MDGridLayout
 #:import ScrollView kivy.uix.scrollview.ScrollView
+#:import Widget kivy.uix.widget.Widget
 
 <WelcomeScreen>:
     MDFloatLayout:
@@ -65,6 +66,17 @@
             size: dp(300), dp(100)
             pos_hint: {"center_x": 0.5, "center_y": 0.1}
             on_press: root.start_sequence(self)
+
+        Widget:
+            id: flash_widget
+            size_hint: 1, 1
+            opacity: 0
+            canvas:
+                Color:
+                    rgba: 1, 1, 1, 1
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
 
 <PreviewScreen>:
     MDFloatLayout:
