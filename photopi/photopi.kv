@@ -112,7 +112,7 @@
             pos_hint: {"center_x": 0.7, "center_y": 0.08}
             on_press: root.on_keep_pressed()
 
-<EmailScreen>:
+<ShareScreen>:
     MDFloatLayout:
         MDLabel:
             id: email_label
@@ -129,14 +129,15 @@
         MDSeparator:
             size_hint_x: 0.85
             pos_hint: {"center_x": 0.5, "center_y": 0.86}
+            opacity: 1 if root.show_email else 0
 
         MDSpinner:
             id: loading_spinner
             size_hint: None, None
             size: dp(60), dp(60)
-            pos_hint: {'center_x': 0.5, 'center_y': 0.5}
-            active: root.is_sending
-            opacity: 1 if root.is_sending else 0
+            pos_hint: {"center_x": 0.5, "center_y": (0.25 if root.show_email else 0.6) if (root.show_cloud and not root.cloud_link) else 0.75}
+            active: root.is_sending or (root.show_cloud and not root.cloud_link)
+            opacity: 1 if (root.is_sending or (root.show_cloud and not root.cloud_link)) else 0
 
         MDTextField:
             id: email_input
@@ -149,29 +150,37 @@
             width: dp(500)
             pos_hint: {"center_x": 0.5, "center_y": 0.75}
             icon_right: "email-outline"
-            opacity: 1 if root.ui_active else 0
-            disabled: not root.ui_active
+            opacity: 1 if (root.ui_active and root.show_email) else 0
+            disabled: not (root.ui_active and root.show_email)
 
         MDFillRoundFlatIconButton:
-            id: email_abort
-            text: _("email_btn_abort")
+            id: share_finish
+            text: _("share_btn_finish")
             font_size: "24sp"
-            icon: "close-circle-outline"
+            icon: "check-circle-outline"
             size_hint: None, None
             size: dp(240), dp(100)
-            pos_hint: {"center_x": 0.3, "center_y": 0.6}
-            on_press: root.on_abort_pressed()
+            pos_hint: {"center_x": 0.3 if root.show_email else 0.5, "center_y": (0.6 if root.show_email else 0.25)}
+            on_press: root.on_finish_pressed()
             opacity: 1 if root.ui_active else 0
             disabled: not root.ui_active
 
         MDFillRoundFlatIconButton:
             id: email_send
-            text: _("email_btn_send")
+            text: _("share_btn_email_send")
             font_size: "24sp"
             icon: "send"
             size_hint: None, None
             size: dp(240), dp(100)
-            pos_hint: {"center_x": 0.68, "center_y": 0.6}
+            pos_hint: {"center_x": 0.65, "center_y": 0.6}
             on_press: root.on_send_pressed(self)
-            opacity: 1 if root.ui_active else 0
-            disabled: not root.ui_active
+            opacity: 1 if (root.ui_active and root.show_email) else 0
+            disabled: not (root.ui_active and root.show_email)
+
+        Image:
+            id: qr_code
+            source: root.qr_code_path
+            size_hint: None, None
+            size: dp(225), dp(225)
+            pos_hint: {"center_x": 0.5, "center_y": (0.25 if root.show_email else 0.6)}
+            opacity: 1 if root.show_cloud and root.qr_code_path else 0

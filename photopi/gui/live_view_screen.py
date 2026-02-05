@@ -13,55 +13,77 @@ from photopi.camera.live_preview import LivePreview
 
 # noinspection PyProtectedMember,PyUnresolvedReferences,PyUnusedLocal
 class LiveViewScreen(Screen):
-    """Kivy screen handling live camera preview and image capture sequence."""
+    """Kivy screen handling live camera preview and image capturing."""
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.inactive: bool = True
-        self.dir_index: Optional[int] = None
+        self.current_capture_dir: Optional[str] = None
         self.countdown: Optional[int] = None
         self.image_count: int = 0
-
-    def start_sequence(self, instance: Any) -> None:
-        """Start the image capture sequence."""
-        self.inactive = False
-        self._set_next_dir_index()
-        self._create_image_dir()
-        self.image_count = 0
-        self.ids.capture_button.opacity = 0
-        Clock.schedule_once(self._start_countdown, 1)
 
     @property
     def config(self):
         """Return the application configuration."""
         return MDApp.get_running_app().app_config
 
-    def _set_next_dir_index(self) -> None:
-        """Find the next available directory index starting from 0000."""
-        dir_index = 0
-        while os.path.exists(os.path.join(self.config.images.base_image_dir, f"{dir_index:04d}")):
-            dir_index += 1
-        self.dir_index = dir_index
+    def on_enter(self) -> None:
+        """Called when the screen is entered; start live preview updates."""
+        self.inactive = True
+        Clock.schedule_once(self._reset_live_preview, 0)
+        Clock.schedule_once(self._check_activity, 60)
+        Clock.schedule_interval(self.ids.live_preview.update_frame, 1.0 / 30.0)
+
+    def on_leave(self) -> None:
+        """Called when the screen is left; stop live preview updates."""
+        Clock.schedule_once(self._reset_live_preview, 0)
+        Clock.unschedule(self.ids.live_preview.update_frame)
+
+    def start_sequence(self, instance: Any) -> None:
+        """Start the image capture sequence."""
+        self.inactive = False
+        self._create_image_dir()
+        self.image_count = 0
+        self.ids.capture_button.opacity = 0
+        Clock.schedule_once(self._start_countdown, 1)
+
+    def _reset_live_preview(self, dt: float) -> None:
+        """Reset the live preview display."""
+        self.ids.live_preview.update_frame(dt)
+        self.ids.progress_label.text = ""
+        self.ids.countdown_label.text = ""
+        self.ids.capture_button.opacity = 1
+
+    def _check_activity(self, dt: float) -> None:
+        """Return to the welcome screen if no activity for a while."""
+        if self.inactive:
+            Clock.schedule_once(self._return_to_welcome_screen, 1)
+
+    def _return_to_welcome_screen(self, dt: float) -> None:
+        """Navigate to the welcome screen."""
+        self.manager.current = "welcome_screen"
 
     def _create_image_dir(self) -> None:
         """Create a new directory for storing captured images."""
-        if self.dir_index is None:
-            raise ValueError("Directory index must be set before creating image directory.")
+        prefix = self.config.images.file_prefix
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        dir_name = os.path.join(self.config.images.base_image_dir, f"{self.dir_index:04d}")
+        # base_image_dir / file_prefix / file_prefix_datetime
+        parent_dir = self.config.images.base_image_dir / prefix
+        dir_name = f"{prefix}_{timestamp}"
+        full_path = parent_dir / dir_name
+
         try:
-            os.makedirs(dir_name, exist_ok=False)
-        except FileExistsError:
-            # Directory exists, possibly from a previous run
-            pass
+            full_path.mkdir(parents=True, exist_ok=True)
+            self.current_capture_dir = str(full_path)
         except PermissionError as e:
             raise PermissionError(
-                f"Permission denied: Cannot create image directory '{dir_name}'. "
+                f"Permission denied: Cannot create image directory '{full_path}'. "
                 "Check directory permissions."
             ) from e
         except OSError as e:
             raise OSError(
-                f"Failed to create image directory '{dir_name}': {e.strerror}"
+                f"Failed to create image directory '{full_path}': {e.strerror}"
             ) from e
 
     def _start_countdown(self, dt: float) -> None:
@@ -104,13 +126,11 @@ class LiveViewScreen(Screen):
         if frame is None:
             raise RuntimeError("Failed to capture image from camera.")
 
-        if self.dir_index is None:
-            raise ValueError("Directory index is not set for saving images.")
+        if self.current_capture_dir is None:
+            raise ValueError("Capture directory is not set for saving images.")
 
-        dir_path = os.path.join(self.config.images.base_image_dir, f"{self.dir_index:04d}")
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-
-        filename = os.path.join(dir_path, f"{self.config.images.file_prefix}-{timestamp}_{self.image_count}.jpg")
+        filename = os.path.join(self.current_capture_dir, f"{self.config.images.file_prefix}-{timestamp}_{self.image_count}.jpg")
 
         try:
             pil_image = PilImage.fromarray(frame).transpose(PilImage.FLIP_TOP_BOTTOM)
@@ -140,45 +160,13 @@ class LiveViewScreen(Screen):
             print(f"Warning: Could not load overlay. Error: {e}")
 
     def _end_sequence(self) -> None:
-        """Show a completion message and schedule transition to the email screen."""
+        """Show a completion message and schedule transition to the preview screen."""
         self.ids.countdown_label.opacity = 1
         self.ids.countdown_label.text = builtins._("Capture Complete!")
-        Clock.schedule_once(self._return_to_preview_screen, 4)
+        Clock.schedule_once(self._show_preview_screen, 4)
 
-    def _return_to_preview_screen(self, dt: float) -> None:
-        """Navigate to the preview screen with an attachment directory set."""
-        if self.dir_index is None:
-            return
-
-        attachment_dir = os.path.join(self.config.images.base_image_dir, f"{self.dir_index:04d}")
+    def _show_preview_screen(self, dt: float) -> None:
+        """Navigate to the preview screen."""
         preview_screen = self.manager.get_screen("preview_screen")
-        preview_screen.set_attachment_dir(attachment_dir)
+        preview_screen.set_attachment_dir(self.current_capture_dir)
         self.manager.current = "preview_screen"
-
-    def _return_to_welcome_screen(self, dt: float) -> None:
-        """Navigate to the welcome screen."""
-        self.manager.current = "welcome_screen"
-
-    def _reset_live_preview(self, dt: float) -> None:
-        """Reset the live preview display."""
-        self.ids.live_preview.update_frame(dt)
-        self.ids.progress_label.text = ""
-        self.ids.countdown_label.text = ""
-        self.ids.capture_button.opacity = 1
-
-    def _check_activity(self, dt: float) -> None:
-        """Return to welcome screen if screen is inactive."""
-        if self.inactive:
-            Clock.schedule_once(self._return_to_welcome_screen, 1)
-
-    def on_enter(self) -> None:
-        """Called when the screen is entered; start live preview updates."""
-        self.inactive = True
-        Clock.schedule_once(self._reset_live_preview, 0)
-        Clock.schedule_once(self._check_activity, 60)
-        Clock.schedule_interval(self.ids.live_preview.update_frame, 1.0 / 30.0)
-
-    def on_leave(self) -> None:
-        """Called when the screen is left; stop live preview updates."""
-        Clock.schedule_once(self._reset_live_preview, 0)
-        Clock.unschedule(self.ids.live_preview.update_frame)

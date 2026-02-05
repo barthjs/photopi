@@ -84,10 +84,10 @@ class PreviewScreen(Screen):
         self.dialog.open()
 
     def on_keep_pressed(self) -> None:
-        """Proceed to the email screen."""
-        email_screen = self.manager.get_screen("email_screen")
-        email_screen.set_attachment_dir(self.attachment_dir)
-        self.manager.current = "email_screen"
+        """Proceed to the share screen."""
+        share_screen = self.manager.get_screen("share_screen")
+        share_screen.set_attachment_dir(self.attachment_dir)
+        self.manager.current = "share_screen"
 
     def _dismiss_dialog(self, instance: Any) -> None:
         """Close the dialog without taking action."""
@@ -95,24 +95,22 @@ class PreviewScreen(Screen):
             self.dialog.dismiss()
 
     def _confirm_discard(self, instance: Any) -> None:
-        """Move the entire session folder to a 'Trash' subdirectory and return home."""
+        """Move the entire session folder to a 'Trash' subdirectory and return to the welcome screen."""
         if self.dialog:
             self.dialog.dismiss()
 
         if self.attachment_dir and os.path.exists(self.attachment_dir):
             try:
-                base_dir = self.config.images.base_image_dir
-                trash_root = os.path.join(base_dir, "Trash")
-
-                os.makedirs(trash_root, exist_ok=True)
+                trash_root = self.config.images.base_image_dir / "Trash"
+                trash_root.mkdir(parents=True, exist_ok=True)
 
                 folder_name = os.path.basename(os.path.normpath(self.attachment_dir))
-                target_path = os.path.join(trash_root, folder_name)
+                target_path = trash_root / folder_name
 
-                if os.path.exists(target_path):
+                if target_path.exists():
                     shutil.rmtree(target_path)
 
-                shutil.move(self.attachment_dir, target_path)
+                shutil.move(self.attachment_dir, str(target_path))
                 print(f"Moved session {folder_name} to Trash: {target_path}")
 
             except Exception as e:

@@ -25,7 +25,7 @@ from kivy.uix.screenmanager import ScreenManager, NoTransition
 
 from photopi.gui.welcome_screen import WelcomeScreen
 from photopi.config import AppConfig, ConfigLoader, LanguageManager
-from photopi.gui.email_screen import EmailScreen
+from photopi.gui.share_screen import ShareScreen
 from photopi.gui.preview_screen import PreviewScreen
 from photopi.gui.live_view_screen import LiveViewScreen
 
@@ -50,7 +50,7 @@ class PhotoPiApp(MDApp):
         self.screen_manager.add_widget(WelcomeScreen(name='welcome_screen'))
         self.screen_manager.add_widget(LiveViewScreen(name='live_view_screen'))
         self.screen_manager.add_widget(PreviewScreen(name='preview_screen'))
-        self.screen_manager.add_widget(EmailScreen(name='email_screen'))
+        self.screen_manager.add_widget(ShareScreen(name='share_screen'))
 
         return self.screen_manager
 
