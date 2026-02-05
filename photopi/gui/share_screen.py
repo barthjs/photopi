@@ -1,5 +1,5 @@
 import builtins
-import os
+import io
 import re
 import threading
 import traceback
@@ -8,7 +8,8 @@ from typing import Any, Optional
 
 import qrcode
 from kivy.clock import Clock
-from kivy.properties import BooleanProperty, StringProperty
+from kivy.core.image import Image as CoreImage
+from kivy.properties import BooleanProperty, ObjectProperty, StringProperty
 from kivy.uix.screenmanager import Screen
 from kivymd.app import MDApp
 from kivymd.uix.button import MDFlatButton
@@ -28,7 +29,7 @@ class ShareScreen(Screen):
     show_email = BooleanProperty(False)
     show_cloud = BooleanProperty(False)
     cloud_link = StringProperty("")
-    qr_code_path = StringProperty("")
+    qr_code_texture = ObjectProperty(None, allownone=True)
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
@@ -54,7 +55,7 @@ class ShareScreen(Screen):
         self.attempts = 0
 
         self.cloud_link = ""
-        self.qr_code_path = ""
+        self.qr_code_texture = None
 
         self.show_email = self.config.email.enabled
         self.show_cloud = self.config.general.cloud_provider is not None
@@ -109,9 +110,12 @@ class ShareScreen(Screen):
                 qr.make(fit=True)
 
                 img = qr.make_image(fill_color="black", back_color="transparent")
-                qr_path = os.path.join(self.attachment_dir, "qr_code.png")
-                img.save(qr_path)
-                self.qr_code_path = qr_path
+
+                buf = io.BytesIO()
+                img.save(buf, format='PNG')
+                buf.seek(0)
+                ci = CoreImage(buf, ext='png')
+                self.qr_code_texture = ci.texture
             except Exception as e:
                 print(f"Error generating QR code: {e}")
 
