@@ -1,0 +1,9 @@
+{{- define "basePlain" -}}
+{{ .AppName }}
+
+{{ template "content_plain" . }}
+
+--
+© {{ year }} {{ .AppName }}
+{{ t .Locale "email.automated" . }}
+{{- end -}}

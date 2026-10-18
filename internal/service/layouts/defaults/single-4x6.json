@@ -1,0 +1,13 @@
+{
+  "id": "single-4x6",
+  "name": "Single image (10x15 cm)",
+  "paper": { "widthMM": 102, "heightMM": 152 },
+  "pages": [{ "slots": [{ "x": 0.04, "y": 0.04, "w": 0.92, "h": 0.85, "locked": false }] }],
+  "branding": {
+    "enabled": false,
+    "template": "{{eventName}} · {{date}}",
+    "x": 0.5,
+    "y": 0.92,
+    "rotationDeg": 0
+  }
+}

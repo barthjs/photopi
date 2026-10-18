@@ -1,0 +1,10 @@
+services:
+  photopi:
+    image: node:24
+    container_name: photopi
+    working_dir: /web
+    command: npm run dev
+    user: ${PUID}:${PGID}
+    volumes:
+      - ./web:/web
+    network_mode: host

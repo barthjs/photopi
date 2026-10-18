@@ -1,0 +1,23 @@
+{{- define "subject" -}}
+{{- if .Subject -}}
+{{ .Subject }}
+{{- else -}}
+{{ t .Locale "share_email.subject" . }}
+{{- end -}}
+{{- end -}}
+
+{{ define "preview" }}{{ t .Locale "share_email.preview" . }}{{ end }}
+
+{{ define "content_html" }}
+<p style="margin:0 0 16px 0;">{{ t .Locale "share_email.greeting" . }}</p>
+<p style="margin:0 0 16px 0;">{{ t .Locale "share_email.intro" . }}</p>
+<p style="margin:0;">{{ t .Locale "share_email.outro" . }}</p>
+{{ end }}
+
+{{ define "content_plain" }}
+{{ t .Locale "share_email.greeting" . }}
+
+{{ t .Locale "share_email.intro" . }}
+
+{{ t .Locale "share_email.outro" . }}
+{{ end }}

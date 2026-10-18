@@ -1,0 +1,59 @@
+{{- define "baseHTML" -}}
+<!DOCTYPE html>
+<html lang="{{ .Locale }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
+  <title>{{ template "subject" . }}</title>
+  <style>
+    @media only screen and (max-width: 600px) {
+      .inner-body { width: 100% !important; }
+      .content-cell { padding: 24px !important; }
+      .footer-cell { padding: 24px !important; }
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;width:100%;background-color:#fafafa;-webkit-text-size-adjust:none;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">{{ block "preview" . }}{{ end }}</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0;padding:0;width:100%;background-color:#fafafa;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="padding:25px 0;text-align:center;">
+              <span style="font-size:19px;font-weight:700;color:#18181b;">{{ .AppName }}</span>
+            </td>
+          </tr>
+          <tr>
+            <td width="100%" style="width:100%;background-color:#fafafa;">
+              <table role="presentation" class="inner-body" align="center" width="570" cellpadding="0" cellspacing="0" style="width:570px;max-width:570px;margin:0 auto;background-color:#ffffff;border:1px solid #e4e4e7;border-radius:4px;">
+                <tr>
+                  <td class="content-cell" style="padding:32px;color:#52525b;font-size:16px;line-height:1.5em;">
+                    {{ template "content_html" . }}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <table role="presentation" align="center" width="570" cellpadding="0" cellspacing="0" style="width:570px;max-width:570px;margin:0 auto;">
+                <tr>
+                  <td class="footer-cell" style="padding:32px;text-align:center;">
+                    <p style="margin:0;color:#a1a1aa;font-size:12px;line-height:1.5em;">&copy; {{ year }} {{ .AppName }}</p>
+                    <p style="margin:4px 0 0 0;color:#a1a1aa;font-size:12px;line-height:1.5em;">{{ t .Locale "email.automated" . }}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+{{- end -}}

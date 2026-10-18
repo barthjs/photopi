@@ -1,0 +1,20 @@
+{
+  "email": {
+    "automated": "This is an automated message, please do not reply."
+  },
+  "layout": {
+    "single-4x6": "Single image (10 x 15 cm)",
+    "strip-3": "Photo strip (3 images)"
+  },
+  "share_email": {
+    "subject": "Your photos from {{.EventName}}",
+    "preview": "Your photos are attached.",
+    "greeting": "Hi,",
+    "intro": "here are your photos.",
+    "outro": "Enjoy!"
+  },
+  "tray": {
+    "open": "Open in the browser",
+    "quit": "Quit"
+  }
+}

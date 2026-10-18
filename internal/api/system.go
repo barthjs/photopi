@@ -1,0 +1,358 @@
+package api
+
+import (
+	"errors"
+	"net/http"
+	"time"
+
+	"github.com/barthjs/photopi/internal/service"
+)
+
+// metaGetHandler returns the public configuration of the application.
+//
+//	@Summary		Get metadata
+//	@Description	Returns the public configuration of the application.
+//	@Tags			system
+//	@Produce		json
+//	@Success		200	{object}	MetaResponse
+//	@Failure		500	{object}	ErrorResponse
+//	@Router			/meta [get]
+func (a *API) metaGetHandler(w http.ResponseWriter, r *http.Request) {
+	a.writeJSON(w, r, http.StatusOK, MetaResponse{
+		Name:     a.options.Name,
+		Version:  a.health.Version(),
+		Instance: a.instance,
+		Language: a.options.Language,
+		Camera: CameraMeta{
+			Source:        string(a.options.Camera.Source),
+			CaptureWidth:  a.options.Camera.CaptureWidth,
+			CaptureHeight: a.options.Camera.CaptureHeight,
+			PreviewWidth:  a.options.Camera.PreviewWidth,
+			PreviewHeight: a.options.Camera.PreviewHeight,
+			PreviewFPS:    a.options.Camera.PreviewFPS,
+			HasOverlay:    a.options.Camera.OverlayPath != "",
+		},
+		Capture: CaptureMeta{
+			ImagesPerRun:   a.options.Capture.ImagesPerRun,
+			WelcomeMessage: a.options.Capture.WelcomeMessage,
+		},
+		Share: ShareMeta{
+			EmailEnabled: a.shareService.EmailEnabled(),
+			CloudEnabled: a.shareService.CloudEnabled(),
+			PrintEnabled: a.printService.Enabled(),
+			AdminEmail:   a.options.Capture.AdminEmail,
+		},
+		Theme: a.options.Theme,
+	}, nil)
+}
+
+// MetaResponse exposes public, non-sensitive configuration.
+type MetaResponse struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+	// Instance changes with every start of the backend, so the kiosk notices a restart that applied a new configuration
+	// although the version stayed the same.
+	Instance string        `json:"instance"`
+	Language string        `json:"language"`
+	Camera   CameraMeta    `json:"camera"`
+	Capture  CaptureMeta   `json:"capture"`
+	Share    ShareMeta     `json:"share"`
+	Theme    ThemeSettings `json:"theme"`
+}
+
+// CameraMeta is the camera configuration the web interface needs.
+type CameraMeta struct {
+	Source        string `json:"source"`
+	CaptureWidth  int    `json:"captureWidth"`
+	CaptureHeight int    `json:"captureHeight"`
+	PreviewWidth  int    `json:"previewWidth"`
+	PreviewHeight int    `json:"previewHeight"`
+	PreviewFPS    int    `json:"previewFps"`
+	HasOverlay    bool   `json:"hasOverlay"`
+}
+
+// CaptureMeta is the capture configuration the web interface needs.
+type CaptureMeta struct {
+	ImagesPerRun   int    `json:"imagesPerRun"`
+	WelcomeMessage string `json:"welcomeMessage"`
+}
+
+// ShareMeta reports which ways of sharing are available.
+type ShareMeta struct {
+	EmailEnabled bool   `json:"emailEnabled"`
+	CloudEnabled bool   `json:"cloudEnabled"`
+	PrintEnabled bool   `json:"printEnabled"`
+	AdminEmail   string `json:"adminEmail"`
+}
+
+// pingGetHandler responds with "pong".
+//
+//	@Summary		Get ping
+//	@Description	Returns "pong" if the API is up and running.
+//	@Tags			system
+//	@Produce		plain
+//	@Success		200	{string}	string	"pong"
+//	@Router			/ping [get]
+func (a *API) pingGetHandler(w http.ResponseWriter, _ *http.Request) {
+	writeText(w, http.StatusOK, "pong", nil)
+}
+
+// systemInfoGetHandler reports host and process metrics for the admin dashboard.
+//
+//	@Summary		Get system info
+//	@Description	Reports host and process metrics for the admin dashboard (Admin only).
+//	@Tags			system
+//	@Produce		json
+//	@Success		200	{object}	SystemInfoResponse
+//	@Failure		401	{object}	ErrorResponse
+//	@Failure		500	{object}	ErrorResponse
+//	@Security		SessionAuth
+//	@Router			/system/info [get]
+func (a *API) systemInfoGetHandler(w http.ResponseWriter, r *http.Request) {
+	stats, err := a.systemService.Stats(r.Context())
+	if err != nil {
+		a.serverErrorResponse(w, r, err)
+		return
+	}
+
+	a.writeJSON(w, r, http.StatusOK, SystemInfoResponse{
+		Version:    stats.Version,
+		UptimeSecs: int64(stats.Uptime.Round(time.Second).Seconds()),
+		Hostname:   stats.Hostname,
+		IPs:        stats.IPs,
+		CPUPercent: stats.CPUPercent,
+		MemUsed:    stats.MemUsed,
+		MemTotal:   stats.MemTotal,
+		DiskUsed:   stats.DiskUsed,
+		DiskTotal:  stats.DiskTotal,
+		Commands:   toSystemCommandsResponse(a.systemService.Options()),
+	}, nil)
+}
+
+// SystemInfoResponse is the state of the host and which system actions are configured.
+type SystemInfoResponse struct {
+	Version    string   `json:"version"`
+	UptimeSecs int64    `json:"uptimeSeconds"`
+	Hostname   string   `json:"hostname"`
+	IPs        []string `json:"ips"`
+	CPUPercent float64  `json:"cpuPercent"`
+	MemUsed    uint64   `json:"memUsed"`
+	MemTotal   uint64   `json:"memTotal"`
+	DiskUsed   uint64   `json:"diskUsed"`
+	DiskTotal  uint64   `json:"diskTotal"`
+	// Commands are the configured commands of the system actions, an empty one disables its action.
+	Commands SystemCommandsResponse `json:"commands"`
+}
+
+// SystemCommandsResponse holds the configured shell commands of the system actions.
+type SystemCommandsResponse struct {
+	ServerRestart string `json:"serverRestart"`
+	ServerStop    string `json:"serverStop"`
+	KioskRestart  string `json:"kioskRestart"`
+	KioskStop     string `json:"kioskStop"`
+	AllRestart    string `json:"allRestart"`
+	AllStop       string `json:"allStop"`
+}
+
+// toSystemCommandsResponse maps the commands of the system actions to their response.
+func toSystemCommandsResponse(o service.SystemOptions) SystemCommandsResponse {
+	return SystemCommandsResponse{
+		ServerRestart: o.ServerRestartCommand,
+		ServerStop:    o.ServerStopCommand,
+		KioskRestart:  o.KioskRestartCommand,
+		KioskStop:     o.KioskStopCommand,
+		AllRestart:    o.AllRestartCommand,
+		AllStop:       o.AllStopCommand,
+	}
+}
+
+// systemServerRestartHandler runs the configured system.server_restart_command.
+//
+//	@Summary		Restart server
+//	@Description	Runs the configured system.server_restart_command. Disabled (400) when none is configured (Admin only).
+//	@Tags			system
+//	@Success		204
+//	@Failure		400	{object}	ErrorResponse
+//	@Failure		401	{object}	ErrorResponse
+//	@Failure		500	{object}	ErrorResponse
+//	@Security		SessionAuth
+//	@Router			/system/server/restart [post]
+func (a *API) systemServerRestartHandler(w http.ResponseWriter, r *http.Request) {
+	if !a.systemService.ServerRestartEnabled() {
+		a.badRequestResponse(w, r, errors.New("server restart is disabled: system.server_restart_command is not configured"))
+		return
+	}
+	if err := a.systemService.RestartServer(); err != nil {
+		a.serverErrorResponse(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// systemServerStopHandler runs the configured system.server_stop_command.
+//
+//	@Summary		Stop server
+//	@Description	Runs the configured system.server_stop_command. Disabled (400) when none is configured (Admin only).
+//	@Tags			system
+//	@Success		204
+//	@Failure		400	{object}	ErrorResponse
+//	@Failure		401	{object}	ErrorResponse
+//	@Failure		500	{object}	ErrorResponse
+//	@Security		SessionAuth
+//	@Router			/system/server/stop [post]
+func (a *API) systemServerStopHandler(w http.ResponseWriter, r *http.Request) {
+	if !a.systemService.ServerStopEnabled() {
+		a.badRequestResponse(w, r, errors.New("server stop is disabled: system.server_stop_command is not configured"))
+		return
+	}
+	if err := a.systemService.StopServer(); err != nil {
+		a.serverErrorResponse(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// systemKioskRestartHandler runs the configured system.kiosk_restart_command.
+//
+//	@Summary		Restart kiosk
+//	@Description	Runs the configured system.kiosk_restart_command. Disabled (400) when none is configured (Admin only).
+//	@Tags			system
+//	@Success		204
+//	@Failure		400	{object}	ErrorResponse
+//	@Failure		401	{object}	ErrorResponse
+//	@Failure		500	{object}	ErrorResponse
+//	@Security		SessionAuth
+//	@Router			/system/kiosk/restart [post]
+func (a *API) systemKioskRestartHandler(w http.ResponseWriter, r *http.Request) {
+	if !a.systemService.KioskRestartEnabled() {
+		a.badRequestResponse(w, r, errors.New("kiosk restart is disabled: system.kiosk_restart_command is not configured"))
+		return
+	}
+	if err := a.systemService.RestartKiosk(); err != nil {
+		a.serverErrorResponse(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// systemKioskStopHandler runs the configured system.kiosk_stop_command.
+//
+//	@Summary		Stop kiosk
+//	@Description	Runs the configured system.kiosk_stop_command. Disabled (400) when none is configured (Admin only).
+//	@Tags			system
+//	@Success		204
+//	@Failure		400	{object}	ErrorResponse
+//	@Failure		401	{object}	ErrorResponse
+//	@Failure		500	{object}	ErrorResponse
+//	@Security		SessionAuth
+//	@Router			/system/kiosk/stop [post]
+func (a *API) systemKioskStopHandler(w http.ResponseWriter, r *http.Request) {
+	if !a.systemService.KioskStopEnabled() {
+		a.badRequestResponse(w, r, errors.New("kiosk stop is disabled: system.kiosk_stop_command is not configured"))
+		return
+	}
+	if err := a.systemService.StopKiosk(); err != nil {
+		a.serverErrorResponse(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// systemAllRestartHandler runs the configured system.all_restart_command.
+//
+//	@Summary		Restart server and kiosk
+//	@Description	Runs the configured system.all_restart_command. Disabled (400) when none is configured (Admin only).
+//	@Tags			system
+//	@Success		204
+//	@Failure		400	{object}	ErrorResponse
+//	@Failure		401	{object}	ErrorResponse
+//	@Failure		500	{object}	ErrorResponse
+//	@Security		SessionAuth
+//	@Router			/system/all/restart [post]
+func (a *API) systemAllRestartHandler(w http.ResponseWriter, r *http.Request) {
+	if !a.systemService.AllRestartEnabled() {
+		a.badRequestResponse(w, r, errors.New("restarting both is disabled: system.all_restart_command is not configured"))
+		return
+	}
+	if err := a.systemService.RestartAll(); err != nil {
+		a.serverErrorResponse(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// systemAllStopHandler runs the configured system.all_stop_command.
+//
+//	@Summary		Stop server and kiosk
+//	@Description	Runs the configured system.all_stop_command. Disabled (400) when none is configured (Admin only).
+//	@Tags			system
+//	@Success		204
+//	@Failure		400	{object}	ErrorResponse
+//	@Failure		401	{object}	ErrorResponse
+//	@Failure		500	{object}	ErrorResponse
+//	@Security		SessionAuth
+//	@Router			/system/all/stop [post]
+func (a *API) systemAllStopHandler(w http.ResponseWriter, r *http.Request) {
+	if !a.systemService.AllStopEnabled() {
+		a.badRequestResponse(w, r, errors.New("stopping both is disabled: system.all_stop_command is not configured"))
+		return
+	}
+	if err := a.systemService.StopAll(); err != nil {
+		a.serverErrorResponse(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// systemProcessExitHandler exits the running application process directly.
+//
+//	@Summary		Exit process
+//	@Description	Gracefully exits the running application process directly. Whether it comes back up depends on its supervisor, such as the restart policy of a service (Admin only).
+//	@Tags			system
+//	@Success		204
+//	@Failure		401	{object}	ErrorResponse
+//	@Security		SessionAuth
+//	@Router			/system/process/exit [post]
+func (a *API) systemProcessExitHandler(w http.ResponseWriter, _ *http.Request) {
+	// Written before ExitProcess so the response reaches the client:
+	// ExitProcess cancels the root context, which triggers http.Server.Shutdown,
+	// which waits for this handler to return before tearing down connections.
+	w.WriteHeader(http.StatusNoContent)
+	a.systemService.ExitProcess()
+}
+
+// systemHostRebootHandler reboots the host machine.
+//
+//	@Summary		Reboot host
+//	@Description	Reboots the host machine directly (Admin only).
+//	@Tags			system
+//	@Success		204
+//	@Failure		401	{object}	ErrorResponse
+//	@Failure		500	{object}	ErrorResponse
+//	@Security		SessionAuth
+//	@Router			/system/host/reboot [post]
+func (a *API) systemHostRebootHandler(w http.ResponseWriter, r *http.Request) {
+	if err := a.systemService.RebootHost(); err != nil {
+		a.serverErrorResponse(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// systemHostShutdownHandler powers off the host machine.
+//
+//	@Summary		Shut down host
+//	@Description	Powers off the host machine directly (Admin only).
+//	@Tags			system
+//	@Success		204
+//	@Failure		401	{object}	ErrorResponse
+//	@Failure		500	{object}	ErrorResponse
+//	@Security		SessionAuth
+//	@Router			/system/host/shutdown [post]
+func (a *API) systemHostShutdownHandler(w http.ResponseWriter, r *http.Request) {
+	if err := a.systemService.ShutdownHost(); err != nil {
+		a.serverErrorResponse(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}

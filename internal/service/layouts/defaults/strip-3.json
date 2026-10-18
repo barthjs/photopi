@@ -1,0 +1,21 @@
+{
+  "id": "strip-3",
+  "name": "Photo strip (3 images)",
+  "paper": { "widthMM": 50, "heightMM": 152 },
+  "pages": [
+    {
+      "slots": [
+        { "x": 0.06, "y": 0.03, "w": 0.88, "h": 0.28, "locked": false },
+        { "x": 0.06, "y": 0.35, "w": 0.88, "h": 0.28, "locked": false },
+        { "x": 0.06, "y": 0.67, "w": 0.88, "h": 0.28, "locked": false }
+      ]
+    }
+  ],
+  "branding": {
+    "enabled": false,
+    "template": "{{eventName}} · {{date}}",
+    "x": 0.5,
+    "y": 0.92,
+    "rotationDeg": 0
+  }
+}

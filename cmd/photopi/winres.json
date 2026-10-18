@@ -1,0 +1,28 @@
+{
+  "RT_VERSION": {
+    "#1": {
+      "0000": {
+        "info": {
+          "0407": {
+            "Comments": "https://github.com/barthjs/photopi",
+            "CompanyName": "Jonas Barth",
+            "FileDescription": "photopi",
+            "InternalName": "photopi",
+            "LegalCopyright": "© 2026 Jonas Barth",
+            "OriginalFilename": "photopi.exe",
+            "ProductName": "PhotoPi"
+          },
+          "0409": {
+            "Comments": "https://github.com/barthjs/photopi",
+            "CompanyName": "Jonas Barth",
+            "FileDescription": "photopi",
+            "InternalName": "photopi",
+            "LegalCopyright": "© 2026 Jonas Barth",
+            "OriginalFilename": "photopi.exe",
+            "ProductName": "photopi"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "email": {
+    "automated": "Dies ist eine automatische Nachricht, bitte antworte nicht darauf."
+  },
+  "layout": {
+    "single-4x6": "Einzelbild (10 x 15 cm)",
+    "strip-3": "Fotostreifen (3 Bilder)"
+  },
+  "share_email": {
+    "subject": "Deine Fotos von {{.EventName}}",
+    "preview": "Deine Fotos sind angehängt.",
+    "greeting": "Hallo,",
+    "intro": "hier sind deine Fotos.",
+    "outro": "Viel Spaß damit!"
+  },
+  "tray": {
+    "open": "Im Browser öffnen",
+    "quit": "Beenden"
+  }
+}
