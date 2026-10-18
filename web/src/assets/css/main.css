@@ -1,0 +1,62 @@
+@import 'tailwindcss';
+@import '@nuxt/ui';
+
+@import './fonts.css';
+@import './theme.css';
+
+/*
+The brand palette, which the Nuxt UI options select as the primary color. Declared as static, since Tailwind
+only emits theme variables that a utility class uses, while Nuxt UI references the shades through its own variables.
+*/
+@theme static {
+  --color-brand-50: var(--color-teal-50);
+  --color-brand-100: var(--color-teal-100);
+  --color-brand-200: var(--color-teal-200);
+  --color-brand-300: var(--color-teal-300);
+  --color-brand-400: var(--color-teal-400);
+  --color-brand-500: var(--color-teal-500);
+  --color-brand-600: var(--color-teal-600);
+  --color-brand-700: var(--color-teal-700);
+  --color-brand-800: var(--color-teal-800);
+  --color-brand-900: var(--color-teal-900);
+  --color-brand-950: var(--color-teal-950);
+}
+
+@theme {
+  /*
+  The printed paper in the layout editor. It stays white in both modes, since it stands for a real page.
+  */
+  --color-canvas-paper: #ffffff;
+
+  /*
+  The grid on the paper and the photos the view mode of the layout editor shows in the slots.
+  They stay the same in both modes, since they are drawn on the white paper.
+  */
+  --color-canvas-grid: rgb(0 0 0 / 0.12);
+  --color-canvas-photo: #d4d4d8;
+  --color-canvas-photo-icon: #71717a;
+
+  /*
+  The black behind the camera image and photos, and the dimming laid over them.
+  Both stay black in both modes, since a photo looks the same in either. Text on the dimming uses on-scrim.
+  */
+  --color-media-backdrop: #000000;
+  --color-scrim: #000000;
+  --color-on-scrim: #ffffff;
+}
+
+/*
+The ring around the resize handles of a slot matches the page background,
+so a handle stands out on both the paper and the canvas around it.
+*/
+@theme inline {
+  --color-canvas-handle-ring: var(--ui-bg);
+}
+
+/*
+Set on <html> while a guest page of KioskLayout.vue is mounted.
+It blocks the pull-to-refresh gesture of the browser without affecting the admin pages.
+*/
+html.kiosk-mode {
+  overscroll-behavior: none;
+}

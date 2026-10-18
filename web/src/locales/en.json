@@ -1,0 +1,812 @@
+{
+  "admin": {
+    "logout": "Log out",
+    "nav": {
+      "config": "Config",
+      "dashboard": "Dashboard",
+      "gallery": "Gallery",
+      "layouts": "Layouts",
+      "system": "System"
+    },
+    "openApp": "Open app"
+  },
+  "common": {
+    "back": "Back",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "discardConfirm": "Discard",
+    "discardDescription": "Your unsaved changes will be lost.",
+    "discardTitle": "Discard changes?",
+    "help": "Help",
+    "hidePassword": "Hide password",
+    "keepSecret": "Keep the saved value",
+    "ok": "OK",
+    "pickColor": "Pick a color",
+    "removeSecret": "Remove the saved value",
+    "reset": "Reset",
+    "save": "Save",
+    "secretRemoved": "Removed when saved",
+    "secretSaved": "Saved, leave empty to keep it",
+    "showPassword": "Show password"
+  },
+  "editor": {
+    "align": {
+      "bottom": "Align bottom edges",
+      "centerX": "Align horizontal centers",
+      "centerY": "Align vertical centers",
+      "left": "Align left edges",
+      "right": "Align right edges",
+      "title": "Align",
+      "top": "Align top edges"
+    },
+    "collapse": "Collapse",
+    "distribute": {
+      "x": "Distribute horizontally",
+      "y": "Distribute vertically"
+    },
+    "draft": {
+      "description": "This browser holds changes that were not saved yet. Restore takes them over, discard deletes them.",
+      "restore": "Restore",
+      "title": "Restore unsaved changes?"
+    },
+    "exitFullscreen": "Exit fullscreen",
+    "exitViewMode": "Leave the view mode",
+    "expand": "Expand",
+    "fullscreen": "Fullscreen",
+    "guideLines": {
+      "clear": "Remove all guides"
+    },
+    "guideTab": "Guide",
+    "help": "How the editor works",
+    "hideSidebar": "Hide settings",
+    "image": {
+      "clear": "Remove",
+      "opacity": "Opacity",
+      "replace": "Replace"
+    },
+    "items": {
+      "hide": "Hide",
+      "lock": "Lock",
+      "show": "Show",
+      "unlock": "Unlock"
+    },
+    "redo": "Redo",
+    "resetZoom": "Fit canvas",
+    "resizeSidebar": "Change the width of the settings, a double click restores it",
+    "shortcuts": {
+      "clearSelection": "Clear the selection",
+      "constrain": "Hold while dragging to move only horizontally or vertically",
+      "fullscreen": "Show the toolbar, the canvas, and the settings in fullscreen, Esc ends it",
+      "grid": "Show or hide the grid",
+      "guides": "Show or hide the guides",
+      "help": "Open this help",
+      "image": "Choose an image",
+      "loupe": "Switch the loupe on or off",
+      "noSnapping": "Hold while dragging to place without magnets",
+      "pan": "Hold and drag to move the canvas, or drag with the right or middle mouse button",
+      "panSideways": "Move the canvas sideways",
+      "panWheel": "Move the canvas, also with two fingers on the touchpad",
+      "preview": "Show or hide the preview",
+      "redo": "Redo",
+      "redoAlternative": "Redo",
+      "resetZoom": "Fit the canvas",
+      "rulers": "Show or hide the rulers",
+      "save": "Save",
+      "selectAll": "Select all",
+      "sidebar": "Show or hide the settings beside the canvas",
+      "snapping": "Turn the magnets on or off",
+      "undo": "Undo",
+      "viewMode": "View mode: show the content without editing aids",
+      "zoom": "Zoom around the pointer, also by pinching on the touchpad",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "zoomToSelection": "Zoom to the selection"
+    },
+    "shortcutsTab": "Shortcuts and mouse",
+    "showSidebar": "Show settings",
+    "transform": {
+      "height": "Height ({unit})",
+      "width": "Width ({unit})",
+      "x": "X ({unit})",
+      "y": "Y ({unit})"
+    },
+    "undo": "Undo",
+    "view": {
+      "grid": "Grid",
+      "guides": "Guides",
+      "loupe": "Loupe",
+      "preview": "Preview",
+      "rulers": "Rulers",
+      "snapping": "Magnets"
+    },
+    "viewMode": "View mode",
+    "zoomIn": "Zoom in",
+    "zoomLevel": "Zoom level",
+    "zoomOut": "Zoom out",
+    "zoomToSelection": "Zoom to selection"
+  },
+  "errors": {
+    "authentication_required": "Please log in to continue.",
+    "bad_request": "The request was invalid.",
+    "camera_capture_failed": "The camera couldn't produce a usable photo. Please try again.",
+    "conflict": "That didn't work. Please try again.",
+    "forbidden": "You don't have permission to do that.",
+    "invalid_credentials": "The login details are incorrect.",
+    "method_not_allowed": "This action is not allowed.",
+    "not_found": "We couldn't find that.",
+    "payload_too_large": "The request is too large.",
+    "rate_limited": "Too many attempts. Please try again later.",
+    "rate_limited_minutes": "Too many attempts. Please try again in one minute. | Too many attempts. Please try again in {count} minutes.",
+    "rate_limited_seconds": "Too many attempts. Please try again in one second. | Too many attempts. Please try again in {count} seconds.",
+    "server_error": "Something went wrong. Please try again.",
+    "timeout": "That took too long. Please try again.",
+    "validation_failed": "Please check your input."
+  },
+  "fields": {
+    "app": {
+      "env": "Environment",
+      "language": "Language",
+      "name": "Application name",
+      "secret": "Admin password"
+    },
+    "branding": {
+      "color": "Color",
+      "enabled": "Show branding",
+      "fontSizePt": "Font size (pt)",
+      "rotationDeg": "Rotation (°)",
+      "template": "Text template"
+    },
+    "camera": {
+      "analogueGain": "Analogue gain",
+      "autofocusMode": "Autofocus",
+      "captureHeight": "Capture height",
+      "captureWidth": "Capture width",
+      "denoise": "Noise reduction",
+      "exposureCompensation": "Exposure compensation (EV)",
+      "exposureMode": "Exposure profile",
+      "exposureTime": "Exposure time",
+      "horizontalFlip": "Mirror horizontally",
+      "jpegQuality": "JPEG quality",
+      "overlayPath": "Active overlay",
+      "previewFps": "Preview framerate",
+      "previewHeight": "Preview height",
+      "previewWidth": "Preview width",
+      "rotation": "Rotation",
+      "source": "Camera source",
+      "verticalFlip": "Mirror vertically",
+      "whiteBalance": "White balance"
+    },
+    "capture": {
+      "adminEmail": "Admin contact email",
+      "eventName": "Event name",
+      "filePrefix": "File prefix",
+      "imagesPerRun": "Images per run",
+      "saveOriginals": "Keep originals without overlay",
+      "welcomeMessage": "Welcome message"
+    },
+    "email": "Email address",
+    "file": "File",
+    "id": "Layout ID",
+    "log": {
+      "channel": "Log channel",
+      "compress": "Compress old logs",
+      "format": "Log format",
+      "level": "Log level",
+      "maxAgeDays": "Log retention (days)",
+      "maxSizeMb": "Maximum log size (MB)",
+      "path": "Log directory"
+    },
+    "mail": {
+      "driver": "Mail driver",
+      "fromAddress": "From address",
+      "fromName": "From name",
+      "host": "SMTP host",
+      "messageIdDomain": "Message-ID domain",
+      "password": "SMTP password",
+      "port": "SMTP port",
+      "replyTo": "Reply-to address",
+      "username": "SMTP username"
+    },
+    "name": "Name",
+    "paper": {
+      "heightMM": "Height (mm)",
+      "widthMM": "Width (mm)"
+    },
+    "password": "Password",
+    "print": {
+      "enabled": "Enable printing",
+      "layoutId": "Print layout",
+      "printerName": "Printer",
+      "submissionMode": "Print submission mode"
+    },
+    "server": {
+      "corsAllowCredentials": "Allow CORS with cookies",
+      "corsAllowedOrigins": "Allowed CORS origins",
+      "host": "Host",
+      "port": "Port",
+      "sslCertFile": "TLS certificate path",
+      "sslEnabled": "Enable HTTPS",
+      "sslKeyFile": "TLS private key path",
+      "trustedProxies": "Trusted proxies"
+    },
+    "share": {
+      "cloud": {
+        "driver": "Cloud share driver",
+        "nextcloud": {
+          "folder": "Nextcloud folder",
+          "password": "Nextcloud app password",
+          "url": "Nextcloud URL",
+          "username": "Nextcloud username"
+        },
+        "self": {
+          "baseUrl": "Public base URL"
+        }
+      },
+      "email": {
+        "enabled": "Allow email sharing",
+        "subject": "Email subject override"
+      }
+    },
+    "storage": {
+      "driver": "Storage driver",
+      "path": "Storage path",
+      "s3": {
+        "accessKey": "S3 access key",
+        "bucket": "S3 bucket",
+        "endpoint": "S3 endpoint",
+        "region": "S3 region",
+        "secretKey": "S3 secret key",
+        "usePathStyle": "Use path-style addressing"
+      }
+    },
+    "system": {
+      "allRestartCommand": "Restart both",
+      "allStopCommand": "Stop both",
+      "kioskRestartCommand": "Restart kiosk",
+      "kioskStopCommand": "Stop kiosk",
+      "serverRestartCommand": "Restart application",
+      "serverStopCommand": "Stop application"
+    },
+    "theme": {
+      "error": "Error",
+      "info": "Info",
+      "neutral": "Neutral",
+      "primary": "Primary",
+      "secondary": "Secondary",
+      "success": "Success",
+      "warning": "Warning"
+    }
+  },
+  "keyboard": {
+    "hide": "Hide keyboard",
+    "letters": "ABC",
+    "symbols": "#+=",
+    "toggle": "Show or hide the on-screen keyboard"
+  },
+  "keys": {
+    "alt": "Alt",
+    "arrows": "Arrow keys",
+    "backspace": "Backspace",
+    "delete": "Del",
+    "escape": "Esc",
+    "meta": "Ctrl",
+    "shift": "Shift",
+    "space": "Space",
+    "tab": "Tab",
+    "wheel": "Mouse wheel"
+  },
+  "pages": {
+    "capture": {
+      "progress": "Photo {current} of {total}",
+      "returningToWelcome": "Returning to the start screen in {seconds}s.",
+      "smile": "Smile!",
+      "startButton": "Start Capture",
+      "title": "Capture"
+    },
+    "config": {
+      "app": {
+        "envDevelopment": "Development",
+        "envHint": "Choose “Production” to run the booth. “Development” and “Staging” are meant for working on the application.",
+        "envProduction": "Production",
+        "envStaging": "Staging",
+        "languageHint": "Language of the interface and the emails.",
+        "nameHint": "Shown in the interface. Leave empty to use the built-in name.",
+        "secretHint": "Password for the admin login. Without a password, anyone can log in, and self-hosted share links become invalid at every restart."
+      },
+      "camera": {
+        "analogueGainHint": "Sets the signal gain of the sensor. Higher values brighten the image and add noise, 0 adjusts the gain automatically.",
+        "aspectRatioHint": "Capture and preview must have the same aspect ratio. While the lock is closed, changing one dimension adjusts the other.",
+        "aspectRatioLabel": "Aspect ratio: {ratio}",
+        "aspectRatioLock": "Lock aspect ratio",
+        "autofocusModeAuto": "Automatic",
+        "autofocusModeContinuous": "Continuous",
+        "autofocusModeDefault": "Default",
+        "autofocusModeHint": "Only for cameras with a focus motor, such as the Camera Module 3. Keep “Default” for cameras without one, such as the HQ Camera.",
+        "autofocusModeManual": "Manual",
+        "denoiseAuto": "Automatic",
+        "denoiseCdnFast": "Fast",
+        "denoiseCdnHq": "High quality",
+        "denoiseCdnOff": "Brightness noise only",
+        "denoiseHint": "Reduces the noise that becomes visible at a high gain. “Automatic” uses a fast reduction for the preview and a thorough one for the photos.",
+        "denoiseOff": "Off",
+        "exposureCompensationHint": "Brightens (positive) or darkens (negative) the automatic exposure in stops. Has no effect if both exposure time and gain are fixed.",
+        "exposureModeHint": "Only applies to an automatic exposure time. “Short” keeps the exposure time short and raises the gain earlier, so moving guests stay sharper at the cost of a little more noise.",
+        "exposureModeNormal": "Normal",
+        "exposureModeShort": "Short",
+        "exposureTimeAuto": "Automatic",
+        "exposureTimeHint": "“Automatic” chooses exposure time and gain itself and in dim light exposes long enough to blur moving guests. A short fixed time such as 1/125 s keeps them sharp, but in a dark venue the image gets darker and noisier.",
+        "flipHint": "Mirrors the preview and the photos, for example for a camera behind a mirror.",
+        "imageSettings": "Image",
+        "jpegQualityHint": "Quality of the photos from 1 to 100. Higher values keep more detail and produce larger files.",
+        "overlayActive": "Active",
+        "overlayClear": "Use no overlay",
+        "overlayDelete": "Delete overlay",
+        "overlayDownload": "Download overlay",
+        "overlayEmpty": "No overlays uploaded yet.",
+        "overlayLibrary": "Overlay library",
+        "overlayLibraryHint": "PNG files that are scaled to the size of each photo and drawn over it. A file with an existing name replaces the stored one, a download returns it as it is stored, deleting removes it from the storage right away.",
+        "overlayNone": "No overlay",
+        "overlayPathHint": "Overlay drawn over every photo. The choices are the PNG files of the overlay library below.",
+        "overlaySelect": "Use",
+        "previewFpsHint": "Frames per second of the live preview. A lower framerate leaves more processing power for the photos, 15 suffice for the kiosk screen.",
+        "rotationHint": "Turns the preview and the photos upside down, for a camera mounted upside down. The sensor only supports 0° and 180°.",
+        "sourceHint": "“Webcam” takes the photos with the camera of the device whose browser shows the capture screen, “rpicam” with the Raspberry Pi camera. “gphoto2” controls a camera connected by USB, whose image size and exposure are set on the camera itself.",
+        "uploadOverlay": "Upload overlay",
+        "whiteBalanceAuto": "Automatic",
+        "whiteBalanceCloudy": "Cloudy",
+        "whiteBalanceDaylight": "Daylight",
+        "whiteBalanceFluorescent": "Fluorescent",
+        "whiteBalanceHint": "Adjusts the colors to the light of the venue. “Automatic” suits most venues.",
+        "whiteBalanceIncandescent": "Incandescent",
+        "whiteBalanceIndoor": "Indoor",
+        "whiteBalanceTungsten": "Tungsten"
+      },
+      "capture": {
+        "adminEmailHint": "Shown to a guest with their run number when emailing their photos fails. Leave empty to show a generic error message.",
+        "eventNameHint": "Appears in the emails to guests and in the caption of the layouts. The photos are stored in a folder named after the event.",
+        "filePrefixHint": "Start of the file names of the stored photos.",
+        "saveOriginalsHint": "Also stores a copy of each photo without the overlay while an overlay is active. Guests never receive these originals, the gallery can show and download them.",
+        "welcomeMessageHint": "Heading of the welcome screen. Leave empty to use the default greeting."
+      },
+      "file": {
+        "loaded": "Config file:",
+        "missing": "The config file does not exist yet and is created on save:",
+        "none": "No config file was found. Saving creates config.yaml in the first writable configuration directory."
+      },
+      "loadError": "The configuration could not be loaded.",
+      "log": {
+        "channelBoth": "Standard output and file",
+        "channelFile": "File",
+        "channelStdout": "Standard output",
+        "formatConsole": "Console",
+        "levelDebug": "Debug",
+        "levelError": "Error",
+        "levelInfo": "Info",
+        "levelWarn": "Warning",
+        "maxAgeDaysHint": "Rotated log files are deleted after this many days. -1 keeps them forever.",
+        "maxSizeMbHint": "The log file rotates daily at midnight and additionally once it reaches this size.",
+        "pathHint": "Directory of the log file photopi.log. Leave empty to use the log directory of the operating system.",
+        "pathPlaceholder": "Log directory of the operating system"
+      },
+      "mail": {
+        "driverHint": "“Log only” writes emails to the application log instead of sending them. “SMTP” sends them through the server below.",
+        "driverLog": "Log only",
+        "messageIdDomainHint": "Domain of the Message-ID of every email, usually the domain of the sender address. Leave empty to determine it automatically.",
+        "replyToHint": "Replies to emails go to this address, for example a support mailbox while the sender is a no-reply address. Leave empty to set no reply-to address."
+      },
+      "print": {
+        "cancelConfirmText": "Every waiting and running job of the queue “{printer}” is canceled. Guests have to print these photos again.",
+        "cancelConfirmTitle": "Cancel all print jobs?",
+        "cancelJobs": "Cancel all jobs",
+        "cancelSuccess": "All print jobs have been canceled.",
+        "enabledHint": "Shows a “Print” button on the share screen that prints the photos of the run in the selected layout.",
+        "hint": "Printing requires a CUPS queue that is set up, driver included, outside this application.",
+        "layoutDescription": "{width}×{height} mm, {slots} images",
+        "layoutIdHint": "Arranges the photos of a run for the print. While printing is enabled, emails and cloud shares also carry this collage.",
+        "layoutNone": "No layout selected",
+        "manageLayouts": "Manage layouts",
+        "printerNone": "No printer selected",
+        "printerStatus": "Status: {status}",
+        "reloadLayouts": "Reload layouts",
+        "reloadPrinters": "Reload printers",
+        "resume": "Resume printer",
+        "resumeHint": "Releases a stopped queue and its held jobs, for example after a paper jam or an empty ribbon.",
+        "resumeSuccess": "The printer queue has been resumed.",
+        "slotMismatch": "The layout has {slots} slots, but a run takes {images} photos. Slots without a photo stay blank, photos without a slot are not printed.",
+        "submissionModeHint": "“Managed” lets the printer driver scale the print to the paper and fits almost every printer. “Raw” sends the PDF untouched and is only meant for printers that process PDF files themselves.",
+        "submissionModeManaged": "Managed (the driver scales the print to the paper)",
+        "submissionModeRaw": "Raw (send the PDF untouched)",
+        "testHint": "Checks that the selected queue exists and accepts jobs. Nothing is printed."
+      },
+      "restartDescription": "The configuration was saved. It takes effect once the application restarts.",
+      "restartTitle": "Restart required",
+      "saveDescription": "The configuration is written to the config file. Environment variables and command-line flags still take precedence over it.",
+      "saveError": "The configuration could not be saved.",
+      "saveOverridden": "These changes have no effect, because an environment variable or a flag takes precedence over the config file: {names}.",
+      "saveTitle": "Save configuration?",
+      "sections": {
+        "app": "General",
+        "camera": "Camera",
+        "capture": "Capture",
+        "mail": "Mail",
+        "print": "Printing",
+        "server": "Server",
+        "share": "Share",
+        "storage": "Storage",
+        "system": "System",
+        "theme": "Theme"
+      },
+      "server": {
+        "corsAllowCredentialsHint": "Lets the allowed domains send cookies, for example for a login. Requires explicit domains instead of *.",
+        "corsAllowedOriginsHint": "Domains whose web pages may call the API in the browser, one per line. Leave empty when the interface and the API share a domain.",
+        "corsAllowedOriginsPlaceholder": "https://example.com",
+        "hostPlaceholder": "All interfaces",
+        "sslCertFileHint": "Leave empty to use a self-signed certificate.",
+        "sslEnabledHint": "Serves the interface over HTTPS. Without certificate files, a self-signed certificate is generated, which browsers warn about.",
+        "trustedProxiesHint": "Proxies whose information about the client address is trusted, as comma-separated IP addresses or CIDR ranges."
+      },
+      "share": {
+        "cloudDriverHint": "Shows guests a QR code with a link to their photos. Nextcloud uploads the photos into a publicly shared folder, “Self-hosted” provides them through this server for seven days.",
+        "cloudNone": "None",
+        "cloudSelf": "Self-hosted",
+        "cloudSelfBaseUrlHint": "Address of this server that a guest's phone can reach, for example a local IP address in the Wi-Fi of the event or a public domain behind a reverse proxy.",
+        "emailEnabledHint": "Lets guests send their photos to an email address on the share screen. Sending uses the settings of the “Mail” tab.",
+        "nextcloudFolderHint": "Folder the photos are uploaded into, with a subfolder per event and run.",
+        "nextcloudPasswordHint": "An app password of the Nextcloud account.",
+        "testHint": "Checks the entered values without saving them. Nextcloud must be reachable and accept the credentials, an empty password tests the saved one."
+      },
+      "source": {
+        "badge": {
+          "env": "Env",
+          "flag": "Flag"
+        },
+        "default": "Default",
+        "defaultValue": "Default",
+        "defaults": "Defaults",
+        "empty": "empty",
+        "env": "Environment variable {name}",
+        "file": "Config file",
+        "flag": "Command-line flag {name}",
+        "off": "off",
+        "on": "on",
+        "overridden": "The environment variable or the flag takes precedence over the config file. A value saved here only takes effect once the variable or the flag is removed.",
+        "reset": "Reset to default",
+        "resetAll": "Reset all settings to defaults",
+        "resetSection": "Reset {section} to defaults",
+        "title": "Source"
+      },
+      "storage": {
+        "driverHint": "Where photos, originals, overlays, layouts, and print collages are stored.",
+        "local": "Local",
+        "pathHint": "Leave empty to use the data directory of the operating system.",
+        "pathPlaceholder": "Data directory",
+        "testHint": "Checks the entered values without saving them. Local needs a writable directory and S3 a reachable bucket, an empty secret key tests the saved one.",
+        "usePathStyleHint": "Addresses the bucket in the URL path instead of a subdomain of the endpoint."
+      },
+      "system": {
+        "allCommandHint": "One command for the application and the kiosk browser together. Leave empty to disable the button.",
+        "allCommandPlaceholder": "e.g. a wrapper script covering both",
+        "commandPlaceholder": "e.g. systemctl --user restart photopi.service",
+        "hint": "Each command runs on the device as a shell command, exactly as entered here. Leave a field empty to disable its button on the System page.",
+        "sections": {
+          "both": "Both",
+          "kiosk": "Kiosk",
+          "server": "Application"
+        }
+      },
+      "testConnection": "Test connection",
+      "testConnectionFailure": "Connection test failed",
+      "testConnectionSuccess": "Connection successful",
+      "theme": {
+        "hint": "Leave a color empty to use the built-in default.",
+        "title": "Colors"
+      },
+      "title": "Config",
+      "unsavedChanges": "Unsaved changes"
+    },
+    "dashboard": {
+      "cpu": "CPU",
+      "cpuHint": "Utilization across all cores, measured briefly while the page loads.",
+      "daysShort": "d",
+      "disk": "Disk",
+      "diskHint": "Usage of the root file system of the device. Photos on S3 or on another drive are not included.",
+      "hostname": "Hostname",
+      "hoursShort": "h",
+      "ipAddresses": "IP addresses",
+      "ipAddressesHint": "Addresses of all network interfaces of the device except loopback.",
+      "loadError": "The system information could not be loaded.",
+      "memory": "Memory",
+      "minutesShort": "m",
+      "noIps": "No network interfaces found",
+      "title": "Dashboard",
+      "uptime": "Uptime",
+      "uptimeHint": "Time since the application started, not since the device booted."
+    },
+    "gallery": {
+      "currentEvent": "current",
+      "deleteConfirmText": "This permanently deletes every photo in this run.",
+      "deleteConfirmTitle": "Delete this run?",
+      "deleteHint": "Deletes all photos of the run and their originals from the storage. Files already uploaded to Nextcloud remain there.",
+      "deleteSuccess": "Run deleted.",
+      "downloadEvent": "Event as zip",
+      "downloadEventOriginals": "Event originals as zip",
+      "downloadImage": "Download image",
+      "downloadOriginals": "Originals as zip",
+      "downloadZip": "Download as zip",
+      "downloadZipHint": "Downloads the photos of the run with the overlay as a zip file, without the originals.",
+      "empty": "No runs yet.",
+      "hint": "Shows the runs of one event, the most recent first, where a run holds the photos taken after one start on the welcome screen. The originals without the overlay can be shown and downloaded in the view of a run.",
+      "imageCount": "{count} photo | {count} photos",
+      "loadError": "The gallery could not be loaded.",
+      "run": "Run",
+      "showOriginals": "Originals without overlay",
+      "title": "Gallery",
+      "viewList": "List view",
+      "viewTiles": "Tile view"
+    },
+    "guestShare": {
+      "downloadZip": "Download all as zip",
+      "loadError": "These photos could not be loaded.",
+      "title": "Your photos"
+    },
+    "layouts": {
+      "addPage": "Add page",
+      "addSlot": "Add slot",
+      "brandingPreviewEventName": "Sample event",
+      "brandingTemplateHint": "Available placeholders:",
+      "deleteConfirmText": "This layout will be permanently deleted.",
+      "deleteConfirmTitle": "Delete layout?",
+      "deleteInUse": "This layout is selected in the print settings and cannot be deleted. Choose a different layout there first.",
+      "download": "Download",
+      "guide": {
+        "importExport": "Download saves the layout with all unsaved changes as a JSON file. Import opens such a file as a new layout. Saving it replaces a layout with the same ID.",
+        "intro": "The layout editor arranges the photos of a run on the paper of the printer. Positions and sizes are in millimeters of the paper, so the print matches the editor.",
+        "layouts": "A layout arranges the photos of a run in slots on the paper of the printer, in the order they were taken and with an optional caption. The print settings choose which layout is printed and shared.",
+        "layoutsTitle": "Layouts",
+        "shortcuts": {
+          "addSlot": "Add a slot",
+          "alt": "Hold while moving to duplicate the slots, while resizing to scale from the center",
+          "copy": "Copy the selected slots",
+          "duplicate": "Duplicate the selected slots, shifted",
+          "lock": "Lock or unlock the selected slots",
+          "nextSlot": "Select the next slot",
+          "nudge": "Move the selected slots by 1 millimeter",
+          "nudgeLarge": "Move the selected slots by 10 millimeters",
+          "paste": "Paste the copied slots, shifted",
+          "previousSlot": "Select the previous slot",
+          "removeSlots": "Remove the selected slots",
+          "removeSlotsAlternative": "Remove the selected slots",
+          "selectSlot": "Select a slot of the page",
+          "shiftResize": "Hold while resizing to keep the ratio",
+          "shiftSelect": "Click with Shift, Ctrl, or Cmd held to add a slot to the selection or remove it. Drag on the empty canvas to select every unlocked slot it touches."
+        },
+        "steps": {
+          "1": "Choose a layout or create a new one, and give it a name.",
+          "2": "Set the paper size to the paper of the printer, or choose one of the common sizes.",
+          "3": "Add a slot for every photo. Drag a slot to move it and its corners to resize it, or enter exact millimeters in the settings beside the canvas.",
+          "4": "Add pages if a run takes more photos than one page holds. A run continues on the next page once the slots of one are filled.",
+          "5": "Turn on the caption to print the name of the event and the date, and drag it to its place on the page.",
+          "6": "Save, then choose the layout in the print settings."
+        },
+        "view": "These aids only exist in the editor and are not part of the layout.\n\nThe grid shows steps of 10 millimeters, the rulers show millimeters on the paper, and lines show the coordinates of the pointer while dragging. With magnets, dragged slots snap onto the edges and centers of the other slots and of the paper, and a line shows the alignment. Holding Ctrl or Cmd places freely. While resizing, a loupe magnifies the area around the corner, which the toolbar can switch off. A click on a ruler places a guide across it that follows a drag: the top ruler places vertical guides, the left one horizontal guides. Slots snap to guides. A guide disappears when it is dragged back onto the ruler or double-clicked, all of them through the eraser in the toolbar. While moving, lines with measures show the distances to the neighbors, and even distances snap.\n\nThe preview shows the page as printed and keeps the slots above it editable. The view mode shows the page as printed and without the aids.\n\nA sample photo appears in every slot the way the print crops it: from the center to the aspect ratio of the slot. It is kept in this browser for each saved layout, never uploaded, and never printed. Its opacity can be set in the toolbar.\n\nA locked slot cannot be moved or resized and is skipped by the selection rectangle and the alignment. The align menu lines up the selected slots at an edge or a center line, or spaces them evenly. A single slot is aligned with the paper.\n\nThe list of the slots shows the order in which the photos of a run fill them. Dragging changes the order, the eye hides a slot for editing, the lock locks it. With several slots selected, position and size move and scale them together.",
+        "viewTitle": "Display aids"
+      },
+      "idPlaceholder": "e.g. my-layout",
+      "import": "Import layout",
+      "importError": "{name} is not a layout file.",
+      "importReplace": "Import",
+      "importReplaceDescription": "A layout with the ID \"{id}\" already exists. Saving the imported layout replaces it.",
+      "importReplaceTitle": "Replace layout?",
+      "lockRatio": "Lock aspect ratio",
+      "lockSlot": "Lock slot",
+      "multipleSelected": "{n} slots selected",
+      "new": "New",
+      "pageLabel": "Page {n}",
+      "panel": {
+        "layout": "Layout",
+        "slot": "Slot",
+        "branding": "Caption"
+      },
+      "removeLastSlotConfirm": "This is the last slot of this page. Remove it anyway?",
+      "removeLastSlotTitle": "Remove the last slot?",
+      "removePage": "Remove page",
+      "removeSlot": "Remove slot",
+      "sampleImage": "Sample photo",
+      "saveSuccess": "Layout saved.",
+      "selectLabel": "Layout",
+      "selectPlaceholder": "Select a layout",
+      "slot": {
+        "hMm": "Height (mm)",
+        "wMm": "Width (mm)",
+        "xMm": "Position X (mm)",
+        "yMm": "Position Y (mm)"
+      },
+      "slotLabel": "Slot {n}",
+      "slotRatioCurrent": "Aspect ratio: {ratio}",
+      "slotRatioCustomPlaceholder": "Custom ratio, e.g. 4:3",
+      "slotSelectLabel": "Image slot",
+      "slotSelectPlaceholder": "Select a slot",
+      "title": "Layouts",
+      "unlockRatio": "Unlock aspect ratio",
+      "unlockSlot": "Unlock slot"
+    },
+    "login": {
+      "submit": "Log in",
+      "title": "Login"
+    },
+    "review": {
+      "continueButton": "Next",
+      "discard": "Discard",
+      "discardDialog": {
+        "confirm": "Yes, delete all",
+        "text": "Do you really want to delete all images?",
+        "title": "Discard images?"
+      },
+      "title": "Review"
+    },
+    "share": {
+      "cloudFailed": "Couldn't prepare the online gallery.",
+      "cloudPreparing": "Preparing your photos…",
+      "cloudQrLabel": "Scan me for the photos!",
+      "cloudUnreachable": "The online gallery cannot be reached without an internet connection right now.",
+      "disabledMessage": "Thank you! Have a great day.",
+      "emailFailed": "Something went wrong on our end. Please ask the team for help.",
+      "emailFailedContact": "Something went wrong on our end. Please contact {adminEmail} and mention number {run}.",
+      "emailPrompt": "Where should we send your photos?",
+      "emailSend": "Send photos",
+      "emailSuccess": "Your photos have been sent to {email}.",
+      "emailUnreachable": "There is no internet connection right now, so we could not send your photos. Please ask the team for help.",
+      "finish": "Start a new capture",
+      "finishDialog": {
+        "back": "Go back",
+        "confirm": "Yes, start a new capture",
+        "text": "This ends the current process, and starts over from the beginning.",
+        "title": "Start a new capture?"
+      },
+      "printFailed": "The print didn't work. Please ask the team for help.",
+      "printPending": "Your print is being prepared…",
+      "printQueueUnavailable": "The printer isn't ready right now. Please try again in a moment or ask the team.",
+      "printSend": "Print",
+      "printSuccess": "The print job has been sent.",
+      "title": "Share"
+    },
+    "system": {
+      "allRestart": {
+        "action": "Restart both",
+        "confirmText": "This runs the configured command to restart both the application and the kiosk browser.",
+        "confirmTitle": "Restart both?",
+        "description": "Runs the configured command to restart both the application and the kiosk browser.",
+        "success": "Restart triggered.",
+        "title": "Restart both"
+      },
+      "allStop": {
+        "action": "Stop both",
+        "confirmText": "This runs the configured command to stop both the application and the kiosk browser.",
+        "confirmTitle": "Stop both?",
+        "description": "Runs the configured command to stop both the application and the kiosk browser.",
+        "success": "Stop triggered.",
+        "title": "Stop both"
+      },
+      "commandHint": "Starts the command set on the “System” tab of the configuration without waiting for it to finish. The confirmation only means that the command started.",
+      "directHint": "These actions need no configured command. Exit ends the application process, reboot and shut down call the matching command of the operating system.",
+      "hostReboot": {
+        "action": "Reboot",
+        "confirmText": "This reboots the whole machine, not just the application.",
+        "confirmTitle": "Reboot the machine?",
+        "description": "Reboots the host machine.",
+        "success": "Reboot triggered.",
+        "title": "Reboot machine"
+      },
+      "hostShutdown": {
+        "action": "Shut down",
+        "confirmText": "This powers off the whole machine, not just the application.",
+        "confirmTitle": "Shut down the machine?",
+        "description": "Powers off the host machine.",
+        "success": "Shutdown triggered.",
+        "title": "Shut down machine"
+      },
+      "kioskRestart": {
+        "action": "Restart",
+        "confirmText": "This runs the configured command to restart the kiosk browser's service.",
+        "confirmTitle": "Restart the kiosk browser?",
+        "description": "Runs the configured command to restart the kiosk browser's service.",
+        "success": "Restart triggered.",
+        "title": "Restart kiosk browser"
+      },
+      "kioskStop": {
+        "action": "Stop",
+        "confirmText": "This runs the configured command to stop the kiosk browser's service.",
+        "confirmTitle": "Stop the kiosk browser?",
+        "description": "Runs the configured command to stop the kiosk browser's service.",
+        "success": "Stop triggered.",
+        "title": "Stop kiosk browser"
+      },
+      "notConfigured": "Not configured. The command is set on the “System” tab of the configuration.",
+      "processExit": {
+        "action": "Exit",
+        "confirmText": "This exits the application process directly. Whether it starts again depends on how it is supervised, for example by a systemd service.",
+        "confirmTitle": "Exit the application process?",
+        "description": "Exits the running application process directly, without going through a configured command.",
+        "success": "Exit triggered.",
+        "title": "Exit application process"
+      },
+      "sections": {
+        "both": "Both",
+        "direct": "Direct actions",
+        "kiosk": "Kiosk",
+        "server": "Application"
+      },
+      "serverRestart": {
+        "action": "Restart",
+        "confirmText": "This runs the configured command to restart the application's own service.",
+        "confirmTitle": "Restart the application?",
+        "description": "Runs the configured command to restart the application's own service.",
+        "success": "Restart triggered.",
+        "title": "Restart application"
+      },
+      "serverStop": {
+        "action": "Stop",
+        "confirmText": "This runs the configured command to stop the application's own service.",
+        "confirmTitle": "Stop the application?",
+        "description": "Runs the configured command to stop the application's own service.",
+        "success": "Stop triggered.",
+        "title": "Stop application"
+      },
+      "title": "System"
+    },
+    "welcome": {
+      "admin": "Admin area",
+      "cameraUnavailable": "The camera is currently unavailable. Please ask the team for help.",
+      "start": "Start",
+      "title": "Welcome to the photobooth"
+    }
+  },
+  "update": {
+    "available": "Version {version} is available.",
+    "check": "Check for updates",
+    "confirmDescription": "The application restarts after the installation.",
+    "confirmTitle": "Install version {version}?",
+    "current": "Installed: {version}",
+    "failed": "The update failed.",
+    "hint": "Checks for a newer release only when clicked. Install downloads and verifies it, replaces the application, and restarts it.",
+    "install": "Install",
+    "installing": "Installing the update…",
+    "latest": "The installed version is the latest.",
+    "releaseNotes": "Release notes",
+    "restarting": "Restarting with the new version…",
+    "restartTimeout": "The application did not come back with the new version in time. Check the server and reload the page.",
+    "title": "Updates",
+    "unsupported": {
+      "container": "The application runs in a container. Pull the new image to update it.",
+      "development_build": "This build cannot update itself. Install a release instead.",
+      "not_writable": "The application cannot replace its own file. Install the new version manually.",
+      "package_managed": "The application was installed with the package manager and is updated through it."
+    }
+  },
+  "validation": {
+    "email": "Please enter a valid email address.",
+    "excludesall": "{field} must not contain any of these characters: {param}",
+    "explicit_origins": "{field} requires explicit origins instead of *.",
+    "gt": "{field} must be greater than {param}.",
+    "gte": "{field} must be at least {param}.",
+    "hexcolor": "{field} must be a hex color.",
+    "invalid": "{field} is invalid.",
+    "listEntry": "{field}, entry {position}",
+    "lte": "{field} must be at most {param}.",
+    "max": "{field} must be at most {param}.",
+    "max_array": "{field} must have at most {param} entries.",
+    "max_string": "{field} must be at most {param} characters.",
+    "min": "{field} must be at least {param}.",
+    "min_array": "{field} must have at least {param} entries.",
+    "min_string": "{field} must be at least {param} characters.",
+    "networks": "{field} must list IP addresses or CIDR ranges, separated by commas.",
+    "oneof": "{field} must be one of: {param}.",
+    "origin": "{field} must be * or an origin like https://example.com, without a path.",
+    "required": "{field} is required.",
+    "required_if": "{field} is required.",
+    "required_unless": "{field} is required.",
+    "required_with": "{field} is required.",
+    "rgbcolor": "{field} must be a color like #ff8800."
+  }
+}

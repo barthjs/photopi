@@ -1,0 +1,12 @@
+/*
+ * poppins - every subset per weight. The subset files of the package carry no unicode-range, so importing latin
+ * and latin-ext separately would let one replace the other. The weight files declare each subset with its range,
+ * and the browser only loads the files of the characters a page shows, such as latin-ext for Š, Ž, and Ÿ.
+ */
+@import '@fontsource/poppins/400.css';
+@import '@fontsource/poppins/500.css';
+@import '@fontsource/poppins/600.css';
+@import '@fontsource/poppins/700.css';
+
+/* jetbrains-mono - variable, every subset with its unicode-range */
+@import '@fontsource-variable/jetbrains-mono';

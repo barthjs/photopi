@@ -1,0 +1,812 @@
+{
+  "admin": {
+    "logout": "Abmelden",
+    "nav": {
+      "config": "Konfiguration",
+      "dashboard": "Dashboard",
+      "gallery": "Galerie",
+      "layouts": "Layouts",
+      "system": "System"
+    },
+    "openApp": "App öffnen"
+  },
+  "common": {
+    "back": "Zurück",
+    "cancel": "Abbrechen",
+    "confirm": "Bestätigen",
+    "delete": "Löschen",
+    "discardConfirm": "Verwerfen",
+    "discardDescription": "Deine ungespeicherten Änderungen gehen verloren.",
+    "discardTitle": "Änderungen verwerfen?",
+    "help": "Hilfe",
+    "hidePassword": "Passwort verbergen",
+    "keepSecret": "Gespeicherten Wert behalten",
+    "ok": "OK",
+    "pickColor": "Farbe wählen",
+    "removeSecret": "Gespeicherten Wert entfernen",
+    "reset": "Zurücksetzen",
+    "save": "Speichern",
+    "secretRemoved": "Wird beim Speichern entfernt",
+    "secretSaved": "Gespeichert, leer lassen zum Beibehalten",
+    "showPassword": "Passwort anzeigen"
+  },
+  "editor": {
+    "align": {
+      "bottom": "Untere Kanten ausrichten",
+      "centerX": "Waagrechte Mitten ausrichten",
+      "centerY": "Senkrechte Mitten ausrichten",
+      "left": "Linke Kanten ausrichten",
+      "right": "Rechte Kanten ausrichten",
+      "title": "Ausrichten",
+      "top": "Obere Kanten ausrichten"
+    },
+    "collapse": "Einklappen",
+    "distribute": {
+      "x": "Waagrecht verteilen",
+      "y": "Senkrecht verteilen"
+    },
+    "draft": {
+      "description": "In diesem Browser liegen Änderungen, die noch nicht gespeichert wurden. Wiederherstellen übernimmt sie, Verwerfen löscht sie.",
+      "restore": "Wiederherstellen",
+      "title": "Ungespeicherte Änderungen wiederherstellen?"
+    },
+    "exitFullscreen": "Vollbild beenden",
+    "exitViewMode": "Ansichtsmodus verlassen",
+    "expand": "Aufklappen",
+    "fullscreen": "Vollbild",
+    "guideLines": {
+      "clear": "Alle Hilfslinien entfernen"
+    },
+    "guideTab": "Anleitung",
+    "help": "So funktioniert der Editor",
+    "hideSidebar": "Einstellungen ausblenden",
+    "image": {
+      "clear": "Entfernen",
+      "opacity": "Deckkraft",
+      "replace": "Ersetzen"
+    },
+    "items": {
+      "hide": "Ausblenden",
+      "lock": "Sperren",
+      "show": "Einblenden",
+      "unlock": "Entsperren"
+    },
+    "redo": "Wiederholen",
+    "resetZoom": "Leinwand einpassen",
+    "resizeSidebar": "Breite der Einstellungen ändern, Doppelklick stellt sie zurück",
+    "shortcuts": {
+      "clearSelection": "Auswahl aufheben",
+      "constrain": "Beim Ziehen gedrückt halten, um nur waagrecht oder senkrecht zu verschieben",
+      "fullscreen": "Werkzeugleiste, Leinwand und Einstellungen im Vollbild zeigen, Esc beendet es",
+      "grid": "Raster ein- oder ausblenden",
+      "guides": "Hilfslinien ein- oder ausblenden",
+      "help": "Diese Hilfe öffnen",
+      "image": "Bild wählen",
+      "loupe": "Lupe ein- oder ausschalten",
+      "noSnapping": "Beim Ziehen gedrückt halten, um ohne Magnete zu platzieren",
+      "pan": "Gedrückt halten und ziehen, um die Leinwand zu verschieben, oder mit der rechten oder mittleren Maustaste ziehen",
+      "panSideways": "Leinwand waagrecht verschieben",
+      "panWheel": "Leinwand verschieben, auch mit zwei Fingern auf dem Touchpad",
+      "preview": "Vorschau ein- oder ausblenden",
+      "redo": "Wiederholen",
+      "redoAlternative": "Wiederholen",
+      "resetZoom": "Leinwand einpassen",
+      "rulers": "Lineale ein- oder ausblenden",
+      "save": "Speichern",
+      "selectAll": "Alles auswählen",
+      "sidebar": "Einstellungen neben der Leinwand ein- oder ausblenden",
+      "snapping": "Magnete ein- oder ausschalten",
+      "undo": "Rückgängig",
+      "viewMode": "Ansichtsmodus: Inhalt ohne Bearbeitungshilfen zeigen",
+      "zoom": "Um den Zeiger herum zoomen, auch mit zwei Fingern auf dem Touchpad",
+      "zoomIn": "Vergrößern",
+      "zoomOut": "Verkleinern",
+      "zoomToSelection": "Auf die Auswahl zoomen"
+    },
+    "shortcutsTab": "Tastenkürzel und Maus",
+    "showSidebar": "Einstellungen einblenden",
+    "transform": {
+      "height": "Höhe ({unit})",
+      "width": "Breite ({unit})",
+      "x": "X ({unit})",
+      "y": "Y ({unit})"
+    },
+    "undo": "Rückgängig",
+    "view": {
+      "grid": "Raster",
+      "guides": "Hilfslinien",
+      "loupe": "Lupe",
+      "preview": "Vorschau",
+      "rulers": "Lineale",
+      "snapping": "Magnete"
+    },
+    "viewMode": "Ansichtsmodus",
+    "zoomIn": "Vergrößern",
+    "zoomLevel": "Zoomstufe",
+    "zoomOut": "Verkleinern",
+    "zoomToSelection": "Auf Auswahl zoomen"
+  },
+  "errors": {
+    "authentication_required": "Bitte melde Dich an, um fortzufahren.",
+    "bad_request": "Die Anfrage war ungültig.",
+    "camera_capture_failed": "Die Kamera konnte kein brauchbares Bild liefern. Bitte versuche es erneut.",
+    "conflict": "Das hat nicht funktioniert. Bitte versuche es erneut.",
+    "forbidden": "Dafür fehlt Dir die Berechtigung.",
+    "invalid_credentials": "Die Anmeldedaten sind falsch.",
+    "method_not_allowed": "Diese Aktion ist nicht erlaubt.",
+    "not_found": "Das konnten wir nicht finden.",
+    "payload_too_large": "Die Anfrage ist zu groß.",
+    "rate_limited": "Zu viele Versuche. Bitte versuche es später erneut.",
+    "rate_limited_minutes": "Zu viele Versuche. Bitte versuche es in einer Minute erneut. | Zu viele Versuche. Bitte versuche es in {count} Minuten erneut.",
+    "rate_limited_seconds": "Zu viele Versuche. Bitte versuche es in einer Sekunde erneut. | Zu viele Versuche. Bitte versuche es in {count} Sekunden erneut.",
+    "server_error": "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
+    "timeout": "Das hat zu lange gedauert. Bitte versuche es erneut.",
+    "validation_failed": "Bitte überprüfe Deine Eingabe."
+  },
+  "fields": {
+    "app": {
+      "env": "Umgebung",
+      "language": "Sprache",
+      "name": "Anwendungsname",
+      "secret": "Admin-Passwort"
+    },
+    "branding": {
+      "color": "Farbe",
+      "enabled": "Branding anzeigen",
+      "fontSizePt": "Schriftgröße (pt)",
+      "rotationDeg": "Rotation (°)",
+      "template": "Textvorlage"
+    },
+    "camera": {
+      "analogueGain": "Analoge Verstärkung",
+      "autofocusMode": "Autofokus",
+      "captureHeight": "Aufnahmehöhe",
+      "captureWidth": "Aufnahmebreite",
+      "denoise": "Rauschunterdrückung",
+      "exposureCompensation": "Belichtungskorrektur (EV)",
+      "exposureMode": "Belichtungsprofil",
+      "exposureTime": "Belichtungszeit",
+      "horizontalFlip": "Horizontal spiegeln",
+      "jpegQuality": "JPEG-Qualität",
+      "overlayPath": "Aktives Overlay",
+      "previewFps": "Vorschau-Bildrate",
+      "previewHeight": "Vorschauhöhe",
+      "previewWidth": "Vorschaubreite",
+      "rotation": "Drehung",
+      "source": "Kameraquelle",
+      "verticalFlip": "Vertikal spiegeln",
+      "whiteBalance": "Weißabgleich"
+    },
+    "capture": {
+      "adminEmail": "Admin-Kontakt-E-Mail",
+      "eventName": "Veranstaltungsname",
+      "filePrefix": "Dateipräfix",
+      "imagesPerRun": "Bilder pro Durchgang",
+      "saveOriginals": "Originale ohne Overlay behalten",
+      "welcomeMessage": "Willkommensnachricht"
+    },
+    "email": "E-Mail-Adresse",
+    "file": "Datei",
+    "id": "Layout-ID",
+    "log": {
+      "channel": "Log-Kanal",
+      "compress": "Alte Logs komprimieren",
+      "format": "Log-Format",
+      "level": "Log-Level",
+      "maxAgeDays": "Aufbewahrung der Logs (Tage)",
+      "maxSizeMb": "Maximale Log-Größe (MB)",
+      "path": "Log-Verzeichnis"
+    },
+    "mail": {
+      "driver": "Mail-Treiber",
+      "fromAddress": "Absenderadresse",
+      "fromName": "Absendername",
+      "host": "SMTP-Host",
+      "messageIdDomain": "Domain der Message-ID",
+      "password": "SMTP-Passwort",
+      "port": "SMTP-Port",
+      "replyTo": "Antwortadresse",
+      "username": "SMTP-Benutzername"
+    },
+    "name": "Name",
+    "paper": {
+      "heightMM": "Höhe (mm)",
+      "widthMM": "Breite (mm)"
+    },
+    "password": "Passwort",
+    "print": {
+      "enabled": "Drucken aktivieren",
+      "layoutId": "Druck-Layout",
+      "printerName": "Drucker",
+      "submissionMode": "Druckübermittlung"
+    },
+    "server": {
+      "corsAllowCredentials": "CORS mit Cookies erlauben",
+      "corsAllowedOrigins": "Erlaubte CORS-Origins",
+      "host": "Host",
+      "port": "Port",
+      "sslCertFile": "TLS-Zertifikatspfad",
+      "sslEnabled": "HTTPS aktivieren",
+      "sslKeyFile": "TLS-Schlüsselpfad",
+      "trustedProxies": "Vertrauenswürdige Proxys"
+    },
+    "share": {
+      "cloud": {
+        "driver": "Cloud-Freigabe-Treiber",
+        "nextcloud": {
+          "folder": "Nextcloud-Ordner",
+          "password": "Nextcloud-App-Passwort",
+          "url": "Nextcloud-URL",
+          "username": "Nextcloud-Benutzername"
+        },
+        "self": {
+          "baseUrl": "Öffentliche Basis-URL"
+        }
+      },
+      "email": {
+        "enabled": "E-Mail-Freigabe erlauben",
+        "subject": "Betreff-Override für E-Mails"
+      }
+    },
+    "storage": {
+      "driver": "Speichertreiber",
+      "path": "Speicherpfad",
+      "s3": {
+        "accessKey": "S3 Access Key",
+        "bucket": "S3-Bucket",
+        "endpoint": "S3-Endpunkt",
+        "region": "S3-Region",
+        "secretKey": "S3 Secret Key",
+        "usePathStyle": "Path-Style-Adressierung verwenden"
+      }
+    },
+    "system": {
+      "allRestartCommand": "Beide neu starten",
+      "allStopCommand": "Beide beenden",
+      "kioskRestartCommand": "Kiosk neu starten",
+      "kioskStopCommand": "Kiosk beenden",
+      "serverRestartCommand": "Anwendung neu starten",
+      "serverStopCommand": "Anwendung beenden"
+    },
+    "theme": {
+      "error": "Fehler",
+      "info": "Info",
+      "neutral": "Neutral",
+      "primary": "Primär",
+      "secondary": "Sekundär",
+      "success": "Erfolg",
+      "warning": "Warnung"
+    }
+  },
+  "keyboard": {
+    "hide": "Tastatur ausblenden",
+    "letters": "ABC",
+    "symbols": "#+=",
+    "toggle": "Bildschirmtastatur ein- oder ausblenden"
+  },
+  "keys": {
+    "alt": "Alt",
+    "arrows": "Pfeiltasten",
+    "backspace": "Rücktaste",
+    "delete": "Entf",
+    "escape": "Esc",
+    "meta": "Strg",
+    "shift": "Umschalt",
+    "space": "Leertaste",
+    "tab": "Tab",
+    "wheel": "Mausrad"
+  },
+  "pages": {
+    "capture": {
+      "progress": "Bild {current} von {total}",
+      "returningToWelcome": "Wir kehren in {seconds}s zur Startseite zurück.",
+      "smile": "Lächeln!",
+      "startButton": "Aufnahme starten",
+      "title": "Aufnahme"
+    },
+    "config": {
+      "app": {
+        "envDevelopment": "Entwicklung",
+        "envHint": "Für den Betrieb „Produktion“ wählen. „Entwicklung“ und „Test“ sind für die Weiterentwicklung der Anwendung gedacht.",
+        "envProduction": "Produktion",
+        "envStaging": "Test",
+        "languageHint": "Sprache der Oberfläche und der E-Mails.",
+        "nameHint": "Wird in der Oberfläche angezeigt. Leer lassen, um den eingebauten Namen zu verwenden.",
+        "secretHint": "Passwort für die Anmeldung im Admin-Bereich. Ohne Passwort kann sich jeder anmelden, und selbst gehostete Freigabe-Links werden bei jedem Neustart ungültig."
+      },
+      "camera": {
+        "analogueGainHint": "Legt die Signalverstärkung des Sensors fest. Höhere Werte hellen das Bild auf und verstärken das Rauschen, 0 regelt die Verstärkung automatisch.",
+        "aspectRatioHint": "Aufnahme und Vorschau müssen dasselbe Seitenverhältnis haben. Solange das Schloss geschlossen ist, passt eine Änderung der einen Seite die andere an.",
+        "aspectRatioLabel": "Seitenverhältnis: {ratio}",
+        "aspectRatioLock": "Seitenverhältnis sperren",
+        "autofocusModeAuto": "Automatisch",
+        "autofocusModeContinuous": "Kontinuierlich",
+        "autofocusModeDefault": "Standard",
+        "autofocusModeHint": "Nur für Kameras mit Fokusmotor wie das Camera Module 3. Für Kameras ohne Fokusmotor wie die HQ Camera auf „Standard“ lassen.",
+        "autofocusModeManual": "Manuell",
+        "denoiseAuto": "Automatisch",
+        "denoiseCdnFast": "Schnell",
+        "denoiseCdnHq": "Hohe Qualität",
+        "denoiseCdnOff": "Nur Helligkeitsrauschen",
+        "denoiseHint": "Verringert das Rauschen, das bei hoher Verstärkung sichtbar wird. „Automatisch“ nutzt für die Vorschau eine schnelle und für die Fotos eine gründliche Rauschunterdrückung.",
+        "denoiseOff": "Aus",
+        "exposureCompensationHint": "Hellt die automatische Belichtung in Blendenstufen auf (positiv) oder dunkelt sie ab (negativ). Wirkt nicht, wenn Belichtungszeit und Verstärkung beide fest eingestellt sind.",
+        "exposureModeHint": "Gilt nur bei automatischer Belichtungszeit. „Kurz“ hält die Belichtungszeit kurz und erhöht früher die Verstärkung, so bleiben sich bewegende Gäste schärfer, das Bild rauscht aber etwas mehr.",
+        "exposureModeNormal": "Normal",
+        "exposureModeShort": "Kurz",
+        "exposureTimeAuto": "Automatisch",
+        "exposureTimeHint": "„Automatisch“ wählt Belichtungszeit und Verstärkung selbst und belichtet bei wenig Licht so lange, dass sich bewegende Gäste unscharf werden. Eine feste kurze Zeit wie 1/125 s hält sie scharf, in einem dunklen Raum wird das Bild aber dunkler und rauscht stärker.",
+        "flipHint": "Spiegelt die Vorschau und die Fotos, zum Beispiel für eine Kamera hinter einem Spiegel.",
+        "imageSettings": "Bild",
+        "jpegQualityHint": "Qualität der Fotos von 1 bis 100. Höhere Werte erhalten mehr Details und erzeugen größere Dateien.",
+        "overlayActive": "Aktiv",
+        "overlayClear": "Kein Overlay verwenden",
+        "overlayDelete": "Overlay löschen",
+        "overlayDownload": "Overlay herunterladen",
+        "overlayEmpty": "Noch keine Overlays hochgeladen.",
+        "overlayLibrary": "Overlay-Bibliothek",
+        "overlayLibraryHint": "PNG-Dateien, die auf die Größe jedes Fotos skaliert und darübergelegt werden. Eine Datei mit vorhandenem Namen ersetzt die bestehende, ein Download liefert sie so, wie sie gespeichert ist, Löschen entfernt sie sofort aus dem Speicher.",
+        "overlayNone": "Kein Overlay",
+        "overlayPathHint": "Overlay, das über jedes Foto gelegt wird. Zur Auswahl stehen die PNG-Dateien der Overlay-Bibliothek weiter unten.",
+        "overlaySelect": "Verwenden",
+        "previewFpsHint": "Bilder pro Sekunde der Live-Vorschau. Eine niedrigere Bildrate lässt mehr Rechenleistung für die Fotos, für den Kiosk-Bildschirm genügen 15.",
+        "rotationHint": "Dreht die Vorschau und die Fotos auf den Kopf, für eine kopfüber montierte Kamera. Der Sensor unterstützt nur 0° und 180°.",
+        "sourceHint": "„Webcam“ nimmt mit der Kamera des Geräts auf, dessen Browser den Aufnahmebildschirm zeigt, „rpicam“ mit der Raspberry-Pi-Kamera. „gphoto2“ steuert eine per USB verbundene Kamera, deren Bildgröße und Belichtung an der Kamera selbst eingestellt werden.",
+        "uploadOverlay": "Overlay hochladen",
+        "whiteBalanceAuto": "Automatisch",
+        "whiteBalanceCloudy": "Bewölkt",
+        "whiteBalanceDaylight": "Tageslicht",
+        "whiteBalanceFluorescent": "Leuchtstofflampe",
+        "whiteBalanceHint": "Passt die Farben an das Licht des Raums an. „Automatisch“ passt für die meisten Räume.",
+        "whiteBalanceIncandescent": "Glühlampe",
+        "whiteBalanceIndoor": "Innenraum",
+        "whiteBalanceTungsten": "Halogen"
+      },
+      "capture": {
+        "adminEmailHint": "Wird einem Gast mit seiner Durchgangsnummer angezeigt, wenn der Versand seiner Fotos per E-Mail fehlschlägt. Leer lassen, um eine allgemeine Fehlermeldung zu zeigen.",
+        "eventNameHint": "Erscheint in den E-Mails an Gäste und in der Beschriftung der Layouts. Die Fotos werden in einem nach der Veranstaltung benannten Ordner gespeichert.",
+        "filePrefixHint": "Anfang der Dateinamen der gespeicherten Fotos.",
+        "saveOriginalsHint": "Speichert bei aktivem Overlay zusätzlich eine Kopie jedes Fotos ohne Overlay. Gäste erhalten diese Originale nie, in der Galerie lassen sie sich einblenden und herunterladen.",
+        "welcomeMessageHint": "Überschrift des Begrüßungsbildschirms. Leer lassen, um die Standardbegrüßung zu verwenden."
+      },
+      "file": {
+        "loaded": "Konfigurationsdatei:",
+        "missing": "Die Konfigurationsdatei existiert noch nicht und wird beim Speichern angelegt:",
+        "none": "Es wurde keine Konfigurationsdatei gefunden. Beim Speichern wird config.yaml im ersten beschreibbaren Konfigurationsverzeichnis angelegt."
+      },
+      "loadError": "Die Konfiguration konnte nicht geladen werden.",
+      "log": {
+        "channelBoth": "Standardausgabe und Datei",
+        "channelFile": "Datei",
+        "channelStdout": "Standardausgabe",
+        "formatConsole": "Konsole",
+        "levelDebug": "Debug",
+        "levelError": "Fehler",
+        "levelInfo": "Info",
+        "levelWarn": "Warnung",
+        "maxAgeDaysHint": "Rotierte Log-Dateien werden nach so vielen Tagen gelöscht. -1 behält sie dauerhaft.",
+        "maxSizeMbHint": "Die Log-Datei wird täglich um Mitternacht rotiert und zusätzlich, sobald sie diese Größe erreicht.",
+        "pathHint": "Verzeichnis der Log-Datei photopi.log. Leer lassen, um das Log-Verzeichnis des Betriebssystems zu verwenden.",
+        "pathPlaceholder": "Log-Verzeichnis des Betriebssystems"
+      },
+      "mail": {
+        "driverHint": "„Nur protokollieren“ schreibt E-Mails ins Anwendungslog, statt sie zu versenden. „SMTP“ versendet sie über den Server darunter.",
+        "driverLog": "Nur protokollieren",
+        "messageIdDomainHint": "Domain der Message-ID jeder E-Mail, üblicherweise die Domain der Absenderadresse. Leer lassen, um sie automatisch zu bestimmen.",
+        "replyToHint": "Antworten auf E-Mails gehen an diese Adresse, zum Beispiel an den Support, wenn der Absender eine No-Reply-Adresse ist. Leer lassen, um keine Antwortadresse zu setzen."
+      },
+      "print": {
+        "cancelConfirmText": "Alle wartenden und laufenden Aufträge der Warteschlange „{printer}“ werden abgebrochen. Die Gäste müssen diese Fotos erneut drucken.",
+        "cancelConfirmTitle": "Alle Druckaufträge abbrechen?",
+        "cancelJobs": "Alle Aufträge abbrechen",
+        "cancelSuccess": "Alle Druckaufträge wurden abgebrochen.",
+        "enabledHint": "Zeigt auf dem Teilen-Bildschirm einen Button „Drucken“, der die Fotos des Durchgangs im gewählten Layout druckt.",
+        "hint": "Drucken setzt eine CUPS-Warteschlange voraus, die samt Treiber außerhalb dieser Anwendung eingerichtet wird.",
+        "layoutDescription": "{width}×{height} mm, {slots} Bilder",
+        "layoutIdHint": "Ordnet die Fotos eines Durchgangs für den Druck an. Solange Drucken aktiv ist, enthalten E-Mails und Cloud-Freigaben auch diese Collage.",
+        "layoutNone": "Kein Layout ausgewählt",
+        "manageLayouts": "Layouts verwalten",
+        "printerNone": "Kein Drucker ausgewählt",
+        "printerStatus": "Status: {status}",
+        "reloadLayouts": "Layouts neu laden",
+        "reloadPrinters": "Drucker neu laden",
+        "resume": "Drucker fortsetzen",
+        "resumeHint": "Gibt eine angehaltene Warteschlange und ihre Aufträge wieder frei, zum Beispiel nach einem Papierstau oder einem leeren Farbband.",
+        "resumeSuccess": "Die Druckerwarteschlange wurde fortgesetzt.",
+        "slotMismatch": "Das Layout hat {slots} Felder, ein Durchgang nimmt aber {images} Fotos auf. Felder ohne Foto bleiben leer, Fotos ohne Feld werden nicht gedruckt.",
+        "submissionModeHint": "„Verwaltet“ lässt den Druckertreiber den Druck auf das Papier skalieren und passt für fast jeden Drucker. „Raw“ sendet das PDF unverändert und ist nur für Drucker gedacht, die PDF-Dateien selbst verarbeiten.",
+        "submissionModeManaged": "Verwaltet (der Treiber skaliert den Druck auf das Papier)",
+        "submissionModeRaw": "Raw (PDF unverändert senden)",
+        "testHint": "Prüft, ob die gewählte Warteschlange existiert und Aufträge annimmt. Es wird nichts gedruckt."
+      },
+      "restartDescription": "Die Konfiguration wurde gespeichert. Sie wirkt nach einem Neustart der Anwendung.",
+      "restartTitle": "Neustart erforderlich",
+      "saveDescription": "Die Konfiguration wird in die Konfigurationsdatei geschrieben. Umgebungsvariablen und Kommandozeilen-Flags haben weiterhin Vorrang.",
+      "saveError": "Die Konfiguration konnte nicht gespeichert werden.",
+      "saveOverridden": "Diese Änderungen wirken nicht, weil eine Umgebungsvariable oder ein Flag Vorrang vor der Konfigurationsdatei hat: {names}.",
+      "saveTitle": "Konfiguration speichern?",
+      "sections": {
+        "app": "Allgemein",
+        "camera": "Kamera",
+        "capture": "Aufnahme",
+        "mail": "Mail",
+        "print": "Drucken",
+        "server": "Server",
+        "share": "Freigabe",
+        "storage": "Speicher",
+        "system": "System",
+        "theme": "Design"
+      },
+      "server": {
+        "corsAllowCredentialsHint": "Lässt die erlaubten Domains Cookies mitsenden, zum Beispiel für eine Anmeldung. Erfordert konkrete Domains statt *.",
+        "corsAllowedOriginsHint": "Domains, deren Webseiten die API im Browser aufrufen dürfen, eine pro Zeile. Leer lassen, wenn Oberfläche und API unter derselben Domain laufen.",
+        "corsAllowedOriginsPlaceholder": "https://example.com",
+        "hostPlaceholder": "Alle Schnittstellen",
+        "sslCertFileHint": "Leer lassen, um ein selbstsigniertes Zertifikat zu verwenden.",
+        "sslEnabledHint": "Liefert die Oberfläche über HTTPS aus. Ohne Zertifikatsdateien wird ein selbstsigniertes Zertifikat erzeugt, vor dem Browser warnen.",
+        "trustedProxiesHint": "Proxys, deren Angaben zur Adresse des Aufrufers übernommen werden, als kommagetrennte IP-Adressen oder Netze in CIDR-Schreibweise."
+      },
+      "share": {
+        "cloudDriverHint": "Zeigt Gästen einen QR-Code mit einem Link zu ihren Fotos. Nextcloud lädt die Fotos in einen öffentlich freigegebenen Ordner hoch, „Selbst gehostet“ stellt sie sieben Tage lang über diesen Server bereit.",
+        "cloudNone": "Keine",
+        "cloudSelf": "Selbst gehostet",
+        "cloudSelfBaseUrlHint": "Adresse dieses Servers, die das Handy eines Gastes erreicht, zum Beispiel eine lokale IP-Adresse im WLAN der Veranstaltung oder eine öffentliche Domain hinter einem Reverse-Proxy.",
+        "emailEnabledHint": "Erlaubt Gästen, ihre Fotos auf dem Teilen-Bildschirm an eine E-Mail-Adresse zu senden. Der Versand nutzt die Einstellungen im Reiter „Mail“.",
+        "nextcloudFolderHint": "Ordner, in den die Fotos hochgeladen werden, mit einem Unterordner je Veranstaltung und Durchgang.",
+        "nextcloudPasswordHint": "Ein App-Passwort des Nextcloud-Kontos.",
+        "testHint": "Prüft die eingegebenen Werte, ohne sie zu speichern. Nextcloud muss erreichbar sein und die Zugangsdaten annehmen, ein leeres Passwort prüft das gespeicherte."
+      },
+      "source": {
+        "badge": {
+          "env": "Env",
+          "flag": "Flag"
+        },
+        "default": "Standardwert",
+        "defaultValue": "Standard",
+        "defaults": "Standardwerte",
+        "empty": "leer",
+        "env": "Umgebungsvariable {name}",
+        "file": "Konfigurationsdatei",
+        "flag": "Kommandozeilen-Flag {name}",
+        "off": "aus",
+        "on": "an",
+        "overridden": "Die Umgebungsvariable oder das Flag hat Vorrang vor der Konfigurationsdatei. Ein hier gespeicherter Wert wirkt erst, wenn die Variable oder das Flag entfernt wird.",
+        "reset": "Auf Standard zurücksetzen",
+        "resetAll": "Alle Einstellungen auf Standard zurücksetzen",
+        "resetSection": "{section} auf Standard zurücksetzen",
+        "title": "Herkunft"
+      },
+      "storage": {
+        "driverHint": "Ort, an dem Fotos, Originale, Overlays, Layouts und Druckcollagen gespeichert werden.",
+        "local": "Lokal",
+        "pathHint": "Leer lassen, um das Datenverzeichnis des Betriebssystems zu verwenden.",
+        "pathPlaceholder": "Datenverzeichnis",
+        "testHint": "Prüft die eingegebenen Werte, ohne sie zu speichern. Lokal muss das Verzeichnis beschreibbar und bei S3 der Bucket erreichbar sein, ein leerer Secret Key prüft den gespeicherten.",
+        "usePathStyleHint": "Spricht den Bucket über den Pfad der URL statt über eine Subdomain des Endpunkts an."
+      },
+      "system": {
+        "allCommandHint": "Ein Befehl für Anwendung und Kiosk-Browser zusammen. Leer lassen, um den Button zu deaktivieren.",
+        "allCommandPlaceholder": "z. B. ein Wrapper-Skript für beides",
+        "commandPlaceholder": "z. B. systemctl --user restart photopi.service",
+        "hint": "Jeder Befehl wird genau so, wie er hier steht, als Shell-Befehl auf dem Gerät ausgeführt. Leer lassen, um den zugehörigen Button auf der Systemseite zu deaktivieren.",
+        "sections": {
+          "both": "Beide",
+          "kiosk": "Kiosk",
+          "server": "Anwendung"
+        }
+      },
+      "testConnection": "Verbindung testen",
+      "testConnectionFailure": "Verbindungstest fehlgeschlagen",
+      "testConnectionSuccess": "Verbindung erfolgreich",
+      "theme": {
+        "hint": "Eine Farbe leer lassen, um die eingebaute Standardfarbe zu verwenden.",
+        "title": "Farben"
+      },
+      "title": "Konfiguration",
+      "unsavedChanges": "Ungespeicherte Änderungen"
+    },
+    "dashboard": {
+      "cpu": "CPU",
+      "cpuHint": "Auslastung über alle Kerne, kurz beim Laden der Seite gemessen.",
+      "daysShort": "T",
+      "disk": "Speicherplatz",
+      "diskHint": "Belegung des Root-Dateisystems des Geräts. Fotos auf S3 oder einem anderen Laufwerk sind nicht enthalten.",
+      "hostname": "Hostname",
+      "hoursShort": "Std",
+      "ipAddresses": "IP-Adressen",
+      "ipAddressesHint": "Adressen aller Netzwerkschnittstellen des Geräts außer Loopback.",
+      "loadError": "Die Systeminformationen konnten nicht geladen werden.",
+      "memory": "Arbeitsspeicher",
+      "minutesShort": "Min",
+      "noIps": "Keine Netzwerkschnittstellen gefunden",
+      "title": "Dashboard",
+      "uptime": "Laufzeit",
+      "uptimeHint": "Zeit seit dem Start der Anwendung, nicht seit dem Hochfahren des Geräts."
+    },
+    "gallery": {
+      "currentEvent": "aktuell",
+      "deleteConfirmText": "Dies löscht dauerhaft alle Fotos dieses Durchgangs.",
+      "deleteConfirmTitle": "Diesen Durchgang löschen?",
+      "deleteHint": "Löscht alle Fotos des Durchgangs samt Originalen aus dem Speicher. Bereits zu Nextcloud hochgeladene Dateien bleiben dort erhalten.",
+      "deleteSuccess": "Durchgang gelöscht.",
+      "downloadEvent": "Event als ZIP",
+      "downloadEventOriginals": "Originale des Events als ZIP",
+      "downloadImage": "Bild herunterladen",
+      "downloadOriginals": "Originale als ZIP",
+      "downloadZip": "Als ZIP herunterladen",
+      "downloadZipHint": "Lädt die Fotos des Durchgangs mit Overlay als ZIP-Datei herunter, ohne die Originale.",
+      "empty": "Noch keine Durchgänge.",
+      "hint": "Zeigt die Durchgänge einer Veranstaltung, die neuesten zuerst, wobei ein Durchgang die Fotos nach einem Start auf dem Begrüßungsbildschirm enthält. Die Originale ohne Overlay lassen sich in der Ansicht eines Durchgangs einblenden und herunterladen.",
+      "imageCount": "{count} Foto | {count} Fotos",
+      "loadError": "Die Galerie konnte nicht geladen werden.",
+      "run": "Durchgang",
+      "showOriginals": "Originale ohne Overlay",
+      "title": "Galerie",
+      "viewList": "Listenansicht",
+      "viewTiles": "Kachelansicht"
+    },
+    "guestShare": {
+      "downloadZip": "Alle als ZIP herunterladen",
+      "loadError": "Diese Fotos konnten nicht geladen werden.",
+      "title": "Deine Fotos"
+    },
+    "layouts": {
+      "addPage": "Seite hinzufügen",
+      "addSlot": "Slot hinzufügen",
+      "brandingPreviewEventName": "Musterevent",
+      "brandingTemplateHint": "Verfügbare Platzhalter:",
+      "deleteConfirmText": "Dieses Layout wird dauerhaft gelöscht.",
+      "deleteConfirmTitle": "Layout löschen?",
+      "deleteInUse": "Dieses Layout ist in den Druckeinstellungen ausgewählt und kann nicht gelöscht werden. Dort zuerst ein anderes Layout wählen.",
+      "download": "Herunterladen",
+      "guide": {
+        "importExport": "Herunterladen speichert das Layout mit allen ungespeicherten Änderungen als JSON-Datei. Importieren öffnet eine solche Datei als neues Layout. Beim Speichern ersetzt es ein Layout mit gleicher ID.",
+        "intro": "Der Layout-Editor ordnet die Fotos eines Durchgangs auf dem Papier des Druckers an. Positionen und Größen sind Millimeter auf dem Papier, sodass der Druck dem Editor entspricht.",
+        "layouts": "Ein Layout ordnet die Fotos eines Durchgangs in Slots auf dem Papier des Druckers an, in der Reihenfolge der Aufnahme und mit einer optionalen Beschriftung. In den Druckeinstellungen wird gewählt, welches Layout gedruckt und geteilt wird.",
+        "layoutsTitle": "Layouts",
+        "shortcuts": {
+          "addSlot": "Slot hinzufügen",
+          "alt": "Beim Verschieben gedrückt halten, um die Slots zu duplizieren, beim Ändern der Größe, um von der Mitte aus zu skalieren",
+          "copy": "Ausgewählte Slots kopieren",
+          "duplicate": "Ausgewählte Slots versetzt duplizieren",
+          "lock": "Ausgewählte Slots sperren oder entsperren",
+          "nextSlot": "Nächsten Slot auswählen",
+          "nudge": "Ausgewählte Slots um 1 Millimeter verschieben",
+          "nudgeLarge": "Ausgewählte Slots um 10 Millimeter verschieben",
+          "paste": "Kopierte Slots versetzt einfügen",
+          "previousSlot": "Vorherigen Slot auswählen",
+          "removeSlots": "Ausgewählte Slots entfernen",
+          "removeSlotsAlternative": "Ausgewählte Slots entfernen",
+          "selectSlot": "Einen Slot der Seite auswählen",
+          "shiftResize": "Beim Ändern der Größe gedrückt halten, um das Seitenverhältnis zu halten",
+          "shiftSelect": "Mit gedrückter Umschalt-, Strg- oder Cmd-Taste klicken, um einen Slot zur Auswahl hinzuzufügen oder zu entfernen. Auf der leeren Leinwand ziehen, um alle berührten, nicht gesperrten Slots auszuwählen."
+        },
+        "steps": {
+          "1": "Ein Layout wählen oder ein neues anlegen und ihm einen Namen geben.",
+          "2": "Die Papiergröße auf das Papier des Druckers einstellen oder eine der üblichen Größen wählen.",
+          "3": "Für jedes Foto einen Slot hinzufügen. Slots zum Verschieben ziehen und an den Ecken in der Größe ändern, oder genaue Millimeter in den Einstellungen neben der Leinwand eingeben.",
+          "4": "Seiten hinzufügen, wenn ein Durchgang mehr Fotos aufnimmt, als eine Seite fasst. Ein Durchgang wird auf der nächsten Seite fortgesetzt, sobald die Slots einer Seite gefüllt sind.",
+          "5": "Die Beschriftung einschalten, um den Namen der Veranstaltung und das Datum zu drucken, und sie an ihre Stelle auf der Seite ziehen.",
+          "6": "Speichern und das Layout anschließend in den Druckeinstellungen wählen."
+        },
+        "view": "Diese Hilfen gibt es nur im Editor, sie gehören nicht zum Layout.\n\nDas Raster zeigt Schritte von 10 Millimetern, die Lineale zeigen Millimeter auf dem Papier, und Linien zeigen beim Ziehen die Koordinaten des Zeigers. Mit Magneten rasten gezogene Slots an den Kanten und Mitten der anderen Slots und des Papiers ein, und eine Linie zeigt die Ausrichtung. Mit gedrückter Strg- oder Cmd-Taste wird frei platziert. Beim Ändern der Größe vergrößert eine Lupe die Umgebung der Ecke, sie lässt sich in der Werkzeugleiste abschalten. Ein Klick auf ein Lineal setzt eine Hilfslinie quer dazu, die beim Ziehen mitwandert: das obere Lineal senkrechte, das linke waagrechte. Slots rasten an Hilfslinien ein. Eine Hilfslinie verschwindet, wenn sie zurück ins Lineal gezogen oder doppelt angeklickt wird, alle zusammen über den Radierer in der Werkzeugleiste. Beim Verschieben zeigen Linien mit Maßen die Abstände zu den Nachbarn, und gleiche Abstände rasten ein.\n\nDie Vorschau zeigt die Seite wie gedruckt und lässt die Slots darüber bearbeitbar. Der Ansichtsmodus zeigt die Seite wie gedruckt und ohne die Hilfen.\n\nEin Beispielfoto erscheint in jedem Slot, wie der Druck es zuschneidet: aus der Mitte auf das Seitenverhältnis des Slots. Es wird für jedes gespeicherte Layout in diesem Browser aufbewahrt, nie hochgeladen und nicht gedruckt. Seine Deckkraft lässt sich in der Werkzeugleiste einstellen.\n\nEin gesperrter Slot lässt sich nicht verschieben oder in der Größe ändern und wird bei der Rahmenauswahl und beim Ausrichten übergangen. Das Menü Ausrichten richtet die ausgewählten Slots an einer Kante oder Mittellinie aus oder verteilt sie gleichmäßig. Ein einzelner Slot wird am Papier ausgerichtet.\n\nDie Liste der Slots zeigt ihre Reihenfolge, in der die Fotos eines Durchgangs sie füllen. Ziehen ändert die Reihenfolge, das Auge blendet einen Slot zum Bearbeiten aus, das Schloss sperrt ihn. Sind mehrere Slots ausgewählt, verschieben und skalieren Position und Größe sie gemeinsam.",
+        "viewTitle": "Anzeigehilfen"
+      },
+      "idPlaceholder": "z.B. mein-layout",
+      "import": "Layout importieren",
+      "importError": "{name} ist keine Layout-Datei.",
+      "importReplace": "Importieren",
+      "importReplaceDescription": "Ein Layout mit der ID „{id}“ existiert bereits. Beim Speichern ersetzt das importierte Layout es.",
+      "importReplaceTitle": "Layout ersetzen?",
+      "lockRatio": "Seitenverhältnis sperren",
+      "lockSlot": "Slot sperren",
+      "multipleSelected": "{n} Slots ausgewählt",
+      "new": "Neu",
+      "pageLabel": "Seite {n}",
+      "panel": {
+        "layout": "Layout",
+        "slot": "Slot",
+        "branding": "Beschriftung"
+      },
+      "removeLastSlotConfirm": "Das ist der letzte Slot dieser Seite. Trotzdem entfernen?",
+      "removeLastSlotTitle": "Letzten Slot entfernen?",
+      "removePage": "Seite entfernen",
+      "removeSlot": "Slot entfernen",
+      "sampleImage": "Beispielfoto",
+      "saveSuccess": "Layout gespeichert.",
+      "selectLabel": "Layout",
+      "selectPlaceholder": "Layout wählen",
+      "slot": {
+        "hMm": "Höhe (mm)",
+        "wMm": "Breite (mm)",
+        "xMm": "Position X (mm)",
+        "yMm": "Position Y (mm)"
+      },
+      "slotLabel": "Slot {n}",
+      "slotRatioCurrent": "Seitenverhältnis: {ratio}",
+      "slotRatioCustomPlaceholder": "Eigenes Verhältnis, z. B. 4:3",
+      "slotSelectLabel": "Bild-Slot",
+      "slotSelectPlaceholder": "Slot wählen",
+      "title": "Layouts",
+      "unlockRatio": "Seitenverhältnis lösen",
+      "unlockSlot": "Slot entsperren"
+    },
+    "login": {
+      "submit": "Anmelden",
+      "title": "Anmelden"
+    },
+    "review": {
+      "continueButton": "Weiter",
+      "discard": "Verwerfen",
+      "discardDialog": {
+        "confirm": "Ja, alle löschen",
+        "text": "Möchtest Du wirklich alle Bilder löschen?",
+        "title": "Bilder verwerfen?"
+      },
+      "title": "Vorschau"
+    },
+    "share": {
+      "cloudFailed": "Die Online-Galerie konnte nicht vorbereitet werden.",
+      "cloudPreparing": "Deine Fotos werden vorbereitet…",
+      "cloudQrLabel": "Scanne mich für die Fotos!",
+      "cloudUnreachable": "Die Online-Galerie ist gerade ohne Internetverbindung nicht erreichbar.",
+      "disabledMessage": "Danke! Wir wünschen Dir einen schönen Tag.",
+      "emailFailed": "Da ist bei uns etwas schiefgelaufen. Bitte wende Dich an das Team.",
+      "emailFailedContact": "Da ist bei uns etwas schiefgelaufen. Bitte kontaktiere {adminEmail} und nenne die Nummer {run}.",
+      "emailPrompt": "Wohin sollen wir Deine Fotos schicken?",
+      "emailSend": "Fotos senden",
+      "emailSuccess": "Deine Fotos wurden an {email} gesendet.",
+      "emailUnreachable": "Gerade besteht keine Internetverbindung, deshalb konnten wir Deine Fotos nicht senden. Bitte wende Dich an das Team.",
+      "finish": "Neue Aufnahme starten",
+      "finishDialog": {
+        "back": "Zurück",
+        "confirm": "Ja, neue Aufnahme starten",
+        "text": "Der aktuelle Vorgang wird beendet, und es geht wieder von vorne los.",
+        "title": "Neue Aufnahme starten?"
+      },
+      "printFailed": "Der Druck hat nicht geklappt. Bitte wende Dich an das Team.",
+      "printPending": "Dein Druck wird vorbereitet…",
+      "printQueueUnavailable": "Der Drucker ist gerade nicht bereit. Bitte versuche es gleich noch einmal oder wende Dich an das Team.",
+      "printSend": "Drucken",
+      "printSuccess": "Der Druckauftrag wurde gesendet.",
+      "title": "Teilen"
+    },
+    "system": {
+      "allRestart": {
+        "action": "Beide neu starten",
+        "confirmText": "Dies führt den konfigurierten Befehl aus, der sowohl die Anwendung als auch den Kiosk-Browser neu startet.",
+        "confirmTitle": "Beide neu starten?",
+        "description": "Führt den konfigurierten Befehl aus, der sowohl die Anwendung als auch den Kiosk-Browser neu startet.",
+        "success": "Neustart ausgelöst.",
+        "title": "Beide neu starten"
+      },
+      "allStop": {
+        "action": "Beide beenden",
+        "confirmText": "Dies führt den konfigurierten Befehl aus, der sowohl die Anwendung als auch den Kiosk-Browser beendet.",
+        "confirmTitle": "Beide beenden?",
+        "description": "Führt den konfigurierten Befehl aus, der sowohl die Anwendung als auch den Kiosk-Browser beendet.",
+        "success": "Beenden ausgelöst.",
+        "title": "Beide beenden"
+      },
+      "commandHint": "Startet den im Reiter „System“ der Konfiguration hinterlegten Befehl, ohne auf sein Ende zu warten. Die Bestätigung bedeutet nur, dass der Befehl gestartet wurde.",
+      "directHint": "Diese Aktionen brauchen keinen hinterlegten Befehl. Beenden stoppt den Anwendungsprozess, Neustart und Herunterfahren rufen den passenden Befehl des Betriebssystems auf.",
+      "hostReboot": {
+        "action": "Neustart",
+        "confirmText": "Dies startet den gesamten Rechner neu, nicht nur die Anwendung.",
+        "confirmTitle": "Rechner neu starten?",
+        "description": "Startet den Rechner neu.",
+        "success": "Neustart ausgelöst.",
+        "title": "Rechner neu starten"
+      },
+      "hostShutdown": {
+        "action": "Herunterfahren",
+        "confirmText": "Dies fährt den gesamten Rechner herunter, nicht nur die Anwendung.",
+        "confirmTitle": "Rechner herunterfahren?",
+        "description": "Fährt den Rechner herunter.",
+        "success": "Herunterfahren ausgelöst.",
+        "title": "Rechner herunterfahren"
+      },
+      "kioskRestart": {
+        "action": "Neustart",
+        "confirmText": "Dies führt den konfigurierten Befehl aus, der den Dienst des Kiosk-Browsers neu startet.",
+        "confirmTitle": "Kiosk-Browser neu starten?",
+        "description": "Führt den konfigurierten Befehl aus, der den Dienst des Kiosk-Browsers neu startet.",
+        "success": "Neustart ausgelöst.",
+        "title": "Kiosk-Browser neu starten"
+      },
+      "kioskStop": {
+        "action": "Beenden",
+        "confirmText": "Dies führt den konfigurierten Befehl aus, der den Dienst des Kiosk-Browsers beendet.",
+        "confirmTitle": "Kiosk-Browser beenden?",
+        "description": "Führt den konfigurierten Befehl aus, der den Dienst des Kiosk-Browsers beendet.",
+        "success": "Beenden ausgelöst.",
+        "title": "Kiosk-Browser beenden"
+      },
+      "notConfigured": "Nicht konfiguriert. Der Befehl wird im Reiter „System“ der Konfiguration eingetragen.",
+      "processExit": {
+        "action": "Beenden",
+        "confirmText": "Dies beendet den Anwendungsprozess direkt. Ob er wieder startet, hängt davon ab, wie er überwacht wird, zum Beispiel von einem systemd-Dienst.",
+        "confirmTitle": "Anwendungsprozess beenden?",
+        "description": "Beendet den laufenden Anwendungsprozess direkt, ohne einen konfigurierten Befehl.",
+        "success": "Beenden ausgelöst.",
+        "title": "Anwendungsprozess beenden"
+      },
+      "sections": {
+        "both": "Beide",
+        "direct": "Direkte Aktionen",
+        "kiosk": "Kiosk",
+        "server": "Anwendung"
+      },
+      "serverRestart": {
+        "action": "Neustart",
+        "confirmText": "Dies führt den konfigurierten Befehl aus, der den Dienst der Anwendung selbst neu startet.",
+        "confirmTitle": "Anwendung neu starten?",
+        "description": "Führt den konfigurierten Befehl aus, der den Dienst der Anwendung selbst neu startet.",
+        "success": "Neustart ausgelöst.",
+        "title": "Anwendung neu starten"
+      },
+      "serverStop": {
+        "action": "Beenden",
+        "confirmText": "Dies führt den konfigurierten Befehl aus, der den Dienst der Anwendung selbst beendet.",
+        "confirmTitle": "Anwendung beenden?",
+        "description": "Führt den konfigurierten Befehl aus, der den Dienst der Anwendung selbst beendet.",
+        "success": "Beenden ausgelöst.",
+        "title": "Anwendung beenden"
+      },
+      "title": "System"
+    },
+    "welcome": {
+      "admin": "Admin-Bereich",
+      "cameraUnavailable": "Die Kamera ist momentan nicht erreichbar. Bitte wende Dich an das Team.",
+      "start": "Start",
+      "title": "Willkommen an der Photobox"
+    }
+  },
+  "update": {
+    "available": "Version {version} ist verfügbar.",
+    "check": "Nach Updates suchen",
+    "confirmDescription": "Die Anwendung startet nach der Installation neu.",
+    "confirmTitle": "Version {version} installieren?",
+    "current": "Installiert: {version}",
+    "failed": "Das Update ist fehlgeschlagen.",
+    "hint": "Sucht nur auf Klick nach einer neueren Version. Installieren lädt sie herunter, prüft sie, ersetzt die Anwendung und startet sie neu.",
+    "install": "Installieren",
+    "installing": "Das Update wird installiert…",
+    "latest": "Die installierte Version ist aktuell.",
+    "releaseNotes": "Versionshinweise",
+    "restarting": "Neustart mit der neuen Version…",
+    "restartTimeout": "Die Anwendung hat sich nicht rechtzeitig mit der neuen Version zurückgemeldet. Den Server prüfen und die Seite neu laden.",
+    "title": "Updates",
+    "unsupported": {
+      "container": "Die Anwendung läuft in einem Container. Zum Aktualisieren das neue Image laden.",
+      "development_build": "Dieser Build kann sich nicht selbst aktualisieren. Stattdessen ein Release installieren.",
+      "not_writable": "Die Anwendung kann ihre eigene Datei nicht ersetzen. Die neue Version manuell installieren.",
+      "package_managed": "Die Anwendung wurde über die Paketverwaltung installiert und wird auch darüber aktualisiert."
+    }
+  },
+  "validation": {
+    "email": "Bitte gib eine gültige E-Mail-Adresse ein.",
+    "excludesall": "{field} darf keines dieser Zeichen enthalten: {param}",
+    "explicit_origins": "{field} erfordert konkrete Domains statt *.",
+    "gt": "{field} muss größer als {param} sein.",
+    "gte": "{field} muss mindestens {param} sein.",
+    "hexcolor": "{field} muss ein Hex-Farbwert sein.",
+    "invalid": "{field} ist ungültig.",
+    "listEntry": "{field}, Eintrag {position}",
+    "lte": "{field} darf höchstens {param} sein.",
+    "max": "{field} darf höchstens {param} sein.",
+    "max_array": "{field} darf höchstens {param} Einträge enthalten.",
+    "max_string": "{field} darf höchstens {param} Zeichen lang sein.",
+    "min": "{field} muss mindestens {param} sein.",
+    "min_array": "{field} muss mindestens {param} Einträge enthalten.",
+    "min_string": "{field} muss mindestens {param} Zeichen lang sein.",
+    "networks": "{field} muss IP-Adressen oder Netze in CIDR-Schreibweise enthalten, durch Kommas getrennt.",
+    "oneof": "{field} muss eines von: {param} sein.",
+    "origin": "{field} muss * oder eine Domain wie https://example.com ohne Pfad sein.",
+    "required": "{field} wird benötigt.",
+    "required_if": "{field} wird benötigt.",
+    "required_unless": "{field} wird benötigt.",
+    "required_with": "{field} wird benötigt.",
+    "rgbcolor": "{field} muss eine Farbe wie #ff8800 sein."
+  }
+}
