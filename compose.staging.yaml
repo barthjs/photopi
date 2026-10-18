@@ -1,0 +1,18 @@
+services:
+  photopi:
+    build:
+      context: .
+      target: prod
+    pull_policy: never
+    image: ghcr.io/barthjs/photopi:staging
+    container_name: photopi-staging
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - 8080:8080
+    devices:
+      - /dev/video0:/dev/video0
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb
+      - ./data:/data
+    env_file: .env

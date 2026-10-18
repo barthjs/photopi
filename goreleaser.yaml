@@ -1,0 +1,147 @@
+version: 2
+
+project_name: photopi
+
+before:
+  hooks:
+    - sh -c "cd web && npm ci --omit=dev"
+    - sh -c "cd web && VITE_APP_VERSION={{ .Tag }} npm run build-only"
+    - sh -c "cd docs/api && npm ci --omit=dev"
+    - sh -c "cd docs/api && npm run build"
+    # The man pages and completions come from running this binary, so it is built for the host,
+    # also when a single-target build sets GOOS and GOARCH for another platform.
+    - sh -c "env -u GOOS -u GOARCH -u GOARM go build -o bin/photopi ./cmd/photopi"
+    - bin/photopi gen man bin/man
+    - sh -c "gzip -9nf bin/man/*.1"
+    - sh -c "mkdir -p bin/completions"
+    - sh -c "bin/photopi completion bash > bin/completions/photopi"
+    - sh -c "bin/photopi completion zsh > bin/completions/_photopi"
+    - sh -c "bin/photopi completion fish > bin/completions/photopi.fish"
+    - go-winres make --in cmd/photopi/winres.json --out cmd/photopi/rsrc --product-version=git-tag --file-version=git-tag
+
+builds:
+  - main: ./cmd/photopi
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+    goarch:
+      - "386"
+      - amd64
+      - arm
+      - arm64
+      - riscv64
+    goarm:
+      - "6"
+      - "7"
+    flags:
+      - -trimpath
+    ldflags:
+      - >-
+        -s -w -X main.Version={{ .Tag }}
+        {{ if eq .Os "windows" }}-H windowsgui{{ end }}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}"
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+
+nfpms:
+  - vendor: barthjs
+    homepage: https://github.com/barthjs/photopi
+    maintainer: "Jonas Barth <143815039+barthjs@users.noreply.github.com>"
+    description: Photo booth with camera control, sharing, and printing
+    license: MIT
+    formats:
+      - deb
+    section: utils
+    contents:
+      - src: packaging/systemd/photopi.service
+        dst: /lib/systemd/system/photopi.service
+      - src: packaging/systemd/photopi-kiosk.service
+        dst: /usr/lib/systemd/user/photopi-kiosk.service
+      - src: packaging/photopi.desktop
+        dst: /usr/share/applications/photopi.desktop
+      - src: packaging/photopi-kiosk.desktop
+        dst: /usr/share/applications/photopi-kiosk.desktop
+      - src: bin/man/*.1.gz
+        dst: /usr/share/man/man1/
+      - src: bin/completions/photopi
+        dst: /usr/share/bash-completion/completions/photopi
+      - src: bin/completions/_photopi
+        dst: /usr/share/zsh/vendor-completions/_photopi
+      - src: bin/completions/photopi.fish
+        dst: /usr/share/fish/vendor_completions.d/photopi.fish
+      - dst: /etc/photopi
+        type: dir
+      - dst: /var/lib/photopi
+        type: dir
+    scripts:
+      postinstall: packaging/scripts/postinstall.sh
+      preremove: packaging/scripts/preremove.sh
+      postremove: packaging/scripts/postremove.sh
+    dependencies:
+      - gphoto2
+    recommends:
+      - rpicam-apps
+      - chromium
+      - curl
+
+dockers_v2:
+  - images:
+      - ghcr.io/barthjs/photopi
+    tags:
+      - "{{ .Version }}"
+      - "{{ if not .Prerelease }}{{ .Major }}.{{ .Minor }}{{ end }}"
+      - "{{ if not .Prerelease }}{{ .Major }}{{ end }}"
+      - "{{ if not .Prerelease }}latest{{ end }}"
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    flags:
+      - --target=release
+    extra_files:
+      - scripts/entrypoint.sh
+    labels:
+      org.opencontainers.image.title: "{{ .ProjectName }}"
+      org.opencontainers.image.description: Photo booth with camera control, sharing, and printing
+      org.opencontainers.image.source: https://github.com/barthjs/photopi
+      org.opencontainers.image.url: https://github.com/barthjs/photopi
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.created: "{{ .Date }}"
+      org.opencontainers.image.licenses: MIT
+    # Registries read the description of a multi-platform image from the annotations of its index, not from the labels.
+    annotations:
+      org.opencontainers.image.description: Photo booth with camera control, sharing, and printing
+      org.opencontainers.image.source: https://github.com/barthjs/photopi
+      org.opencontainers.image.licenses: MIT
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  disable: "{{ not .PreviousTag }}"
+  use: git
+  format: "{{ .Message }}"
+  groups:
+    - title: Features
+      regexp: '^feat(\(.+\))?!?:'
+      order: 0
+    - title: Bug Fixes
+      regexp: '^fix(\(.+\))?!?:'
+      order: 1
+    - title: Other
+      order: 999
+  filters:
+    exclude:
+      - "^Merge "
+
+release:
+  draft: true
+  footer: >-
+    {{ if .PreviousTag }}**Full Changelog**: https://github.com/{{ .Env.GITHUB_REPOSITORY }}/compare/{{ .PreviousTag }}...{{ .Tag }}{{ end }}

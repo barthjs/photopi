@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=PhotoPi Kiosk
+Comment=PhotoPi kiosk browser
+Type=Application
+Exec=systemctl --user start photopi-kiosk.service
+Terminal=false
+Icon=camera-photo
+Categories=Utility;

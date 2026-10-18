@@ -1,0 +1,14 @@
+services:
+  photopi:
+    image: ghcr.io/barthjs/photopi:latest
+    container_name: photopi
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - 8080:8080
+    devices:
+      - /dev/video0:/dev/video0
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb
+      - ./data:/data
+    env_file: .env

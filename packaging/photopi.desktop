@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=PhotoPi
+Comment=Open the photo booth in the browser
+Type=Application
+Exec=xdg-open http://localhost:8080
+Terminal=false
+Icon=camera-photo
+Categories=Utility;

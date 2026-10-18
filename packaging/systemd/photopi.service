@@ -1,0 +1,22 @@
+[Unit]
+Description=PhotoPi
+After=network.target
+
+[Service]
+Type=simple
+User=photopi
+Group=photopi
+SupplementaryGroups=video plugdev
+WorkingDirectory=/var/lib/photopi
+LogsDirectory=photopi
+Environment=PHOTOPI_SUPERVISED=1
+ExecStart=/usr/bin/photopi
+# The system user can neither restart this system service nor control the kiosk browser,
+# a user service of the user logged in on the screen, so the system actions of the admin panel stay disabled.
+# Exiting the process from the admin panel restarts it through Restart=.
+Environment=SYSTEM_SERVER_RESTART_COMMAND= SYSTEM_SERVER_STOP_COMMAND= SYSTEM_KIOSK_RESTART_COMMAND= SYSTEM_KIOSK_STOP_COMMAND= SYSTEM_ALL_RESTART_COMMAND= SYSTEM_ALL_STOP_COMMAND=
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
