@@ -1,5 +1,6 @@
 {
   "admin": {
+    "docs": "Documentation",
     "logout": "Log out",
     "nav": {
       "config": "Config",
@@ -8,7 +9,8 @@
       "layouts": "Layouts",
       "system": "System"
     },
-    "openApp": "Open app"
+    "openApp": "Open app",
+    "pageDocs": "Open the documentation of this page"
   },
   "common": {
     "back": "Back",

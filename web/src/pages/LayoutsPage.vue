@@ -11,6 +11,7 @@ import LayoutHelpModal from '@/components/layout-editor/LayoutHelpModal.vue';
 import LayoutPageTabs from '@/components/layout-editor/LayoutPageTabs.vue';
 import LayoutPaperCard from '@/components/layout-editor/LayoutPaperCard.vue';
 import LayoutSlotCard from '@/components/layout-editor/LayoutSlotCard.vue';
+import DocsLink from '@/components/system/DocsLink.vue';
 import { useEditorShortcuts } from '@/composables/editor/useEditorShortcuts';
 import { useEditorWorkspace } from '@/composables/editor/useEditorWorkspace';
 import type { FormErrorTarget } from '@/composables/form/useFormValidation';
@@ -173,6 +174,7 @@ onBeforeRouteLeave(() => layout.confirmDiscard());
           class="w-56 max-w-full"
           @update:model-value="onSelectLayoutId"
         />
+        <DocsLink page="layouts" />
         <UButton
           :label="t('pages.layouts.new')"
           icon="i-lucide-plus"

@@ -7,6 +7,7 @@ import { systemRepository } from '@/api/repositories/system';
 import type { SystemCommandsResponse } from '@/api/types';
 import { useApiError } from '@/composables/useApiError';
 import HelpHint from '@/components/form/HelpHint.vue';
+import DocsLink from '@/components/system/DocsLink.vue';
 import SystemActionCard from '@/components/system/SystemActionCard.vue';
 
 const { t } = useI18n();
@@ -46,7 +47,10 @@ function description(key: keyof SystemCommandsResponse): string {
 
 <template>
   <div class="flex flex-col gap-6">
-    <h1 class="text-highlighted text-xl font-semibold">{{ t('pages.system.title') }}</h1>
+    <div class="flex items-center gap-1">
+      <h1 class="text-highlighted text-xl font-semibold">{{ t('pages.system.title') }}</h1>
+      <DocsLink page="system" />
+    </div>
 
     <div class="flex flex-col gap-4">
       <div class="flex items-center gap-1.5">

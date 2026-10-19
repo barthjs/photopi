@@ -12,7 +12,7 @@ REPO="barthjs/photopi"
 APP_NAME="photopi"
 # APP_TITLE and APP_COMMENT name the app in the services and the launchers
 APP_TITLE="PhotoPi"
-APP_COMMENT="Photo booth"
+APP_COMMENT="Turns a computer with a camera and a screen into a photo booth"
 INSTALL_MODE="" # "user" or "system"
 
 print_info() {
@@ -294,8 +294,8 @@ install_desktop_entries() {
     return
   fi
 
-  write_desktop_entry "$APP_NAME.desktop" "$APP_TITLE" "$APP_COMMENT with kiosk browser" "systemctl --user start $APP_NAME.service $APP_NAME-kiosk.service"
-  write_desktop_entry "$APP_NAME-server.desktop" "$APP_TITLE Server" "$APP_COMMENT without kiosk browser" "systemctl --user start $APP_NAME.service"
+  write_desktop_entry "$APP_NAME.desktop" "$APP_TITLE" "$APP_TITLE with the kiosk browser" "systemctl --user start $APP_NAME.service $APP_NAME-kiosk.service"
+  write_desktop_entry "$APP_NAME-server.desktop" "$APP_TITLE Server" "$APP_TITLE without the kiosk browser" "systemctl --user start $APP_NAME.service"
   write_desktop_entry "$APP_NAME-kiosk.desktop" "$APP_TITLE Kiosk" "$APP_TITLE kiosk browser" "systemctl --user start $APP_NAME-kiosk.service"
 }
 

@@ -6,6 +6,7 @@ import { systemRepository } from '@/api/repositories/system';
 import type { SystemInfoResponse } from '@/api/types';
 import { useApiError } from '@/composables/useApiError';
 import StatCard from '@/components/dashboard/StatCard.vue';
+import DocsLink from '@/components/system/DocsLink.vue';
 
 const { t } = useI18n();
 const { messageFor } = useApiError();
@@ -63,7 +64,10 @@ const diskLabel = computed(() =>
 
 <template>
   <div class="flex flex-col gap-4">
-    <h1 class="text-highlighted text-xl font-semibold">{{ t('pages.dashboard.title') }}</h1>
+    <div class="flex items-center gap-1">
+      <h1 class="text-highlighted text-xl font-semibold">{{ t('pages.dashboard.title') }}</h1>
+      <DocsLink page="dashboard" />
+    </div>
 
     <div v-if="loading" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <USkeleton v-for="i in 6" :key="i" class="h-20 w-full" />

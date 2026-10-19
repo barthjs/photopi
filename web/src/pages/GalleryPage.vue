@@ -7,6 +7,7 @@ import type { GalleryEventResponse, GalleryRunResponse } from '@/api/types';
 import { useApiError } from '@/composables/useApiError';
 import HelpHint from '@/components/form/HelpHint.vue';
 import RunLightbox from '@/components/gallery/RunLightbox.vue';
+import DocsLink from '@/components/system/DocsLink.vue';
 
 const { t } = useI18n();
 const { messageFor } = useApiError();
@@ -138,6 +139,7 @@ function onDeleted(run: number): void {
       <div class="flex items-center gap-1.5">
         <h1 class="text-highlighted text-xl font-semibold">{{ t('pages.gallery.title') }}</h1>
         <HelpHint :text="t('pages.gallery.hint')" />
+        <DocsLink page="gallery" />
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <USelect

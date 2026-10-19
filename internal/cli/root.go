@@ -33,8 +33,8 @@ func newRoot(build cmdline.Build) *cobra.Command {
 		build: build,
 	}
 
-	root := cmdline.NewRoot(build, "Photo booth with camera control, sharing, and printing")
-	root.Long = "Photo booth with camera control, sharing, and printing.\n" +
+	root := cmdline.NewRoot(build, "Turns a computer with a camera and a screen into a photo booth")
+	root.Long = "Turns a computer with a camera and a screen into a photo booth.\n" +
 		"Without a command, it starts the application. Every setting can also be passed as a flag."
 	root.Example = fmt.Sprintf("  %[1]s\n  %[1]s --server-port 9000\n  %[1]s config show --origin", cmdline.BinaryName())
 	root.Args = cobra.NoArgs

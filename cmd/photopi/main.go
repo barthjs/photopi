@@ -12,6 +12,7 @@ import (
 // Version is stamped into the binary at build time.
 var Version = "dev"
 
+// @title						PhotoPi
 // @license.name				MIT
 // @BasePath					/api
 //

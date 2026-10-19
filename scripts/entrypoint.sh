@@ -29,11 +29,7 @@ if [ -n "${CONFIG_FILE}" ]; then
 fi
 
 if [ -d /dev/bus/usb ]; then
-    chmod -R 666 /dev/bus/usb
-fi
-
-if ls /dev/video* > /dev/null 2>&1; then
-    chmod 666 /dev/video*
+    find /dev/bus/usb -type c -exec chmod 666 {} +
 fi
 
 exec su-exec "${PUID}":"${PGID}" "$@"

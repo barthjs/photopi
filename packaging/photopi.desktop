@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=PhotoPi
-Comment=Open the photo booth in the browser
+Comment=Turns a computer with a camera and a screen into a photo booth
 Type=Application
 Exec=xdg-open http://localhost:8080
 Terminal=false

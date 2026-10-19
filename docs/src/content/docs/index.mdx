@@ -1,0 +1,42 @@
+---
+title: PhotoPi
+description: Turns a computer with a camera and a screen into a photo booth.
+tableOfContents: false
+next: false
+hero:
+  tagline: Turns a computer with a camera and a screen into a photo booth.
+  actions:
+    - text: Quick start
+      link: installation/quick-start/
+      icon: right-arrow
+    - text: Guides
+      link: guides/camera/
+      variant: minimal
+sidebar:
+  label: Introduction
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+<CardGrid>
+  <LinkCard
+    title="Installation"
+    description="Linux, Windows, Debian package, and container."
+    href="installation/"
+  />
+  <LinkCard
+    title="Guides"
+    description="Set up the camera, take photos, share and print them."
+    href="guides/camera/"
+  />
+  <LinkCard
+    title="Reference"
+    description="Settings, command line, and API."
+    href="reference/settings/"
+  />
+  <LinkCard
+    title="Development"
+    description="Build, test, and release PhotoPi."
+    href="development/setup/"
+  />
+</CardGrid>

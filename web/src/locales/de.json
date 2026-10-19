@@ -1,5 +1,6 @@
 {
   "admin": {
+    "docs": "Dokumentation",
     "logout": "Abmelden",
     "nav": {
       "config": "Konfiguration",
@@ -8,7 +9,8 @@
       "layouts": "Layouts",
       "system": "System"
     },
-    "openApp": "App öffnen"
+    "openApp": "App öffnen",
+    "pageDocs": "Dokumentation zu dieser Seite öffnen"
   },
   "common": {
     "back": "Zurück",
