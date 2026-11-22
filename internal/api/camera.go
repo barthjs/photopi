@@ -14,8 +14,8 @@ import (
 // previewBoundary separates JPEG frames in the multipart/x-mixed-replace preview stream.
 const previewBoundary = "photopiframe"
 
-// cameraOverlayGetHandler serves the configured overlay PNG so the frontend can layer it over the live preview itself.
-// The backend only composites the overlay onto the stored capture.
+// cameraOverlayGetHandler serves the configured overlay PNG for the frontend to layer over the live preview,
+// while the backend composites it onto the stored capture.
 //
 //	@Summary		Get camera overlay
 //	@Description	Returns the configured overlay PNG, or 404 if none is configured.
@@ -133,8 +133,7 @@ func (c *previewClient) Flush() {
 	}
 }
 
-// extendDeadline moves the write deadline previewWriteTimeout ahead.
-// Writers without deadlines, such as test recorders, keep writing without one.
+// extendDeadline moves the write deadline previewWriteTimeout ahead, where the writer supports deadlines.
 func (c *previewClient) extendDeadline() error {
 	err := c.controller.SetWriteDeadline(time.Now().Add(previewWriteTimeout))
 	if err != nil && !errors.Is(err, http.ErrNotSupported) {

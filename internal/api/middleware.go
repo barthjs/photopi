@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-
 	"github.com/barthjs/photopi/internal/service"
 )
 
@@ -44,13 +42,10 @@ func (a *API) cacheHeaderMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// rateLimitPerRun limits requests per {run} path parameter,
-// for routes where the abuse to guard against is repeating an action on one resource,
-// such as resending the email of a run, rather than the overall request volume of a client.
-// Unlike a per-IP limit, an exhausted budget does not block the other runs,
-// which the clients of one booth share with the same address.
+// rateLimitPerRun limits the requests per {run} path parameter, for an action repeated on one run,
+// without blocking the other runs, which the clients of one booth share with the same address.
 func (a *API) rateLimitPerRun(name string, limit int, window time.Duration) func(http.Handler) http.Handler {
-	return a.rateLimit(limit, window, func(r *http.Request) string { return name + ":run:" + chi.URLParam(r, "run") })
+	return a.rateLimit(limit, window, func(r *http.Request) string { return name + ":run:" + pathParam(r, "run") })
 }
 
 // rateLimit enforces a rate limit per computed key.
@@ -94,9 +89,8 @@ func (a *API) requireAuthentication(next http.Handler) http.Handler {
 // runKey is the request context key of the run that requireRunSession validated.
 type runKey struct{}
 
-// requireRunSession answers 404 for a {run} the current session did not start, so a run is only reachable
-// from the client of its guest. A 404 instead of a 403 does not reveal which runs exist.
-// It passes the validated run on in the request context, where the handlers read it with sessionRun.
+// requireRunSession passes the {run} the current session started on to the handlers, see sessionRun,
+// and answers 404 for any other, which does not reveal which runs exist.
 func (a *API) requireRunSession(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		run, err := pathInt(r, "run")

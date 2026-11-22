@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { shareRepository } from '@/api/repositories/share';
-import type { ShareEmailRequest } from '@/api/types';
+import type { ShareEmailRequest } from '@/api/types/share';
 import { jsonResponse, useFetchMock } from '@/test/fetchMock';
 
 describe('shareRepository', () => {

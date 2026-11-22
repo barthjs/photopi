@@ -49,8 +49,8 @@ type Message struct {
 	Headers map[string]string
 }
 
-// ListUnsubscribe tells mail clients how a recipient unsubscribes from a kind of email (RFC 2369).
-// Mailbox providers expect it on bulk email such as notifications and newsletters.
+// ListUnsubscribe tells mail clients how a recipient unsubscribes from a kind of email (RFC 2369),
+// which mailbox providers expect on bulk email.
 type ListUnsubscribe struct {
 	// Mailto is the address an unsubscribe request is mailed to.
 	Mailto string
@@ -66,7 +66,7 @@ func (l ListUnsubscribe) IsZero() bool {
 	return l.Mailto == "" && l.URL == ""
 }
 
-// header returns the value of the List-Unsubscribe header, such as "<mailto:a@b>, <https://b/u>".
+// header returns the value of the List-Unsubscribe header.
 func (l ListUnsubscribe) header() string {
 	var parts []string
 	if l.Mailto != "" {
@@ -89,11 +89,9 @@ type Options struct {
 	Driver      Driver
 	FromAddress string
 	FromName    string
-	// ReplyTo is the Reply-To address of every email unless SendOptions sets one,
-	// for example a support address next to a no-reply sender. Empty sends no Reply-To.
+	// ReplyTo is the Reply-To address of every email unless SendOptions sets one, none when empty.
 	ReplyTo string
-	// Headers are added to every email. SendOptions.Headers take precedence for the same name.
-	// Headers with a dedicated field, such as From or List-Unsubscribe, are rejected.
+	// Headers are added to every email below SendOptions.Headers, without those that have a field of their own.
 	Headers map[string]string
 	// MessageIDDomain is the domain of the Message-ID of every email ("<random@domain>"),
 	// usually the sending domain, so the IDs match the sender. Empty lets the transport generate the ID.
@@ -102,8 +100,7 @@ type Options struct {
 	SMTPPort        int
 	SMTPUsername    string
 	SMTPPassword    string
-	// Transport replaces the transport selected by Driver, for example with a fake that records messages in tests.
-	// Nil selects the transport by Driver.
+	// Transport replaces the transport selected by Driver unless it is nil.
 	Transport Transport
 }
 

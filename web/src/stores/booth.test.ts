@@ -1,5 +1,5 @@
 import { createPinia, setActivePinia } from 'pinia';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { runRepository } from '@/api/repositories/run';
 
@@ -19,17 +19,30 @@ describe('useBoothStore', () => {
     vi.mocked(runRepository.abort).mockReset();
   });
 
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   describe('startRun', () => {
-    it('starts a run with the number and size the backend assigned', async () => {
+    it('starts a run on the screen of the client with the number and size the backend assigned', async () => {
       vi.mocked(runRepository.create).mockResolvedValue({
         run: 7,
         imagesPerRun: 4,
+      });
+      vi.stubGlobal('window', {
+        innerWidth: 640,
+        innerHeight: 400,
+        devicePixelRatio: 2,
       });
       const store = useBoothStore();
       store.recordCapture();
 
       await store.startRun();
 
+      expect(runRepository.create).toHaveBeenCalledWith({
+        screenWidth: 1280,
+        screenHeight: 800,
+      });
       expect(store.run).toBe(7);
       expect(store.imagesPerRun).toBe(4);
       expect(store.capturedCount).toBe(0);

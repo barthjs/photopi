@@ -40,7 +40,8 @@ Every release has a ZIP archive per architecture, which holds `photopi.exe`:
 | ARM64        | [photopi_windows_arm64.zip](https://github.com/barthjs/photopi/releases/latest/download/photopi_windows_arm64.zip) |
 | x86 (32-bit) | [photopi_windows_386.zip](https://github.com/barthjs/photopi/releases/latest/download/photopi_windows_386.zip)     |
 
-Unpack it into a directory of your choice and start `photopi.exe`, which opens the web interface in the browser.
+Unpack it into a directory of your choice and start `photopi.exe`.
+A double click on its icon in the notification area opens the web interface in the browser, and a right click opens the menu.
 
 ## Files
 

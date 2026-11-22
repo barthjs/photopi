@@ -38,7 +38,7 @@ type InlineImage struct {
 	// Name identifies the image in the HTML. It must be a plain file name.
 	Name string
 	Data []byte
-	// ContentType is the media type, such as "image/jpeg". Empty detects it from Data.
+	// ContentType is the media type, detected from Data when empty.
 	ContentType string
 }
 
@@ -63,12 +63,12 @@ func contentIDDomain(messageIDDomain, fromAddress string) string {
 }
 
 // cidFunc returns the template function cid, which turns an image name into its "cid:" URL.
-// The URL is typed as trusted, since html/template would otherwise replace the unknown "cid:" scheme.
 func cidFunc(domain string) func(name string) (htmltemplate.URL, error) {
 	return func(name string) (htmltemplate.URL, error) {
 		if !imageName.MatchString(name) {
 			return "", fmt.Errorf("%w: %q", ErrInvalidImageName, name)
 		}
+		// The URL is typed as trusted, since html/template would otherwise replace the unknown "cid:" scheme
 		return htmltemplate.URL("cid:" + name + "@" + domain), nil
 	}
 }
@@ -89,8 +89,8 @@ func newImageResolver(domain string, images fs.FS) *imageResolver {
 	}
 }
 
-// resolve returns the images the HTML references, each once and in order of first use. Images of the email come first,
-// the template images are the fallback. Images the HTML does not use are left out.
+// resolve returns the images the HTML references, each once in order of first use, with the images of the email
+// ahead of the template images.
 func (r *imageResolver) resolve(html string, own []InlineImage) ([]EmbeddedImage, error) {
 	byName := make(map[string]InlineImage, len(own))
 	for _, image := range own {

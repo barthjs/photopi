@@ -2,24 +2,24 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { useLayoutForm } from '@/composables/useLayoutForm';
-import { usePointerDrag } from '@/composables/usePointerDrag';
+import { useLayoutForm } from '@/composables/layout/useLayoutForm';
+import { usePointerDrag } from '@/composables/editor/usePointerDrag';
 import { clamp } from '@/lib/editor/geometry';
 
-// A point is 0.3528 mm.
-const MM_PER_PT = 0.3528;
-
 const props = defineProps<{
-  // The size of the paper on screen before zooming, in pixels.
+  // The size of the paper on screen before zooming, in pixels
   canvasWidth: number;
   canvasHeight: number;
   // The zoom of the canvas. Pointer deltas arrive in screen pixels and are divided by it.
   zoom: number;
-  // While the canvas is panned, a pointer press must not move the caption.
+  // While the canvas is panned, a pointer press must not move the caption
   panModeActive: boolean;
-  // Shows the caption as printed, without its background, and ignores the pointer.
+  // Shows the caption as printed, without its background, and ignores the pointer
   preview: boolean;
 }>();
+
+// A point is 0.3528 mm
+const MM_PER_PT = 0.3528;
 
 // The caption on the canvas, placed and drawn like the server prints it. It sits inside the paper,
 // so it zooms and pans with it. Dragging it moves the caption.
@@ -27,7 +27,7 @@ const { t } = useI18n();
 const { state, editor, brandingFontSizePt, brandingColor } = useLayoutForm();
 const { dragging } = editor;
 
-// The editor does not know the event name of the configuration, so the preview uses a placeholder.
+// The editor does not know the event name of the configuration, so the preview uses a placeholder
 const previewText = computed(() =>
   state.branding.template
     .replaceAll('{{eventName}}', t('pages.layouts.brandingPreviewEventName'))
@@ -48,7 +48,7 @@ const previewStyle = computed(() => {
   };
 });
 
-// The start position is kept, so every move is applied to it instead of adding up rounding errors.
+// The start position is kept, so every move is applied to it instead of adding up rounding errors
 let dragStart = {
   x: 0.5,
   y: 0.5,
@@ -73,7 +73,7 @@ const drag = usePointerDrag({
   },
 });
 
-/** onPointerDown starts moving the caption with the primary button. */
+/** Starts moving the caption with the primary button. */
 function onPointerDown(event: PointerEvent): void {
   if (event.button !== 0 || props.panModeActive) return;
   drag.start(event);

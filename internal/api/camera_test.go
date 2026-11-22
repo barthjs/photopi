@@ -2,6 +2,7 @@ package api_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
@@ -11,9 +12,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/barthjs/photopi/internal/camera"
-	"github.com/barthjs/photopi/internal/config"
 )
 
 func TestCameraAccess(t *testing.T) {
@@ -155,11 +153,6 @@ func TestCameraPreviewGetHandler(t *testing.T) {
 	})
 }
 
-// withDeviceCamera selects a camera source that captures on the device, which the fake camera serves.
-func withDeviceCamera() option {
-	return withConfig(func(cfg *config.Config) { cfg.Camera.Source = camera.SourceRPiCam })
-}
-
 // newPreviewServer serves the application over real HTTP,
 // since the stream sets write deadlines that only a real server supports,
 // and returns a client whose session has opened a run, which the preview requires.
@@ -172,7 +165,9 @@ func newPreviewServer(t *testing.T, h *harness) (*httptest.Server, *http.Client)
 	client := srv.Client()
 	client.Jar = jar
 
-	request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, srv.URL+"/api/camera/runs", nil)
+	body, err := json.Marshal(newRunCreateRequest(h.Faker))
+	require.NoError(t, err)
+	request, err := http.NewRequestWithContext(t.Context(), http.MethodPost, srv.URL+"/api/camera/runs", bytes.NewReader(body))
 	require.NoError(t, err)
 	request.Header.Set("Content-Type", "application/json")
 	response, err := client.Do(request)

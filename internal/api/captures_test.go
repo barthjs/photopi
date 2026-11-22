@@ -144,6 +144,7 @@ func TestCaptureCreateHandler(t *testing.T) {
 
 		faker := apitest.Faker(t)
 		pngData := newPNG(t, faker)
+		oversizedData := newOversizedJPEG(t, faker)
 
 		tests := []struct {
 			name   string
@@ -168,6 +169,23 @@ func TestCaptureCreateHandler(t *testing.T) {
 				},
 				field: "file",
 				tag:   "required",
+			},
+			{
+				name: "image above the pixel budget",
+				change: func(m *apitest.Multipart, _ *gofakeit.Faker) {
+					m.Files[0].Content = oversizedData
+				},
+				field: "file",
+				tag:   "resolution_too_high",
+			},
+			{
+				name: "undecodable image",
+				change: func(m *apitest.Multipart, f *gofakeit.Faker) {
+					// The JPEG signature passes the type check, the rest cannot be decoded
+					m.Files[0].Content = append([]byte{0xFF, 0xD8, 0xFF}, f.LoremIpsumSentence(8)...)
+				},
+				field: "file",
+				tag:   "invalid_format",
 			},
 		}
 

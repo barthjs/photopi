@@ -78,33 +78,7 @@ func TestConfigAccess(t *testing.T) {
 func TestConfigGetHandler(t *testing.T) {
 	t.Parallel()
 
-	t.Run("returns the configuration", func(t *testing.T) {
-		t.Parallel()
-		h := newHarness(t)
-
-		h.asAdmin().GET("/api/config").AssertOK().
-			AssertJSONPath("app.name", h.Config.App.Name).
-			AssertJSONPath("server.port", h.Config.Server.Port).
-			AssertJSONPath("storage.path", h.Config.Storage.Path).
-			AssertJSONPath("capture.imagesPerRun", h.Config.Capture.ImagesPerRun)
-	})
-
-	t.Run("hides the secrets", func(t *testing.T) {
-		t.Parallel()
-		h := newHarness(t)
-
-		response := h.asAdmin().GET("/api/config").AssertOK().
-			AssertJSONPath("app.secret", "").
-			AssertJSONPath("storage.s3.secretKey", "").
-			AssertJSONPath(`secrets.app\.secret`, true).
-			AssertJSONPath(`secrets.mail\.password`, false).
-			AssertJSONPath(`secrets.share\.cloud\.nextcloud\.password`, false).
-			AssertJSONPath(`secrets.storage\.s3\.secretKey`, false)
-
-		assert.NotContains(t, string(response.Body), h.Config.App.Secret)
-	})
-
-	t.Run("returns the defaults", func(t *testing.T) {
+	t.Run("returns the configuration and the defaults without the secrets", func(t *testing.T) {
 		t.Parallel()
 		defaults, err := config.Defaults()
 		require.NoError(t, err)
@@ -112,12 +86,23 @@ func TestConfigGetHandler(t *testing.T) {
 			cfg.Capture.ImagesPerRun = defaults.Capture.ImagesPerRun + 1
 		}))
 
-		h.asAdmin().GET("/api/config").AssertOK().
+		response := h.asAdmin().GET("/api/config").AssertOK().
+			AssertJSONPath("app.name", h.Config.App.Name).
+			AssertJSONPath("server.port", h.Config.Server.Port).
+			AssertJSONPath("storage.path", h.Config.Storage.Path).
 			AssertJSONPath("capture.imagesPerRun", h.Config.Capture.ImagesPerRun).
+			AssertJSONPath("app.secret", "").
+			AssertJSONPath("storage.s3.secretKey", "").
+			AssertJSONPath(`secrets.app\.secret`, true).
+			AssertJSONPath(`secrets.mail\.password`, false).
+			AssertJSONPath(`secrets.share\.cloud\.nextcloud\.password`, false).
+			AssertJSONPath(`secrets.storage\.s3\.secretKey`, false).
 			AssertJSONPath("defaults.capture.imagesPerRun", defaults.Capture.ImagesPerRun).
 			AssertJSONPath("defaults.server.port", defaults.Server.Port).
 			AssertJSONPath("defaults.server.host", "").
 			AssertJSONPath("defaults.app.secret", "")
+
+		assert.NotContains(t, string(response.Body), h.Config.App.Secret)
 	})
 
 	t.Run("returns the sources", func(t *testing.T) {

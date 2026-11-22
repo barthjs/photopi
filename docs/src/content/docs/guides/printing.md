@@ -6,7 +6,7 @@ sidebar:
 ---
 
 With printing enabled, the share screen shows a Print button that prints the photos of the run in the selected
-[layout](./layouts.md). The Printing tab of the configuration page selects the queue, the layout, and the mode.
+[layout](./layouts.md). The Printing section of the configuration page selects the queue, the layout, and the mode.
 
 ## Setting up the printer
 
@@ -45,7 +45,7 @@ with the next one, set its error policy once:
 lpadmin -p <queue> -o printer-error-policy=abort-job
 ```
 
-The Printing tab can resume a stopped queue and cancel its jobs. Both need a user that may manage CUPS queues,
+The Printing section can resume a stopped queue and cancel its jobs. Both need a user that may manage CUPS queues,
 such as a member of the `lpadmin` group. For the service of the Debian package, followed by a restart:
 
 ```sh

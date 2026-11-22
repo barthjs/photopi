@@ -1,20 +1,23 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, ref, useTemplateRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useToast } from '@nuxt/ui/composables';
+import { useIntersectionObserver } from '@vueuse/core';
 
 import { layoutRepository } from '@/api/repositories/layout';
 import { printerRepository } from '@/api/repositories/printer';
-import type { LayoutResponse, PrinterResponse } from '@/api/types';
+import type { PrintSubmissionMode } from '@/api/types/config';
+import type { LayoutResponse } from '@/api/types/layout';
+import type { PrinterResponse } from '@/api/types/printer';
 import ConfigFieldHint from '@/components/config/ConfigFieldHint.vue';
-import HelpHint from '@/components/form/HelpHint.vue';
-import { useApiError } from '@/composables/useApiError';
-import { useConfigForm } from '@/composables/useConfigForm';
+import { useApiError } from '@/composables/form/useApiError';
+import { useConfigForm } from '@/composables/config/useConfigForm';
 import { useConfirm } from '@/composables/ui/useConfirm';
-import { useConnectionTestReport } from '@/composables/useConnectionTestReport';
+import { useConnectionTestReport } from '@/composables/config/useConnectionTestReport';
 import { useMutation } from '@/composables/form/useMutation';
+import { layoutMenuItems } from '@/lib/layout/layoutItems';
 
-// The printer and the layout used to print a run, with a test of the printer.
+// The printer and the layout used to print a run, with a test of the printer
 const { t } = useI18n();
 const toast = useToast();
 const { messageFor } = useApiError();
@@ -22,7 +25,7 @@ const { state, fieldProps } = useConfigForm();
 const { reportTestConnection } = useConnectionTestReport();
 const { confirm } = useConfirm();
 
-const submissionModeItems = computed(() => [
+const submissionModeItems = computed((): { label: string; value: PrintSubmissionMode }[] => [
   {
     label: t('pages.config.print.submissionModeManaged'),
     value: 'managed',
@@ -38,7 +41,7 @@ const layouts = ref<LayoutResponse[]>([]);
 const loadingPrinters = ref(false);
 const loadingLayouts = ref(false);
 
-/** loadPrinters reads the printers the print system knows. */
+/** Reads the printers the print system knows. */
 async function loadPrinters(): Promise<void> {
   loadingPrinters.value = true;
   try {
@@ -54,7 +57,7 @@ async function loadPrinters(): Promise<void> {
   }
 }
 
-/** loadLayouts reads the stored print layouts. */
+/** Reads the stored print layouts. */
 async function loadLayouts(): Promise<void> {
   loadingLayouts.value = true;
   try {
@@ -70,15 +73,21 @@ async function loadLayouts(): Promise<void> {
   }
 }
 
-onMounted(loadPrinters);
-onMounted(loadLayouts);
+// The configuration page shows every section at once, so the print system is only asked once the section is in view
+const card = useTemplateRef('card');
+const { stop: stopObserving } = useIntersectionObserver(card, ([entry]) => {
+  if (!entry?.isIntersecting) return;
+  stopObserving();
+  void loadPrinters();
+  void loadLayouts();
+});
 
 const selectedPrinterStatus = computed(
   () => printers.value.find((printer) => printer.name === state.print.printerName)?.status,
 );
 
 const selectedLayout = computed(() =>
-  layouts.value.find((layout) => layout.id === state.print.layoutId),
+  layouts.value.find((layout) => layout.name === state.print.layout),
 );
 
 // A layout with another number of slots than photos per run leaves slots blank or photos unprinted
@@ -88,7 +97,7 @@ const slotMismatch = computed(
 );
 
 const { mutate: resumePrinter, pending: resumingPrinter } = useMutation(
-  () =>
+  async () =>
     printerRepository.resume({
       printerName: state.print.printerName,
     }),
@@ -99,32 +108,28 @@ const { mutate: resumePrinter, pending: resumingPrinter } = useMutation(
 );
 
 const { mutate: cancelJobs, pending: cancelingJobs } = useMutation(
-  () =>
+  async () =>
     printerRepository.cancel({
       printerName: state.print.printerName,
     }),
   {
+    confirm: async () =>
+      confirm({
+        title: t('pages.config.print.cancelConfirmTitle'),
+        description: t('pages.config.print.cancelConfirmText', {
+          printer: state.print.printerName,
+        }),
+        confirmLabel: t('pages.config.print.cancelJobs'),
+        color: 'error',
+        icon: 'i-lucide-list-x',
+      }),
     success: () => t('pages.config.print.cancelSuccess'),
     onSuccess: loadPrinters,
   },
 );
 
-/** confirmCancelJobs cancels every job of the selected printer after a confirmation. */
-async function confirmCancelJobs(): Promise<void> {
-  const confirmed = await confirm({
-    title: t('pages.config.print.cancelConfirmTitle'),
-    description: t('pages.config.print.cancelConfirmText', {
-      printer: state.print.printerName,
-    }),
-    confirmLabel: t('pages.config.print.cancelJobs'),
-    color: 'error',
-    icon: 'i-lucide-list-x',
-  });
-  if (confirmed) void cancelJobs();
-}
-
 const { mutate: testPrinter, pending: testingPrinter } = useMutation(
-  () =>
+  async () =>
     printerRepository.test({
       printerName: state.print.printerName,
     }),
@@ -135,14 +140,17 @@ const { mutate: testPrinter, pending: testingPrinter } = useMutation(
 </script>
 
 <template>
-  <UCard variant="subtle" class="mt-4">
+  <UCard ref="card" variant="subtle">
     <div class="flex flex-col gap-4">
       <p class="text-muted text-sm">{{ t('pages.config.print.hint') }}</p>
 
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <UFormField :label="t('fields.print.enabled')" name="print.enabled">
-          <template #hint>
-            <ConfigFieldHint path="print.enabled" :help="t('pages.config.print.enabledHint')" />
+          <template #label="{ label }">
+            <span class="inline-flex items-center gap-1.5">
+              {{ label }}
+              <ConfigFieldHint path="print.enabled" />
+            </span>
           </template>
           <USwitch v-model="state.print.enabled" v-bind="fieldProps('print.enabled')" />
         </UFormField>
@@ -185,7 +193,7 @@ const { mutate: testPrinter, pending: testingPrinter } = useMutation(
         </UFormField>
 
         <UFormField
-          :label="t('fields.print.layoutId')"
+          :label="t('fields.print.layout')"
           :description="
             selectedLayout &&
             t('pages.config.print.layoutDescription', {
@@ -194,18 +202,18 @@ const { mutate: testPrinter, pending: testingPrinter } = useMutation(
               slots: selectedLayout.slots,
             })
           "
-          name="print.layoutId"
+          name="print.layout"
           required
         >
           <template #hint>
-            <ConfigFieldHint path="print.layoutId" :help="t('pages.config.print.layoutIdHint')" />
+            <ConfigFieldHint path="print.layout" :help="t('pages.config.print.layoutHint')" />
           </template>
           <USelectMenu
-            v-model="state.print.layoutId"
-            v-bind="fieldProps('print.layoutId')"
-            value-key="id"
+            v-model="state.print.layout"
+            v-bind="fieldProps('print.layout')"
+            value-key="name"
             label-key="name"
-            :items="layouts"
+            :items="layoutMenuItems(layouts)"
             :placeholder="t('pages.config.print.layoutNone')"
             class="w-full"
           >
@@ -273,7 +281,6 @@ const { mutate: testPrinter, pending: testingPrinter } = useMutation(
           :disabled="!state.print.printerName"
           @click="testPrinter()"
         />
-        <HelpHint :text="t('pages.config.print.testHint')" />
         <UButton
           :label="t('pages.config.print.resume')"
           icon="i-lucide-play"
@@ -284,7 +291,6 @@ const { mutate: testPrinter, pending: testingPrinter } = useMutation(
           :disabled="!state.print.printerName"
           @click="resumePrinter()"
         />
-        <HelpHint :text="t('pages.config.print.resumeHint')" />
         <UButton
           :label="t('pages.config.print.cancelJobs')"
           icon="i-lucide-list-x"
@@ -293,7 +299,7 @@ const { mutate: testPrinter, pending: testingPrinter } = useMutation(
           class="ms-2"
           :loading="cancelingJobs"
           :disabled="!state.print.printerName"
-          @click="confirmCancelJobs"
+          @click="cancelJobs()"
         />
       </div>
     </div>

@@ -16,6 +16,7 @@ type ReadinessResponse = {
  */
 async function cameraAvailable(response: Response): Promise<boolean> {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-type-assertion -- the readiness endpoint answers with this shape
     const body = (await response.json()) as ReadinessResponse;
     const camera = body.checks?.camera;
     if (camera !== undefined) return camera === 'ok';
@@ -47,7 +48,7 @@ export const useCameraHealthStore = defineStore('cameraHealth', () => {
   function start(): void {
     if (timer !== null) return;
     void poll();
-    timer = setInterval(poll, POLL_INTERVAL_MS);
+    timer = setInterval(() => void poll(), POLL_INTERVAL_MS);
   }
 
   return {

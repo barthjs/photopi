@@ -2,27 +2,48 @@ package api
 
 import (
 	"net/http"
+
+	"github.com/barthjs/photopi/internal/service"
 )
 
-// runCreateHandler opens a new run with a fresh run number and binds it to the session of the client.
-// A run the same client left incomplete is discarded, an open run of another client blocks the start.
+type RunCreateRequest struct {
+	// ScreenWidth is the width of the screen of the client in device pixels, which bounds the screen versions of the captures.
+	ScreenWidth int `json:"screenWidth" validate:"required,min=1,max=16384"`
+	// ScreenHeight is the height of the screen of the client in device pixels.
+	ScreenHeight int `json:"screenHeight" validate:"required,min=1,max=16384"`
+}
+
+// runCreateHandler opens a new run for the session of the client, discarding an incomplete one of the same client,
+// while an open run of another client blocks the start.
 //
 //	@Summary		Create run
-//	@Description	Opens a new run and returns its number and the number of captures it expects. Fails with 409 while another client's run is open.
+//	@Description	Opens a new run and returns its number and the number of captures it expects. The screen of the client bounds the screen versions of the captures, at most 1920 pixels on the longest edge. Fails with 409 while another client's run is open.
 //	@Tags			camera
+//	@Accept			json
 //	@Produce		json
-//	@Success		201	{object}	RunResponse
-//	@Failure		409	{object}	ErrorResponse
-//	@Failure		500	{object}	ErrorResponse
+//	@Param			body	body		RunCreateRequest	true	"Screen of the client"
+//	@Success		201		{object}	RunResponse
+//	@Failure		409		{object}	ErrorResponse
+//	@Failure		422		{object}	ValidationErrorResponse
+//	@Failure		500		{object}	ErrorResponse
 //	@Router			/camera/runs [post]
 func (a *API) runCreateHandler(w http.ResponseWriter, r *http.Request) {
-	owner, err := a.runSessionService.Owner(r.Context())
-	if err != nil {
-		a.serverErrorResponse(w, r, err)
+	req, ok := a.decodeJSON[RunCreateRequest](w, r)
+	if !ok {
 		return
 	}
 
-	start, err := a.captureService.CreateRun(r.Context(), owner)
+	owner, err := a.runSessionService.Owner(r.Context())
+	if err != nil {
+		a.respondError(w, r, err)
+		return
+	}
+
+	start, err := a.captureService.CreateRun(r.Context(), service.RunCreateInput{
+		Owner:        owner,
+		ScreenWidth:  req.ScreenWidth,
+		ScreenHeight: req.ScreenHeight,
+	})
 	if err != nil {
 		a.respondError(w, r, err)
 		return
@@ -36,7 +57,6 @@ func (a *API) runCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}, nil)
 }
 
-// RunResponse is a started run with the number of captures it takes.
 type RunResponse struct {
 	Run          int `json:"run"`
 	ImagesPerRun int `json:"imagesPerRun"`
@@ -57,7 +77,7 @@ func (a *API) runAbortHandler(w http.ResponseWriter, r *http.Request) {
 	run := sessionRun(r)
 
 	if err := a.captureService.AbortRun(r.Context(), run); err != nil {
-		a.serverErrorResponse(w, r, err)
+		a.respondError(w, r, err)
 		return
 	}
 

@@ -9,7 +9,7 @@ Guests use PhotoPi on the kiosk screen or any device with a browser. A run start
 a number of photos with a countdown. The review screen shows them, and the share screen offers to send them
 by email, to open them on a phone, or to print them.
 
-The Capture tab of the configuration page sets the number of photos per run, the welcome message, and the name
+The Capture section of the configuration page sets the number of photos per run, the welcome message, and the name
 of the event, which appears in the emails and the layouts and names the folder of the photos.
 
 ## Runs
@@ -24,8 +24,9 @@ of the event, which appears in the emails and the layouts and names the folder o
 ## Storage of the photos
 
 - The photos of an event are stored in one folder, named after the event.
-- The file names start with the run number, so the folder sorts by run even if the clock of a booth without internet
-  is wrong.
+- A file name holds the file prefix, the run number, the number of the photo, and the time it was taken,
+  such as `Party_000012-01_20261118-140423.jpg`. With the same prefix, the folder sorts by run even if the clock
+  of a booth without internet is wrong.
 - Run numbers never repeat, also after a run is deleted.
 - Renaming the event only affects photos taken afterward.
 

@@ -40,9 +40,8 @@ func SHA256Hex(data []byte) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// GenerateRandomCode generates a random alphanumeric code of the given length.
-// Bytes are drawn from crypto/rand and values in the final, partial block of 256
-// are rejected and re-drawn, so every character in the charset is equally likely.
+// GenerateRandomCode generates a random alphanumeric code of the given length. Bytes are drawn from crypto/rand
+// and values in the final, partial block of 256 are rejected and re-drawn, so every character in the charset is equally likely.
 func GenerateRandomCode(length int) (string, error) {
 	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	threshold := 256 - (256 % len(charset))
@@ -63,10 +62,8 @@ func GenerateRandomCode(length int) (string, error) {
 	return string(code), nil
 }
 
-// SignToken signs id under purpose with a key and returns an unguessable token embedding it,
-// of the form "<id>.<hex signature>". purpose domain-separates tokens so the same key cannot be reused to forge
-// a token signed for a different purpose. The id itself is not secret, only forging a valid signature without
-// the key is meant to be infeasible.
+// SignToken signs id under purpose with a key and returns an unguessable token of the form "<id>.<hex signature>",
+// where the purpose keeps a token from being valid for another one.
 func SignToken(key []byte, purpose string, id int) string {
 	return fmt.Sprintf("%06d.%s", id, hex.EncodeToString(signID(key, purpose, id)))
 }

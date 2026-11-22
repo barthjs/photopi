@@ -167,7 +167,10 @@
         },
         "/camera/runs": {
             "post": {
-                "description": "Opens a new run and returns its number and the number of captures it expects. Fails with 409 while another client's run is open.",
+                "description": "Opens a new run and returns its number and the number of captures it expects. The screen of the client bounds the screen versions of the captures, at most 1920 pixels on the longest edge. Fails with 409 while another client's run is open.",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
@@ -175,6 +178,17 @@
                     "camera"
                 ],
                 "summary": "Create run",
+                "parameters": [
+                    {
+                        "description": "Screen of the client",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/RunCreateRequest"
+                        }
+                    }
+                ],
                 "responses": {
                     "201": {
                         "description": "Created",
@@ -186,6 +200,12 @@
                         "description": "Conflict",
                         "schema": {
                             "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/ValidationErrorResponse"
                         }
                     },
                     "500": {
@@ -627,7 +647,7 @@
                         "SessionAuth": []
                     }
                 ],
-                "description": "Lists the stored runs of an event, or of every event without one, paginated and most recent first (Admin only).",
+                "description": "Lists the stored runs of an event, or of every event without one, paginated and ordered by the time they were taken, most recent first. Runs without a known time come last (Admin only).",
                 "produces": [
                     "application/json"
                 ],
@@ -662,6 +682,120 @@
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/PaginatedResponse-GalleryRunResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/gallery/bulk": {
+            "post": {
+                "security": [
+                    {
+                        "SessionAuth": []
+                    }
+                ],
+                "description": "Performs an action on multiple runs, given by their numbers. An unknown or malformed run fails (Admin only).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "gallery"
+                ],
+                "summary": "Apply bulk action to gallery",
+                "parameters": [
+                    {
+                        "description": "Bulk action details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/GalleryBulkRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/BulkResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "422": {
+                        "description": "Unprocessable Entity",
+                        "schema": {
+                            "$ref": "#/definitions/ValidationErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/gallery/days": {
+            "get": {
+                "security": [
+                    {
+                        "SessionAuth": []
+                    }
+                ],
+                "description": "Counts the stored runs of an event, or of every event without one, per calendar day in the time zone of the server, most recent first. Runs without a known time are left out (Admin only).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "gallery"
+                ],
+                "summary": "List gallery days",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Slug of the event",
+                        "name": "filter[event]",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/GalleryDayListResponse"
                         }
                     },
                     "400": {
@@ -786,6 +920,67 @@
                 }
             }
         },
+        "/gallery/zip": {
+            "get": {
+                "security": [
+                    {
+                        "SessionAuth": []
+                    }
+                ],
+                "description": "Streams every stored capture of the chosen runs as one zip archive, or their originals without the overlay. Runs without such a file are left out (Admin only).",
+                "produces": [
+                    "application/zip"
+                ],
+                "tags": [
+                    "gallery"
+                ],
+                "summary": "Download gallery",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Comma-separated run numbers (max 200)",
+                        "name": "filter[run]",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Download the originals without the overlay",
+                        "name": "originals",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/gallery/{run}": {
             "delete": {
                 "security": [
@@ -793,11 +988,11 @@
                         "SessionAuth": []
                     }
                 ],
-                "description": "Deletes every stored capture for a run (Admin only).",
+                "description": "Deletes every stored file of a run, its captures, originals, thumbnail, and collage pages (Admin only).",
                 "tags": [
                     "gallery"
                 ],
-                "summary": "Delete gallery",
+                "summary": "Delete gallery run",
                 "parameters": [
                     {
                         "type": "integer",
@@ -819,6 +1014,12 @@
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/ErrorResponse"
                         }
@@ -866,6 +1067,9 @@
                 "responses": {
                     "200": {
                         "description": "OK"
+                    },
+                    "304": {
+                        "description": "Not Modified"
                     },
                     "400": {
                         "description": "Bad Request",
@@ -929,6 +1133,67 @@
                     "200": {
                         "description": "OK"
                     },
+                    "304": {
+                        "description": "Not Modified"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/gallery/{run}/thumbnail": {
+            "get": {
+                "security": [
+                    {
+                        "SessionAuth": []
+                    }
+                ],
+                "description": "Serves the thumbnail of a run as JPEG, the screen version of its first capture. A run stored without a thumbnail serves its first capture instead (Admin only).",
+                "produces": [
+                    "image/jpeg"
+                ],
+                "tags": [
+                    "gallery"
+                ],
+                "summary": "Get gallery thumbnail",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Run number",
+                        "name": "run",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "304": {
+                        "description": "Not Modified"
+                    },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
@@ -970,7 +1235,7 @@
                 "tags": [
                     "gallery"
                 ],
-                "summary": "Download gallery",
+                "summary": "Download gallery run",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1147,7 +1412,7 @@
                 "tags": [
                     "camera"
                 ],
-                "summary": "Download overlay",
+                "summary": "Get overlay",
                 "parameters": [
                     {
                         "type": "string",
@@ -1349,7 +1614,7 @@
                 }
             }
         },
-        "/print/layouts/{id}": {
+        "/print/layouts/{name}": {
             "get": {
                 "security": [
                     {
@@ -1367,8 +1632,8 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Layout ID",
-                        "name": "id",
+                        "description": "Layout name",
+                        "name": "name",
                         "in": "path",
                         "required": true
                     }
@@ -1406,7 +1671,7 @@
                         "SessionAuth": []
                     }
                 ],
-                "description": "Validates and stores the submitted layout under id, creating it if it doesn't exist yet (Admin only).",
+                "description": "Creates or replaces the print layout with the given name, which has to match the name in the body (Admin only).",
                 "consumes": [
                     "application/json"
                 ],
@@ -1420,8 +1685,8 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Layout ID",
-                        "name": "id",
+                        "description": "Layout name",
+                        "name": "name",
                         "in": "path",
                         "required": true
                     },
@@ -1474,7 +1739,7 @@
                         "SessionAuth": []
                     }
                 ],
-                "description": "Removes a stored print layout by id. The layout configured for printing cannot be deleted (Admin only).",
+                "description": "Deletes the print layout with the given name. The layout configured for printing cannot be deleted (Admin only).",
                 "tags": [
                     "print"
                 ],
@@ -1482,8 +1747,8 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Layout ID",
-                        "name": "id",
+                        "description": "Layout name",
+                        "name": "name",
                         "in": "path",
                         "required": true
                     }
@@ -2534,26 +2799,31 @@
                 }
             }
         },
+        "BulkResponse": {
+            "type": "object",
+            "properties": {
+                "failed": {
+                    "type": "integer"
+                },
+                "failedIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "skipped": {
+                    "type": "integer"
+                },
+                "succeeded": {
+                    "type": "integer"
+                }
+            }
+        },
         "CameraMeta": {
             "type": "object",
             "properties": {
-                "captureHeight": {
-                    "type": "integer"
-                },
-                "captureWidth": {
-                    "type": "integer"
-                },
                 "hasOverlay": {
                     "type": "boolean"
-                },
-                "previewFps": {
-                    "type": "integer"
-                },
-                "previewHeight": {
-                    "type": "integer"
-                },
-                "previewWidth": {
-                    "type": "integer"
                 },
                 "source": {
                     "type": "string"
@@ -2698,6 +2968,7 @@
             "type": "object",
             "properties": {
                 "imageIndex": {
+                    "description": "ImageIndex is the position of the capture in the run, which is complete at ImagesPerRun.",
                     "type": "integer"
                 },
                 "imagesPerRun": {
@@ -2762,9 +3033,11 @@
             "type": "object",
             "properties": {
                 "exists": {
+                    "description": "Exists is false until the file at Path is created.",
                     "type": "boolean"
                 },
                 "path": {
+                    "description": "Path is empty when a save creates a new config file.",
                     "type": "string"
                 }
             }
@@ -2797,6 +3070,7 @@
                     "$ref": "#/definitions/PrintSettings"
                 },
                 "secrets": {
+                    "description": "Secrets reports by path whether each secret is set, since their values never leave the backend.",
                     "type": "object",
                     "additionalProperties": {
                         "type": "boolean"
@@ -2809,6 +3083,7 @@
                     "$ref": "#/definitions/ShareSettings"
                 },
                 "sources": {
+                    "description": "Sources names by path where each setting comes from.",
                     "type": "object",
                     "additionalProperties": {
                         "$ref": "#/definitions/ConfigSource"
@@ -2913,6 +3188,7 @@
             "type": "object",
             "properties": {
                 "kind": {
+                    "description": "Kind is the source of the value, where a flag or an environment variable overrides the config file,\nso a change saved to the file has no effect on such a setting.",
                     "type": "string",
                     "enum": [
                         "default",
@@ -2960,6 +3236,7 @@
                     "type": "string"
                 },
                 "requestId": {
+                    "description": "RequestID matches the X-Request-ID header and the log lines of the request.",
                     "type": "string"
                 }
             }
@@ -2986,10 +3263,59 @@
                 }
             }
         },
+        "GalleryBulkRequest": {
+            "type": "object",
+            "required": [
+                "action",
+                "ids"
+            ],
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": [
+                        "delete"
+                    ]
+                },
+                "ids": {
+                    "type": "array",
+                    "maxItems": 200,
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "GalleryDayListResponse": {
+            "type": "object",
+            "properties": {
+                "days": {
+                    "description": "Days are the days with stored runs, the most recent first.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/GalleryDayResponse"
+                    }
+                }
+            }
+        },
+        "GalleryDayResponse": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "day": {
+                    "description": "Day is the date in the time zone of the server, formatted as YYYY-MM-DD.",
+                    "type": "string"
+                }
+            }
+        },
         "GalleryEventResponse": {
             "type": "object",
             "properties": {
                 "current": {
+                    "description": "Current marks the event the booth files new captures under.",
                     "type": "boolean"
                 },
                 "event": {
@@ -2999,9 +3325,6 @@
                     "type": "integer"
                 },
                 "originalCount": {
-                    "type": "integer"
-                },
-                "runCount": {
                     "type": "integer"
                 }
             }
@@ -3020,6 +3343,10 @@
                 },
                 "run": {
                     "type": "integer"
+                },
+                "takenAt": {
+                    "description": "TakenAt is the time of the earliest capture as the wall time of the booth without a time zone,\nformatted as YYYY-MM-DDTHH:MM:SS and null if unknown.",
+                    "type": "string"
                 }
             }
         },
@@ -3027,13 +3354,14 @@
             "type": "object",
             "properties": {
                 "color": {
+                    "description": "Color is black when unset.",
                     "type": "string"
                 },
                 "enabled": {
                     "type": "boolean"
                 },
                 "fontSizePt": {
-                    "description": "FontSizePt and Color are optional. Left unset, the caption is drawn with domain.DefaultBrandingFontSizePt in black.",
+                    "description": "FontSizePt is domain.DefaultBrandingFontSizePt when unset.",
                     "type": "number",
                     "maximum": 72,
                     "minimum": 6
@@ -3048,12 +3376,13 @@
                     "maxLength": 1024
                 },
                 "x": {
-                    "description": "X/Y are the center of the caption on the page (0..1, same convention as LayoutSlotRequest).",
+                    "description": "X is the horizontal center of the caption relative to the page width.",
                     "type": "number",
                     "maximum": 1,
                     "minimum": 0
                 },
                 "y": {
+                    "description": "Y is the vertical center of the caption relative to the page height.",
                     "type": "number",
                     "maximum": 1,
                     "minimum": 0
@@ -3092,7 +3421,7 @@
                 "branding": {
                     "$ref": "#/definitions/LayoutBrandingResponse"
                 },
-                "id": {
+                "description": {
                     "type": "string"
                 },
                 "name": {
@@ -3140,11 +3469,12 @@
             "type": "object",
             "properties": {
                 "heightMM": {
+                    "description": "HeightMM is capped like WidthMM.",
                     "type": "number",
                     "maximum": 500
                 },
                 "widthMM": {
-                    "description": "WidthMM/HeightMM are capped at 500mm: RenderCollage allocates a canvas of mm/25.4*renderDPI pixels per side,\nso an unbounded value risks running out of memory on a device with little RAM.\n500mm covers any realistic print size.",
+                    "description": "WidthMM is capped, since the collage allocates a canvas of mm/25.4*renderDPI pixels per side,\nwhich could run out of memory on a device with little RAM.",
                     "type": "number",
                     "maximum": 500
                 }
@@ -3164,8 +3494,12 @@
         "LayoutResponse": {
             "type": "object",
             "properties": {
-                "id": {
+                "description": {
                     "type": "string"
+                },
+                "inUse": {
+                    "description": "InUse is true for the layout the running or the saved configuration prints with,\nwhich can be neither deleted nor renamed.",
+                    "type": "boolean"
                 },
                 "name": {
                     "type": "string"
@@ -3195,9 +3529,16 @@
                 "branding": {
                     "$ref": "#/definitions/LayoutBrandingRequest"
                 },
-                "name": {
+                "description": {
                     "type": "string",
-                    "maxLength": 100
+                    "maxLength": 1000,
+                    "minLength": 1
+                },
+                "name": {
+                    "description": "Name matches the name in the path and names the file, so 60 characters of up to 4 bytes\nstay within the 255 bytes a file name may have.",
+                    "type": "string",
+                    "maxLength": 60,
+                    "minLength": 1
                 },
                 "pages": {
                     "type": "array",
@@ -3452,9 +3793,9 @@
                 "enabled": {
                     "type": "boolean"
                 },
-                "layoutId": {
+                "layout": {
                     "type": "string",
-                    "maxLength": 100
+                    "maxLength": 60
                 },
                 "printerName": {
                     "type": "string"
@@ -3486,7 +3827,13 @@
                     "type": "string"
                 },
                 "status": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                        "idle",
+                        "printing",
+                        "disabled",
+                        "holding"
+                    ]
                 }
             }
         },
@@ -3499,6 +3846,27 @@
                     "items": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "RunCreateRequest": {
+            "type": "object",
+            "required": [
+                "screenHeight",
+                "screenWidth"
+            ],
+            "properties": {
+                "screenHeight": {
+                    "description": "ScreenHeight is the height of the screen of the client in device pixels.",
+                    "type": "integer",
+                    "maximum": 16384,
+                    "minimum": 1
+                },
+                "screenWidth": {
+                    "description": "ScreenWidth is the width of the screen of the client in device pixels, which bounds the screen versions of the captures.",
+                    "type": "integer",
+                    "maximum": 16384,
+                    "minimum": 1
                 }
             }
         },
@@ -3597,12 +3965,20 @@
             "type": "object",
             "properties": {
                 "reason": {
-                    "description": "service.JobReason",
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                        "unreachable",
+                        "queue_unavailable",
+                        "failed"
+                    ]
                 },
                 "status": {
-                    "description": "service.JobStatus",
-                    "type": "string"
+                    "type": "string",
+                    "enum": [
+                        "pending",
+                        "done",
+                        "failed"
+                    ]
                 },
                 "url": {
                     "type": "string"
@@ -3790,6 +4166,7 @@
                     "type": "boolean"
                 },
                 "unsupported": {
+                    "description": "Unsupported names why this installation cannot install the release itself, empty if it can.",
                     "type": "string",
                     "enum": [
                         "development_build",

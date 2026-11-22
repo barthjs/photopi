@@ -13,11 +13,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// gracefulStopGrace bounds how long a stopped camera process gets to exit on its own
-// after SIGTERM before being force-killed. rpicam-vid, rpicam-still, and gphoto2 handle SIGTERM by shutting down cleanly.
-// gphoto2 in particular holds a PTP session over USB that a SIGKILL leaves half-open,
-// making the very next gphoto2 invocation fail with "could not claim the USB device"
-// until the camera or kernel driver notices and resets it on its own.
+// gracefulStopGrace bounds how long a camera process gets to exit cleanly after SIGTERM before it is killed,
+// since a SIGKILL leaves the PTP session of gphoto2 half-open and the next invocation fails to claim the device.
 const gracefulStopGrace = 2 * time.Second
 
 // captureTimeout bounds a whole capture, from stopping the preview to receiving the still.
@@ -29,7 +26,7 @@ const maxStderrBytes = 8 << 10
 
 // command describes one invocation of a camera tool.
 type command struct {
-	// label names the invocation in logs and errors, such as "rpicam-still" or "gphoto2 live view".
+	// label names the invocation in logs and errors.
 	label string
 	name  string
 	args  []string
@@ -103,8 +100,8 @@ func logPreviewExit(logger zerolog.Logger, label string, streamErr, waitErr erro
 	event.Msg(label + " exited")
 }
 
-// isIntentionalStop reports whether a preview stream ended because it was stopped or the client stopped reading,
-// as opposed to the camera failing.
+// isIntentionalStop reports whether a preview stream ended because it was stopped
+// or the client stopped reading, as opposed to the camera failing.
 func isIntentionalStop(err error) bool {
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) || errors.Is(err, ErrPreviewStopped) {
 		return true

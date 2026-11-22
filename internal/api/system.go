@@ -24,13 +24,8 @@ func (a *API) metaGetHandler(w http.ResponseWriter, r *http.Request) {
 		Instance: a.instance,
 		Language: a.options.Language,
 		Camera: CameraMeta{
-			Source:        string(a.options.Camera.Source),
-			CaptureWidth:  a.options.Camera.CaptureWidth,
-			CaptureHeight: a.options.Camera.CaptureHeight,
-			PreviewWidth:  a.options.Camera.PreviewWidth,
-			PreviewHeight: a.options.Camera.PreviewHeight,
-			PreviewFPS:    a.options.Camera.PreviewFPS,
-			HasOverlay:    a.options.Camera.OverlayPath != "",
+			Source:     string(a.options.Camera.Source),
+			HasOverlay: a.options.Camera.OverlayPath != "",
 		},
 		Capture: CaptureMeta{
 			ImagesPerRun:   a.options.Capture.ImagesPerRun,
@@ -60,24 +55,16 @@ type MetaResponse struct {
 	Theme    ThemeSettings `json:"theme"`
 }
 
-// CameraMeta is the camera configuration the web interface needs.
 type CameraMeta struct {
-	Source        string `json:"source"`
-	CaptureWidth  int    `json:"captureWidth"`
-	CaptureHeight int    `json:"captureHeight"`
-	PreviewWidth  int    `json:"previewWidth"`
-	PreviewHeight int    `json:"previewHeight"`
-	PreviewFPS    int    `json:"previewFps"`
-	HasOverlay    bool   `json:"hasOverlay"`
+	Source     string `json:"source"`
+	HasOverlay bool   `json:"hasOverlay"`
 }
 
-// CaptureMeta is the capture configuration the web interface needs.
 type CaptureMeta struct {
 	ImagesPerRun   int    `json:"imagesPerRun"`
 	WelcomeMessage string `json:"welcomeMessage"`
 }
 
-// ShareMeta reports which ways of sharing are available.
 type ShareMeta struct {
 	EmailEnabled bool   `json:"emailEnabled"`
 	CloudEnabled bool   `json:"cloudEnabled"`
@@ -111,7 +98,7 @@ func (a *API) pingGetHandler(w http.ResponseWriter, _ *http.Request) {
 func (a *API) systemInfoGetHandler(w http.ResponseWriter, r *http.Request) {
 	stats, err := a.systemService.Stats(r.Context())
 	if err != nil {
-		a.serverErrorResponse(w, r, err)
+		a.respondError(w, r, err)
 		return
 	}
 
@@ -129,7 +116,6 @@ func (a *API) systemInfoGetHandler(w http.ResponseWriter, r *http.Request) {
 	}, nil)
 }
 
-// SystemInfoResponse is the state of the host and which system actions are configured.
 type SystemInfoResponse struct {
 	Version    string   `json:"version"`
 	UptimeSecs int64    `json:"uptimeSeconds"`
@@ -144,7 +130,6 @@ type SystemInfoResponse struct {
 	Commands SystemCommandsResponse `json:"commands"`
 }
 
-// SystemCommandsResponse holds the configured shell commands of the system actions.
 type SystemCommandsResponse struct {
 	ServerRestart string `json:"serverRestart"`
 	ServerStop    string `json:"serverStop"`
@@ -178,15 +163,7 @@ func toSystemCommandsResponse(o service.SystemOptions) SystemCommandsResponse {
 //	@Security		SessionAuth
 //	@Router			/system/server/restart [post]
 func (a *API) systemServerRestartHandler(w http.ResponseWriter, r *http.Request) {
-	if !a.systemService.ServerRestartEnabled() {
-		a.badRequestResponse(w, r, errors.New("server restart is disabled: system.server_restart_command is not configured"))
-		return
-	}
-	if err := a.systemService.RestartServer(); err != nil {
-		a.serverErrorResponse(w, r, err)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
+	a.runSystemCommand(w, r, a.systemService.ServerRestartEnabled(), "server restart is disabled: system.server_restart_command is not configured", a.systemService.RestartServer)
 }
 
 // systemServerStopHandler runs the configured system.server_stop_command.
@@ -201,15 +178,7 @@ func (a *API) systemServerRestartHandler(w http.ResponseWriter, r *http.Request)
 //	@Security		SessionAuth
 //	@Router			/system/server/stop [post]
 func (a *API) systemServerStopHandler(w http.ResponseWriter, r *http.Request) {
-	if !a.systemService.ServerStopEnabled() {
-		a.badRequestResponse(w, r, errors.New("server stop is disabled: system.server_stop_command is not configured"))
-		return
-	}
-	if err := a.systemService.StopServer(); err != nil {
-		a.serverErrorResponse(w, r, err)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
+	a.runSystemCommand(w, r, a.systemService.ServerStopEnabled(), "server stop is disabled: system.server_stop_command is not configured", a.systemService.StopServer)
 }
 
 // systemKioskRestartHandler runs the configured system.kiosk_restart_command.
@@ -224,15 +193,7 @@ func (a *API) systemServerStopHandler(w http.ResponseWriter, r *http.Request) {
 //	@Security		SessionAuth
 //	@Router			/system/kiosk/restart [post]
 func (a *API) systemKioskRestartHandler(w http.ResponseWriter, r *http.Request) {
-	if !a.systemService.KioskRestartEnabled() {
-		a.badRequestResponse(w, r, errors.New("kiosk restart is disabled: system.kiosk_restart_command is not configured"))
-		return
-	}
-	if err := a.systemService.RestartKiosk(); err != nil {
-		a.serverErrorResponse(w, r, err)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
+	a.runSystemCommand(w, r, a.systemService.KioskRestartEnabled(), "kiosk restart is disabled: system.kiosk_restart_command is not configured", a.systemService.RestartKiosk)
 }
 
 // systemKioskStopHandler runs the configured system.kiosk_stop_command.
@@ -247,15 +208,7 @@ func (a *API) systemKioskRestartHandler(w http.ResponseWriter, r *http.Request) 
 //	@Security		SessionAuth
 //	@Router			/system/kiosk/stop [post]
 func (a *API) systemKioskStopHandler(w http.ResponseWriter, r *http.Request) {
-	if !a.systemService.KioskStopEnabled() {
-		a.badRequestResponse(w, r, errors.New("kiosk stop is disabled: system.kiosk_stop_command is not configured"))
-		return
-	}
-	if err := a.systemService.StopKiosk(); err != nil {
-		a.serverErrorResponse(w, r, err)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
+	a.runSystemCommand(w, r, a.systemService.KioskStopEnabled(), "kiosk stop is disabled: system.kiosk_stop_command is not configured", a.systemService.StopKiosk)
 }
 
 // systemAllRestartHandler runs the configured system.all_restart_command.
@@ -270,15 +223,7 @@ func (a *API) systemKioskStopHandler(w http.ResponseWriter, r *http.Request) {
 //	@Security		SessionAuth
 //	@Router			/system/all/restart [post]
 func (a *API) systemAllRestartHandler(w http.ResponseWriter, r *http.Request) {
-	if !a.systemService.AllRestartEnabled() {
-		a.badRequestResponse(w, r, errors.New("restarting both is disabled: system.all_restart_command is not configured"))
-		return
-	}
-	if err := a.systemService.RestartAll(); err != nil {
-		a.serverErrorResponse(w, r, err)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
+	a.runSystemCommand(w, r, a.systemService.AllRestartEnabled(), "restarting both is disabled: system.all_restart_command is not configured", a.systemService.RestartAll)
 }
 
 // systemAllStopHandler runs the configured system.all_stop_command.
@@ -293,12 +238,18 @@ func (a *API) systemAllRestartHandler(w http.ResponseWriter, r *http.Request) {
 //	@Security		SessionAuth
 //	@Router			/system/all/stop [post]
 func (a *API) systemAllStopHandler(w http.ResponseWriter, r *http.Request) {
-	if !a.systemService.AllStopEnabled() {
-		a.badRequestResponse(w, r, errors.New("stopping both is disabled: system.all_stop_command is not configured"))
+	a.runSystemCommand(w, r, a.systemService.AllStopEnabled(), "stopping both is disabled: system.all_stop_command is not configured", a.systemService.StopAll)
+}
+
+// runSystemCommand runs a configured system command and answers with 204,
+// or with 400 and the disabled message if the command is not configured.
+func (a *API) runSystemCommand(w http.ResponseWriter, r *http.Request, enabled bool, disabled string, run func() error) {
+	if !enabled {
+		a.badRequestResponse(w, r, errors.New(disabled))
 		return
 	}
-	if err := a.systemService.StopAll(); err != nil {
-		a.serverErrorResponse(w, r, err)
+	if err := run(); err != nil {
+		a.respondError(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -333,7 +284,7 @@ func (a *API) systemProcessExitHandler(w http.ResponseWriter, _ *http.Request) {
 //	@Router			/system/host/reboot [post]
 func (a *API) systemHostRebootHandler(w http.ResponseWriter, r *http.Request) {
 	if err := a.systemService.RebootHost(); err != nil {
-		a.serverErrorResponse(w, r, err)
+		a.respondError(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -351,7 +302,7 @@ func (a *API) systemHostRebootHandler(w http.ResponseWriter, r *http.Request) {
 //	@Router			/system/host/shutdown [post]
 func (a *API) systemHostShutdownHandler(w http.ResponseWriter, r *http.Request) {
 	if err := a.systemService.ShutdownHost(); err != nil {
-		a.serverErrorResponse(w, r, err)
+		a.respondError(w, r, err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

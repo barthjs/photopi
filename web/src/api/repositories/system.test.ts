@@ -27,47 +27,47 @@ describe('systemRepository', () => {
   describe.each([
     {
       method: 'restartServer',
-      action: () => systemRepository.restartServer(),
+      action: async () => systemRepository.restartServer(),
       url: '/api/system/server/restart',
     },
     {
       method: 'stopServer',
-      action: () => systemRepository.stopServer(),
+      action: async () => systemRepository.stopServer(),
       url: '/api/system/server/stop',
     },
     {
       method: 'restartKiosk',
-      action: () => systemRepository.restartKiosk(),
+      action: async () => systemRepository.restartKiosk(),
       url: '/api/system/kiosk/restart',
     },
     {
       method: 'stopKiosk',
-      action: () => systemRepository.stopKiosk(),
+      action: async () => systemRepository.stopKiosk(),
       url: '/api/system/kiosk/stop',
     },
     {
       method: 'restartAll',
-      action: () => systemRepository.restartAll(),
+      action: async () => systemRepository.restartAll(),
       url: '/api/system/all/restart',
     },
     {
       method: 'stopAll',
-      action: () => systemRepository.stopAll(),
+      action: async () => systemRepository.stopAll(),
       url: '/api/system/all/stop',
     },
     {
       method: 'exitProcess',
-      action: () => systemRepository.exitProcess(),
+      action: async () => systemRepository.exitProcess(),
       url: '/api/system/process/exit',
     },
     {
       method: 'rebootHost',
-      action: () => systemRepository.rebootHost(),
+      action: async () => systemRepository.rebootHost(),
       url: '/api/system/host/reboot',
     },
     {
       method: 'shutdownHost',
-      action: () => systemRepository.shutdownHost(),
+      action: async () => systemRepository.shutdownHost(),
       url: '/api/system/host/shutdown',
     },
   ])('$method', ({ action, url }) => {

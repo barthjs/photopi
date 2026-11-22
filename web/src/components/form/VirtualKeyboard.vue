@@ -8,14 +8,17 @@ import {
   keyboardLayouts,
   symbolLayout,
   textLayouts,
-} from '@/lib/keyboardLayouts';
+} from '@/lib/keyboard/keyboardLayouts';
 
 const { modelValue, variant = 'email' } = defineProps<{
   modelValue: string;
   // email types an address, text types any text
   variant?: 'email' | 'text';
 }>();
-const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
+
+const emit = defineEmits<{
+  'update:modelValue': [value: string];
+}>();
 
 const { t, locale } = useI18n();
 
@@ -29,27 +32,21 @@ const layout = computed(() => {
   return showSymbols.value ? symbolLayout : textLayouts[language.value];
 });
 
-/**
- * spanStyle returns the column span of a key as an inline style, since Tailwind only generates classes
- * that appear literally in the source.
- */
+/** Returns the column span of a key as an inline style, since Tailwind only knows literal classes. */
 function spanStyle(span: number) {
   return {
     gridColumn: `span ${span} / span ${span}`,
   };
 }
 
-/**
- * charLabel returns what a character key types, the capital letter while shift is active.
- * A letter without a single capital letter, such as ß, stays as it is.
- */
+/** Returns what a character key types, the capital letter while shift is active. */
 function charLabel(label: string): string {
   if (!shifted.value) return label;
   const upper = label.toUpperCase();
   return upper.length === 1 ? upper : label;
 }
 
-/** keyLabel returns the text shown on a key, undefined for a key that only shows an icon. */
+/** Returns the text shown on a key, undefined for a key that only shows an icon. */
 function keyLabel(key: KeyboardKey): string | undefined {
   switch (key.kind) {
     case 'char':
@@ -61,7 +58,7 @@ function keyLabel(key: KeyboardKey): string | undefined {
   }
 }
 
-/** keyIcon returns the icon of a key, undefined for a key that shows text. */
+/** Returns the icon of a key, undefined for a key that shows text. */
 function keyIcon(key: KeyboardKey): string | undefined {
   switch (key.kind) {
     case 'backspace':
@@ -75,14 +72,14 @@ function keyIcon(key: KeyboardKey): string | undefined {
   }
 }
 
-/** keyVariant highlights the keys that do not type a character, and an active shift key. */
+/** Highlights the keys that do not type a character, and an active shift key. */
 function keyVariant(key: KeyboardKey): 'solid' | 'outline' {
   if (key.kind === 'char') return 'outline';
   if (key.kind === 'shift') return shifted.value ? 'solid' : 'outline';
   return 'solid';
 }
 
-/** press types a key into the bound text, or runs the action of a key that types nothing. */
+/** Types a key into the bound text, or runs the action of a key that types nothing. */
 function press(key: KeyboardKey): void {
   switch (key.kind) {
     case 'spacer':
@@ -115,16 +112,16 @@ function press(key: KeyboardKey): void {
   >
     <div v-for="(row, rowIndex) in layout" :key="rowIndex" class="grid grid-cols-12 gap-1">
       <template v-for="(key, keyIndex) in row" :key="keyIndex">
-        <div v-if="key.kind === 'spacer'" :style="spanStyle(key.span)" />
+        <div v-if="key.kind === 'spacer'" :style="spanStyle(key.span)"></div>
         <UButton
           v-else
           :label="keyLabel(key)"
           :icon="keyIcon(key)"
           color="neutral"
           :variant="keyVariant(key)"
-          @click="press(key)"
           :style="spanStyle(key.span)"
           class="h-full w-full min-w-0 justify-center text-base"
+          @click="press(key)"
         />
       </template>
     </div>

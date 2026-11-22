@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { layoutRepository } from '@/api/repositories/layout';
-import type { LayoutSaveRequest } from '@/api/types';
+import type { LayoutSaveRequest } from '@/api/types/layout';
 import { jsonResponse, useFetchMock } from '@/test/fetchMock';
 
 describe('layoutRepository', () => {
@@ -12,7 +12,7 @@ describe('layoutRepository', () => {
       fetchMock.mockResolvedValue(
         jsonResponse(200, [
           {
-            id: 'layout-a',
+            name: 'layout-a',
           },
         ]),
       );
@@ -21,7 +21,7 @@ describe('layoutRepository', () => {
 
       expect(result).toEqual([
         {
-          id: 'layout-a',
+          name: 'layout-a',
         },
       ]);
       expect(lastRequest().url).toBe('/api/print/layouts');
@@ -30,17 +30,17 @@ describe('layoutRepository', () => {
   });
 
   describe('get', () => {
-    it('returns the layout under its encoded ID', async () => {
+    it('returns the layout under its encoded name', async () => {
       fetchMock.mockResolvedValue(
         jsonResponse(200, {
-          id: 'layout a/b',
+          name: 'layout a/b',
         }),
       );
 
       const result = await layoutRepository.get('layout a/b');
 
       expect(result).toEqual({
-        id: 'layout a/b',
+        name: 'layout a/b',
       });
       expect(lastRequest().url).toBe('/api/print/layouts/layout%20a%2Fb');
       expect(lastRequest().init?.method).toBe('GET');
@@ -48,7 +48,7 @@ describe('layoutRepository', () => {
   });
 
   describe('save', () => {
-    it('stores the layout under its encoded ID', async () => {
+    it('stores the layout under its encoded name', async () => {
       const payload = {
         name: 'Layout',
       } as unknown as LayoutSaveRequest;
@@ -64,7 +64,7 @@ describe('layoutRepository', () => {
   });
 
   describe('delete', () => {
-    it('removes the layout under its encoded ID', async () => {
+    it('removes the layout under its encoded name', async () => {
       fetchMock.mockResolvedValue(jsonResponse(204, undefined));
 
       await layoutRepository.delete('layout a/b');

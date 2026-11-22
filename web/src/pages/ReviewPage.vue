@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import { captureRepository } from '@/api/repositories/capture';
-import { useInactivityTimer } from '@/composables/useInactivityTimer';
+import { useInactivityTimer } from '@/composables/timer/useInactivityTimer';
+import { useConfirm } from '@/composables/ui/useConfirm';
+import { useDeleteConfirm } from '@/composables/ui/useDeleteConfirm';
 import { useBoothStore } from '@/stores/booth';
 
 // A guest who walks away leaves the photos to the next guest otherwise. The run stays stored,
@@ -15,14 +17,15 @@ const { t } = useI18n();
 const router = useRouter();
 
 const booth = useBoothStore();
+const { settle } = useConfirm();
+const { confirmDelete } = useDeleteConfirm();
 
-const inactivity = useInactivityTimer(() =>
-  router.push({
-    name: 'welcome',
-  }),
+const inactivity = useInactivityTimer(
+  () =>
+    void router.push({
+      name: 'welcome',
+    }),
 );
-
-const showDiscardDialog = ref(false);
 
 const indices = computed(() =>
   Array.from(
@@ -44,25 +47,28 @@ onMounted(() => {
   inactivity.arm(REVIEW_TIMEOUT_MS);
 });
 
-/** confirmDiscard discards the run and returns to the welcome screen. */
-async function confirmDiscard(): Promise<void> {
-  showDiscardDialog.value = false;
+// A timeout leaves the page while the dialog may still be open, which only belongs to this page
+onBeforeUnmount(() => settle(false));
+
+/** Discards the run after a confirmation and returns to the welcome screen. */
+async function discard(): Promise<void> {
+  const confirmed = await confirmDelete({
+    title: t('pages.review.discardDialog.title'),
+    description: t('pages.review.discardDialog.text'),
+  });
+  if (!confirmed) return;
+
   await booth.abort();
   await router.push({
     name: 'welcome',
   });
 }
 
-/** onContinue moves on to sharing the run. */
+/** Moves on to sharing the run. */
 function onContinue(): void {
   void router.push({
     name: 'share',
   });
-}
-
-/** openDiscardDialog asks before the run is discarded. */
-function openDiscardDialog(): void {
-  showDiscardDialog.value = true;
 }
 </script>
 
@@ -85,32 +91,16 @@ function openDiscardDialog(): void {
         color="error"
         variant="soft"
         size="xl"
-        @click="openDiscardDialog"
         class="h-16 w-56 justify-center text-xl"
+        @click="discard"
       />
       <UButton
         :label="t('pages.review.continueButton')"
         icon="i-lucide-check"
         size="xl"
-        @click="onContinue"
         class="h-16 w-56 justify-center text-xl"
+        @click="onContinue"
       />
     </div>
-
-    <UModal
-      v-model:open="showDiscardDialog"
-      :title="t('pages.review.discardDialog.title')"
-      :description="t('pages.review.discardDialog.text')"
-      :ui="{ footer: 'justify-end' }"
-    >
-      <template #footer="{ close }">
-        <UButton :label="t('common.back')" color="neutral" variant="outline" @click="close" />
-        <UButton
-          :label="t('pages.review.discardDialog.confirm')"
-          color="error"
-          @click="confirmDiscard"
-        />
-      </template>
-    </UModal>
   </div>
 </template>

@@ -6,12 +6,19 @@ import (
 	"net/http"
 
 	"github.com/barthjs/photopi/internal/camera"
+	"github.com/barthjs/photopi/internal/media"
 	"github.com/barthjs/photopi/internal/service"
 )
 
 const maxCaptureUploadMB = 25
 
 var allowedCaptureUploadTypes = []string{"image/jpeg"}
+
+// captureUploadRules are the format and the resolution bounds of an uploaded capture.
+var captureUploadRules = imageRules{
+	Format:  media.ImageFormatJPEG,
+	MaxEdge: service.MaxCaptureEdge,
+}
 
 // captureGetHandler serves one stored capture of a run as JPEG.
 //
@@ -67,7 +74,7 @@ func (a *API) captureCreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	var data *[]byte
 	if a.options.Camera.Source == camera.SourceWebcam {
-		uploaded, _, ok := a.readUpload(w, r, maxCaptureUploadMB, allowedCaptureUploadTypes)
+		uploaded, _, ok := a.readImageUpload(w, r, maxCaptureUploadMB, allowedCaptureUploadTypes, captureUploadRules)
 		if !ok {
 			return
 		}
@@ -107,9 +114,9 @@ func (a *API) captureCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}, nil)
 }
 
-// CaptureResponse is a stored capture with its position in the run, so the caller can tell whether the run is complete.
 type CaptureResponse struct {
-	Run          int `json:"run"`
+	Run int `json:"run"`
+	// ImageIndex is the position of the capture in the run, which is complete at ImagesPerRun.
 	ImageIndex   int `json:"imageIndex"`
 	ImagesPerRun int `json:"imagesPerRun"`
 }

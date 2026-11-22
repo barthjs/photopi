@@ -14,6 +14,10 @@ import (
 const (
 	headerListUnsubscribe     mail.Header = "List-Unsubscribe"
 	headerListUnsubscribePost mail.Header = "List-Unsubscribe-Post"
+
+	// smtpTimeout bounds each step of an SMTP session. A server may confirm the end of a message only after its checks,
+	// and a timeout there reports a delivered message as failed, so a retry would send it again.
+	smtpTimeout = 2 * time.Minute
 )
 
 // smtpTransport delivers messages over SMTP using the configured mail.Client.
@@ -26,7 +30,7 @@ func newSMTPTransport(options Options) (*smtpTransport, error) {
 	clientOpts := []mail.Option{
 		mail.WithPort(options.SMTPPort),
 		mail.WithTLSPortPolicy(mail.TLSOpportunistic),
-		mail.WithTimeout(10 * time.Second),
+		mail.WithTimeout(smtpTimeout),
 	}
 	if options.SMTPUsername != "" {
 		clientOpts = append(

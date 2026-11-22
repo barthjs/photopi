@@ -6,33 +6,11 @@ import (
 	"maps"
 	"mime"
 	"net/http"
+	"time"
 )
 
-// PaginatedMeta holds the metadata for paginated responses.
-type PaginatedMeta struct {
-	TotalCount int `json:"totalCount"`
-	Limit      int `json:"limit"`
-	Offset     int `json:"offset"`
-}
-
-// PaginatedResponse wraps a slice of data with pagination metadata.
-type PaginatedResponse[T any] struct {
-	Data []T           `json:"data"`
-	Meta PaginatedMeta `json:"meta"`
-}
-
-// writePaginated writes a paginated list response with the standard envelope shape
-// (data + totalCount/limit/offset), the shared shape behind every JSON:API style list endpoint.
-func (a *API) writePaginated[T any](w http.ResponseWriter, r *http.Request, data []T, totalCount, limit, offset int) {
-	a.writeJSON(w, r, http.StatusOK, PaginatedResponse[T]{
-		Data: data,
-		Meta: PaginatedMeta{
-			TotalCount: totalCount,
-			Limit:      limit,
-			Offset:     offset,
-		},
-	}, nil)
-}
+// downloadTimeout gives large downloads more time than the default request timeout, for slow connections.
+const downloadTimeout = 10 * time.Minute
 
 // writeJSON writes a JSON response and, if encoding fails, reports it as a server error.
 func (a *API) writeJSON(w http.ResponseWriter, r *http.Request, status int, data any, headers http.Header) {
@@ -65,6 +43,23 @@ func writeText(w http.ResponseWriter, status int, data string, headers http.Head
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(status)
 	_, _ = w.Write([]byte(data))
+}
+
+// downloadWriter sets the download headers with the first write, so a failure before it still gets an error response.
+type downloadWriter struct {
+	writer      http.ResponseWriter
+	contentType string
+	filename    string
+	started     bool
+}
+
+// Write sets the download headers before the first bytes and writes p.
+func (d *downloadWriter) Write(p []byte) (int, error) {
+	if !d.started {
+		writeDownloadHeaders(d.writer, d.contentType, d.filename)
+		d.started = true
+	}
+	return d.writer.Write(p)
 }
 
 // writeDownloadHeaders marks the response as a file download with the given content type and file name.

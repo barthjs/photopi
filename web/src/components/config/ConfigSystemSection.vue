@@ -2,21 +2,21 @@
 import { useI18n } from 'vue-i18n';
 
 import ConfigFieldHint from '@/components/config/ConfigFieldHint.vue';
-import { CONFIG_LIMITS, useConfigForm } from '@/composables/useConfigForm';
+import { CONFIG_LIMITS, useConfigForm } from '@/composables/config/useConfigForm';
 import { countLabel } from '@/lib/form/validation';
 
-// The commands behind the restart and stop actions of the system page.
+// The commands behind the restart and stop actions of the system page
 const { t } = useI18n();
 const { state, fieldProps } = useConfigForm();
 </script>
 
 <template>
-  <UCard variant="subtle" class="mt-4">
+  <UCard variant="subtle">
     <div class="flex flex-col gap-6">
       <p class="text-muted text-sm">{{ t('pages.config.system.hint') }}</p>
 
       <div class="flex flex-col gap-4">
-        <h3 class="text-dimmed text-sm font-semibold tracking-wide uppercase">
+        <h3 class="text-highlighted heading-card">
           {{ t('pages.config.system.sections.server') }}
         </h3>
         <div class="grid grid-cols-1 gap-4">
@@ -57,7 +57,7 @@ const { state, fieldProps } = useConfigForm();
       </div>
 
       <div class="flex flex-col gap-4">
-        <h3 class="text-dimmed text-sm font-semibold tracking-wide uppercase">
+        <h3 class="text-highlighted heading-card">
           {{ t('pages.config.system.sections.kiosk') }}
         </h3>
         <div class="grid grid-cols-1 gap-4">
@@ -98,7 +98,7 @@ const { state, fieldProps } = useConfigForm();
       </div>
 
       <div class="flex flex-col gap-4">
-        <h3 class="text-dimmed text-sm font-semibold tracking-wide uppercase">
+        <h3 class="text-highlighted heading-card">
           {{ t('pages.config.system.sections.both') }}
         </h3>
         <div class="grid grid-cols-1 gap-4">
@@ -106,7 +106,6 @@ const { state, fieldProps } = useConfigForm();
             <template #hint>
               <ConfigFieldHint
                 path="system.allRestartCommand"
-                :help="t('pages.config.system.allCommandHint')"
                 :count="countLabel(state.system.allRestartCommand, CONFIG_LIMITS.systemCommand)"
               />
             </template>
@@ -122,7 +121,6 @@ const { state, fieldProps } = useConfigForm();
             <template #hint>
               <ConfigFieldHint
                 path="system.allStopCommand"
-                :help="t('pages.config.system.allCommandHint')"
                 :count="countLabel(state.system.allStopCommand, CONFIG_LIMITS.systemCommand)"
               />
             </template>

@@ -2,14 +2,13 @@ import { vi } from 'vitest';
 
 import { withSetup } from '@/test/withSetup';
 import type { FormErrorTarget } from '@/composables/form/useFormValidation';
-import type { LayoutForm } from '@/composables/useLayoutForm';
-import { provideLayoutForm } from '@/composables/useLayoutForm';
+import type { LayoutForm } from '@/composables/layout/useLayoutForm';
+import { provideLayoutForm } from '@/composables/layout/useLayoutForm';
 
 export { layoutFormMocks, resetLayoutFormMocks } from '@/test/layoutFormMocks';
 
 /**
- * mountLayoutForm creates a layout form inside a mounted component and runs extra composables
- * in the same component.
+ * Creates a layout form inside a mounted component and runs extra composables in the same component.
  */
 export function mountLayoutForm<T>(setup: (layoutForm: LayoutForm) => T): {
   layoutForm: LayoutForm;
@@ -28,7 +27,7 @@ export function mountLayoutForm<T>(setup: (layoutForm: LayoutForm) => T): {
   });
 
   return {
-    layoutForm: layoutForm as LayoutForm,
+    layoutForm: layoutForm!,
     result,
     unmount,
   };

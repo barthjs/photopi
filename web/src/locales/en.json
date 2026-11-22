@@ -1,6 +1,5 @@
 {
   "admin": {
-    "docs": "Documentation",
     "logout": "Log out",
     "nav": {
       "config": "Config",
@@ -16,20 +15,25 @@
     "back": "Back",
     "cancel": "Cancel",
     "confirm": "Confirm",
+    "copyFailed": "Copying failed",
+    "create": "Create",
     "delete": "Delete",
     "discardConfirm": "Discard",
     "discardDescription": "Your unsaved changes will be lost.",
     "discardTitle": "Discard changes?",
+    "docs": "Documentation",
     "help": "Help",
     "hidePassword": "Hide password",
     "keepSecret": "Keep the saved value",
     "ok": "OK",
     "pickColor": "Pick a color",
     "removeSecret": "Remove the saved value",
+    "repository": "Source code",
     "reset": "Reset",
     "save": "Save",
     "secretRemoved": "Removed when saved",
     "secretSaved": "Saved, leave empty to keep it",
+    "sections": "Sections",
     "showPassword": "Show password"
   },
   "editor": {
@@ -187,9 +191,9 @@
       "saveOriginals": "Keep originals without overlay",
       "welcomeMessage": "Welcome message"
     },
+    "description": "Description",
     "email": "Email address",
     "file": "File",
-    "id": "Layout ID",
     "log": {
       "channel": "Log channel",
       "compress": "Compress old logs",
@@ -218,7 +222,7 @@
     "password": "Password",
     "print": {
       "enabled": "Enable printing",
-      "layoutId": "Print layout",
+      "layout": "Print layout",
       "printerName": "Printer",
       "submissionMode": "Print submission mode"
     },
@@ -280,6 +284,25 @@
       "warning": "Warning"
     }
   },
+  "gallery": {
+    "info": "Details",
+    "next": "Next image",
+    "previous": "Previous image",
+    "scale": "Timeline",
+    "selectPeriod": "Select every photo of the period",
+    "selectPhoto": "Select photo",
+    "selection": {
+      "clear": "Clear selection",
+      "count": "{count} selected | {count} selected",
+      "label": "Selection"
+    },
+    "zoom": {
+      "day": "Day",
+      "month": "Month",
+      "week": "Week",
+      "year": "Year"
+    }
+  },
   "keyboard": {
     "hide": "Hide keyboard",
     "letters": "ABC",
@@ -309,11 +332,10 @@
     "config": {
       "app": {
         "envDevelopment": "Development",
-        "envHint": "Choose “Production” to run the booth. “Development” and “Staging” are meant for working on the application.",
+        "envHint": "Choose “Production” to run the booth.",
         "envProduction": "Production",
         "envStaging": "Staging",
         "languageHint": "Language of the interface and the emails.",
-        "nameHint": "Shown in the interface. Leave empty to use the built-in name.",
         "secretHint": "Password for the admin login. Without a password, anyone can log in, and self-hosted share links become invalid at every restart."
       },
       "camera": {
@@ -338,20 +360,19 @@
         "exposureModeShort": "Short",
         "exposureTimeAuto": "Automatic",
         "exposureTimeHint": "“Automatic” chooses exposure time and gain itself and in dim light exposes long enough to blur moving guests. A short fixed time such as 1/125 s keeps them sharp, but in a dark venue the image gets darker and noisier.",
-        "flipHint": "Mirrors the preview and the photos, for example for a camera behind a mirror.",
         "imageSettings": "Image",
-        "jpegQualityHint": "Quality of the photos from 1 to 100. Higher values keep more detail and produce larger files.",
         "overlayActive": "Active",
         "overlayClear": "Use no overlay",
         "overlayDelete": "Delete overlay",
+        "overlayDeleteConfirmText": "The overlay {name} will be permanently deleted.",
+        "overlayDeleteConfirmTitle": "Delete overlay?",
         "overlayDownload": "Download overlay",
         "overlayEmpty": "No overlays uploaded yet.",
         "overlayLibrary": "Overlay library",
-        "overlayLibraryHint": "PNG files that are scaled to the size of each photo and drawn over it. A file with an existing name replaces the stored one, a download returns it as it is stored, deleting removes it from the storage right away.",
         "overlayNone": "No overlay",
-        "overlayPathHint": "Overlay drawn over every photo. The choices are the PNG files of the overlay library below.",
         "overlaySelect": "Use",
-        "previewFpsHint": "Frames per second of the live preview. A lower framerate leaves more processing power for the photos, 15 suffice for the kiosk screen.",
+        "overlayUploading": "Uploading overlay",
+        "previewFpsHint": "15 are enough for the kiosk screen. Fewer leave more power for the photos.",
         "rotationHint": "Turns the preview and the photos upside down, for a camera mounted upside down. The sensor only supports 0° and 180°.",
         "sourceHint": "“Webcam” takes the photos with the camera of the device whose browser shows the capture screen, “rpicam” with the Raspberry Pi camera. “gphoto2” controls a camera connected by USB, whose image size and exposure are set on the camera itself.",
         "uploadOverlay": "Upload overlay",
@@ -359,21 +380,18 @@
         "whiteBalanceCloudy": "Cloudy",
         "whiteBalanceDaylight": "Daylight",
         "whiteBalanceFluorescent": "Fluorescent",
-        "whiteBalanceHint": "Adjusts the colors to the light of the venue. “Automatic” suits most venues.",
         "whiteBalanceIncandescent": "Incandescent",
         "whiteBalanceIndoor": "Indoor",
         "whiteBalanceTungsten": "Tungsten"
       },
       "capture": {
-        "adminEmailHint": "Shown to a guest with their run number when emailing their photos fails. Leave empty to show a generic error message.",
-        "eventNameHint": "Appears in the emails to guests and in the caption of the layouts. The photos are stored in a folder named after the event.",
-        "filePrefixHint": "Start of the file names of the stored photos.",
-        "saveOriginalsHint": "Also stores a copy of each photo without the overlay while an overlay is active. Guests never receive these originals, the gallery can show and download them.",
-        "welcomeMessageHint": "Heading of the welcome screen. Leave empty to use the default greeting."
+        "adminEmailHint": "Shown to a guest with their run number when sending their photos by email fails.",
+        "eventNameHint": "Appears in the emails to guests and in the branding of the layouts.",
+        "saveOriginalsHint": "Also stores a copy of each photo without the overlay while an overlay is active. Guests never receive these originals, the gallery can download them."
       },
       "file": {
-        "loaded": "Config file:",
-        "missing": "The config file does not exist yet and is created on save:",
+        "loaded": "Config file",
+        "missing": "The config file does not exist yet and is created on save.",
         "none": "No config file was found. Saving creates config.yaml in the first writable configuration directory."
       },
       "loadError": "The configuration could not be loaded.",
@@ -388,24 +406,20 @@
         "levelWarn": "Warning",
         "maxAgeDaysHint": "Rotated log files are deleted after this many days. -1 keeps them forever.",
         "maxSizeMbHint": "The log file rotates daily at midnight and additionally once it reaches this size.",
-        "pathHint": "Directory of the log file photopi.log. Leave empty to use the log directory of the operating system.",
         "pathPlaceholder": "Log directory of the operating system"
       },
       "mail": {
-        "driverHint": "“Log only” writes emails to the application log instead of sending them. “SMTP” sends them through the server below.",
         "driverLog": "Log only",
-        "messageIdDomainHint": "Domain of the Message-ID of every email, usually the domain of the sender address. Leave empty to determine it automatically.",
-        "replyToHint": "Replies to emails go to this address, for example a support mailbox while the sender is a no-reply address. Leave empty to set no reply-to address."
+        "messageIdDomainPlaceholder": "Automatic"
       },
       "print": {
         "cancelConfirmText": "Every waiting and running job of the queue “{printer}” is canceled. Guests have to print these photos again.",
         "cancelConfirmTitle": "Cancel all print jobs?",
         "cancelJobs": "Cancel all jobs",
-        "cancelSuccess": "All print jobs have been canceled.",
-        "enabledHint": "Shows a “Print” button on the share screen that prints the photos of the run in the selected layout.",
+        "cancelSuccess": "All print jobs have been canceled",
         "hint": "Printing requires a CUPS queue that is set up, driver included, outside this application.",
         "layoutDescription": "{width}×{height} mm, {slots} images",
-        "layoutIdHint": "Arranges the photos of a run for the print. While printing is enabled, emails and cloud shares also carry this collage.",
+        "layoutHint": "Arranges the photos of a run for the print. While printing is enabled, emails and cloud shares also carry this collage.",
         "layoutNone": "No layout selected",
         "manageLayouts": "Manage layouts",
         "printerNone": "No printer selected",
@@ -413,13 +427,11 @@
         "reloadLayouts": "Reload layouts",
         "reloadPrinters": "Reload printers",
         "resume": "Resume printer",
-        "resumeHint": "Releases a stopped queue and its held jobs, for example after a paper jam or an empty ribbon.",
-        "resumeSuccess": "The printer queue has been resumed.",
+        "resumeSuccess": "The printer queue has been resumed",
         "slotMismatch": "The layout has {slots} slots, but a run takes {images} photos. Slots without a photo stay blank, photos without a slot are not printed.",
         "submissionModeHint": "“Managed” lets the printer driver scale the print to the paper and fits almost every printer. “Raw” sends the PDF untouched and is only meant for printers that process PDF files themselves.",
         "submissionModeManaged": "Managed (the driver scales the print to the paper)",
-        "submissionModeRaw": "Raw (send the PDF untouched)",
-        "testHint": "Checks that the selected queue exists and accepts jobs. Nothing is printed."
+        "submissionModeRaw": "Raw (send the PDF untouched)"
       },
       "restartDescription": "The configuration was saved. It takes effect once the application restarts.",
       "restartTitle": "Restart required",
@@ -440,11 +452,11 @@
         "theme": "Theme"
       },
       "server": {
-        "corsAllowCredentialsHint": "Lets the allowed domains send cookies, for example for a login. Requires explicit domains instead of *.",
-        "corsAllowedOriginsHint": "Domains whose web pages may call the API in the browser, one per line. Leave empty when the interface and the API share a domain.",
+        "corsAllowCredentialsHint": "Lets the allowed domains send cookies. Requires explicit domains instead of *.",
+        "corsAllowedOriginsHint": "Domains whose web pages may call the API in the browser, one per line.",
         "corsAllowedOriginsPlaceholder": "https://example.com",
         "hostPlaceholder": "All interfaces",
-        "sslCertFileHint": "Leave empty to use a self-signed certificate.",
+        "sslCertFilePlaceholder": "Self-signed certificate",
         "sslEnabledHint": "Serves the interface over HTTPS. Without certificate files, a self-signed certificate is generated, which browsers warn about.",
         "trustedProxiesHint": "Proxies whose information about the client address is trusted, as comma-separated IP addresses or CIDR ranges."
       },
@@ -452,42 +464,32 @@
         "cloudDriverHint": "Shows guests a QR code with a link to their photos. Nextcloud uploads the photos into a publicly shared folder, “Self-hosted” provides them through this server for seven days.",
         "cloudNone": "None",
         "cloudSelf": "Self-hosted",
-        "cloudSelfBaseUrlHint": "Address of this server that a guest's phone can reach, for example a local IP address in the Wi-Fi of the event or a public domain behind a reverse proxy.",
+        "cloudSelfBaseUrlHint": "Address of this server that a guest's phone can reach.",
         "emailEnabledHint": "Lets guests send their photos to an email address on the share screen. Sending uses the settings of the “Mail” tab.",
         "nextcloudFolderHint": "Folder the photos are uploaded into, with a subfolder per event and run.",
-        "nextcloudPasswordHint": "An app password of the Nextcloud account.",
-        "testHint": "Checks the entered values without saving them. Nextcloud must be reachable and accept the credentials, an empty password tests the saved one."
+        "nextcloudPasswordHint": "An app password of the Nextcloud account."
       },
       "source": {
         "badge": {
           "env": "Env",
           "flag": "Flag"
         },
-        "default": "Default",
-        "defaultValue": "Default",
         "defaults": "Defaults",
         "empty": "empty",
         "env": "Environment variable {name}",
-        "file": "Config file",
         "flag": "Command-line flag {name}",
         "off": "off",
         "on": "on",
         "overridden": "The environment variable or the flag takes precedence over the config file. A value saved here only takes effect once the variable or the flag is removed.",
-        "reset": "Reset to default",
         "resetAll": "Reset all settings to defaults",
         "resetSection": "Reset {section} to defaults",
-        "title": "Source"
+        "resetTo": "Reset to: {value}"
       },
       "storage": {
-        "driverHint": "Where photos, originals, overlays, layouts, and print collages are stored.",
         "local": "Local",
-        "pathHint": "Leave empty to use the data directory of the operating system.",
-        "pathPlaceholder": "Data directory",
-        "testHint": "Checks the entered values without saving them. Local needs a writable directory and S3 a reachable bucket, an empty secret key tests the saved one.",
-        "usePathStyleHint": "Addresses the bucket in the URL path instead of a subdomain of the endpoint."
+        "pathPlaceholder": "Data directory of the operating system"
       },
       "system": {
-        "allCommandHint": "One command for the application and the kiosk browser together. Leave empty to disable the button.",
         "allCommandPlaceholder": "e.g. a wrapper script covering both",
         "commandPlaceholder": "e.g. systemctl --user restart photopi.service",
         "hint": "Each command runs on the device as a shell command, exactly as entered here. Leave a field empty to disable its button on the System page.",
@@ -501,7 +503,7 @@
       "testConnectionFailure": "Connection test failed",
       "testConnectionSuccess": "Connection successful",
       "theme": {
-        "hint": "Leave a color empty to use the built-in default.",
+        "default": "Default",
         "title": "Colors"
       },
       "title": "Config",
@@ -509,40 +511,39 @@
     },
     "dashboard": {
       "cpu": "CPU",
-      "cpuHint": "Utilization across all cores, measured briefly while the page loads.",
       "daysShort": "d",
-      "disk": "Disk",
-      "diskHint": "Usage of the root file system of the device. Photos on S3 or on another drive are not included.",
+      "disk": "Device storage",
       "hostname": "Hostname",
       "hoursShort": "h",
-      "ipAddresses": "IP addresses",
-      "ipAddressesHint": "Addresses of all network interfaces of the device except loopback.",
       "loadError": "The system information could not be loaded.",
       "memory": "Memory",
       "minutesShort": "m",
       "noIps": "No network interfaces found",
       "title": "Dashboard",
-      "uptime": "Uptime",
-      "uptimeHint": "Time since the application started, not since the device booted."
+      "uptime": "Application uptime"
     },
     "gallery": {
       "currentEvent": "current",
-      "deleteConfirmText": "This permanently deletes every photo in this run.",
+      "deleteConfirmText": "This permanently deletes every photo of this run with its originals. Files already uploaded to Nextcloud remain there.",
       "deleteConfirmTitle": "Delete this run?",
-      "deleteHint": "Deletes all photos of the run and their originals from the storage. Files already uploaded to Nextcloud remain there.",
-      "deleteSuccess": "Run deleted.",
-      "downloadEvent": "Event as zip",
-      "downloadEventOriginals": "Event originals as zip",
-      "downloadImage": "Download image",
+      "deleteSelectedConfirmTitle": "Delete {count} run? | Delete {count} runs?",
+      "deleteSelectedSuccess": "{count} run deleted | {count} runs deleted",
+      "deleteSuccess": "Run deleted",
+      "download": "Download",
+      "downloadImage": "This photo",
       "downloadOriginals": "Originals as zip",
-      "downloadZip": "Download as zip",
-      "downloadZipHint": "Downloads the photos of the run with the overlay as a zip file, without the originals.",
+      "downloadZip": "Photos as zip",
       "empty": "No runs yet.",
-      "hint": "Shows the runs of one event, the most recent first, where a run holds the photos taken after one start on the welcome screen. The originals without the overlay can be shown and downloaded in the view of a run.",
+      "event": "Event",
       "imageCount": "{count} photo | {count} photos",
       "loadError": "The gallery could not be loaded.",
+      "loadMore": "Load more",
+      "originals": "Originals",
+      "overlay": "Overlay",
+      "photos": "Photos",
       "run": "Run",
-      "showOriginals": "Originals without overlay",
+      "takenAt": "Taken",
+      "takenAtUnknown": "Unknown",
       "title": "Gallery",
       "viewList": "List view",
       "viewTiles": "Tile view"
@@ -557,14 +558,16 @@
       "addSlot": "Add slot",
       "brandingPreviewEventName": "Sample event",
       "brandingTemplateHint": "Available placeholders:",
+      "changed": "Changed",
       "deleteConfirmText": "This layout will be permanently deleted.",
       "deleteConfirmTitle": "Delete layout?",
       "deleteInUse": "This layout is selected in the print settings and cannot be deleted. Choose a different layout there first.",
       "download": "Download",
+      "draft": "Draft",
       "guide": {
         "importExport": "Download saves the layout with all unsaved changes as a JSON file. Import opens such a file as a new layout. Saving it replaces a layout with the same ID.",
         "intro": "The layout editor arranges the photos of a run on the paper of the printer. Positions and sizes are in millimeters of the paper, so the print matches the editor.",
-        "layouts": "A layout arranges the photos of a run in slots on the paper of the printer, in the order they were taken and with an optional caption. The print settings choose which layout is printed and shared.",
+        "layouts": "A layout arranges the photos of a run in slots on the paper of the printer, in the order they were taken and with an optional branding. The print settings choose which layout is printed and shared.",
         "layoutsTitle": "Layouts",
         "shortcuts": {
           "addSlot": "Add a slot",
@@ -588,34 +591,37 @@
           "2": "Set the paper size to the paper of the printer, or choose one of the common sizes.",
           "3": "Add a slot for every photo. Drag a slot to move it and its corners to resize it, or enter exact millimeters in the settings beside the canvas.",
           "4": "Add pages if a run takes more photos than one page holds. A run continues on the next page once the slots of one are filled.",
-          "5": "Turn on the caption to print the name of the event and the date, and drag it to its place on the page.",
+          "5": "Turn on the branding to print the name of the event and the date, and drag it to its place on the page.",
           "6": "Save, then choose the layout in the print settings."
         },
         "view": "These aids only exist in the editor and are not part of the layout.\n\nThe grid shows steps of 10 millimeters, the rulers show millimeters on the paper, and lines show the coordinates of the pointer while dragging. With magnets, dragged slots snap onto the edges and centers of the other slots and of the paper, and a line shows the alignment. Holding Ctrl or Cmd places freely. While resizing, a loupe magnifies the area around the corner, which the toolbar can switch off. A click on a ruler places a guide across it that follows a drag: the top ruler places vertical guides, the left one horizontal guides. Slots snap to guides. A guide disappears when it is dragged back onto the ruler or double-clicked, all of them through the eraser in the toolbar. While moving, lines with measures show the distances to the neighbors, and even distances snap.\n\nThe preview shows the page as printed and keeps the slots above it editable. The view mode shows the page as printed and without the aids.\n\nA sample photo appears in every slot the way the print crops it: from the center to the aspect ratio of the slot. It is kept in this browser for each saved layout, never uploaded, and never printed. Its opacity can be set in the toolbar.\n\nA locked slot cannot be moved or resized and is skipped by the selection rectangle and the alignment. The align menu lines up the selected slots at an edge or a center line, or spaces them evenly. A single slot is aligned with the paper.\n\nThe list of the slots shows the order in which the photos of a run fill them. Dragging changes the order, the eye hides a slot for editing, the lock locks it. With several slots selected, position and size move and scale them together.",
         "viewTitle": "Display aids"
       },
-      "idPlaceholder": "e.g. my-layout",
       "import": "Import layout",
       "importError": "{name} is not a layout file.",
       "importReplace": "Import",
-      "importReplaceDescription": "A layout with the ID \"{id}\" already exists. Saving the imported layout replaces it.",
+      "importReplaceDescription": "A layout with the name \"{name}\" already exists. Saving the imported layout replaces it.",
       "importReplaceTitle": "Replace layout?",
+      "layoutExists": "A layout with this name already exists.",
       "lockRatio": "Lock aspect ratio",
       "lockSlot": "Lock slot",
       "multipleSelected": "{n} slots selected",
       "new": "New",
+      "newLayout": "New layout",
+      "noSlots": "This page has no slots yet.",
       "pageLabel": "Page {n}",
       "panel": {
+        "branding": "Branding",
         "layout": "Layout",
-        "slot": "Slot",
-        "branding": "Caption"
+        "slot": "Slot"
       },
       "removeLastSlotConfirm": "This is the last slot of this page. Remove it anyway?",
       "removeLastSlotTitle": "Remove the last slot?",
       "removePage": "Remove page",
       "removeSlot": "Remove slot",
+      "renameInUse": "This layout is selected in the print settings and cannot be renamed. Choose a different layout there first.",
       "sampleImage": "Sample photo",
-      "saveSuccess": "Layout saved.",
+      "saveSuccess": "Layout saved",
       "selectLabel": "Layout",
       "selectPlaceholder": "Select a layout",
       "slot": {
@@ -627,8 +633,6 @@
       "slotLabel": "Slot {n}",
       "slotRatioCurrent": "Aspect ratio: {ratio}",
       "slotRatioCustomPlaceholder": "Custom ratio, e.g. 4:3",
-      "slotSelectLabel": "Image slot",
-      "slotSelectPlaceholder": "Select a slot",
       "title": "Layouts",
       "unlockRatio": "Unlock aspect ratio",
       "unlockSlot": "Unlock slot"
@@ -641,7 +645,6 @@
       "continueButton": "Next",
       "discard": "Discard",
       "discardDialog": {
-        "confirm": "Yes, delete all",
         "text": "Do you really want to delete all images?",
         "title": "Discard images?"
       },
@@ -675,63 +678,49 @@
     },
     "system": {
       "allRestart": {
-        "action": "Restart both",
+        "action": "Restart",
         "confirmText": "This runs the configured command to restart both the application and the kiosk browser.",
         "confirmTitle": "Restart both?",
-        "description": "Runs the configured command to restart both the application and the kiosk browser.",
-        "success": "Restart triggered.",
-        "title": "Restart both"
+        "success": "Restart triggered"
       },
       "allStop": {
-        "action": "Stop both",
+        "action": "Stop",
         "confirmText": "This runs the configured command to stop both the application and the kiosk browser.",
         "confirmTitle": "Stop both?",
-        "description": "Runs the configured command to stop both the application and the kiosk browser.",
-        "success": "Stop triggered.",
-        "title": "Stop both"
+        "success": "Stop triggered"
       },
-      "commandHint": "Starts the command set on the “System” tab of the configuration without waiting for it to finish. The confirmation only means that the command started.",
-      "directHint": "These actions need no configured command. Exit ends the application process, reboot and shut down call the matching command of the operating system.",
+      "commandCopied": "Command copied",
+      "copyCommand": "Copy command",
       "hostReboot": {
-        "action": "Reboot",
+        "action": "Reboot computer",
         "confirmText": "This reboots the whole machine, not just the application.",
         "confirmTitle": "Reboot the machine?",
-        "description": "Reboots the host machine.",
-        "success": "Reboot triggered.",
-        "title": "Reboot machine"
+        "success": "Reboot triggered"
       },
       "hostShutdown": {
-        "action": "Shut down",
+        "action": "Shut down computer",
         "confirmText": "This powers off the whole machine, not just the application.",
         "confirmTitle": "Shut down the machine?",
-        "description": "Powers off the host machine.",
-        "success": "Shutdown triggered.",
-        "title": "Shut down machine"
+        "success": "Shutdown triggered"
       },
       "kioskRestart": {
         "action": "Restart",
         "confirmText": "This runs the configured command to restart the kiosk browser's service.",
         "confirmTitle": "Restart the kiosk browser?",
-        "description": "Runs the configured command to restart the kiosk browser's service.",
-        "success": "Restart triggered.",
-        "title": "Restart kiosk browser"
+        "success": "Restart triggered"
       },
       "kioskStop": {
         "action": "Stop",
         "confirmText": "This runs the configured command to stop the kiosk browser's service.",
         "confirmTitle": "Stop the kiosk browser?",
-        "description": "Runs the configured command to stop the kiosk browser's service.",
-        "success": "Stop triggered.",
-        "title": "Stop kiosk browser"
+        "success": "Stop triggered"
       },
-      "notConfigured": "Not configured. The command is set on the “System” tab of the configuration.",
+      "notConfigured": "No command set",
       "processExit": {
-        "action": "Exit",
+        "action": "Exit process",
         "confirmText": "This exits the application process directly. Whether it starts again depends on how it is supervised, for example by a systemd service.",
         "confirmTitle": "Exit the application process?",
-        "description": "Exits the running application process directly, without going through a configured command.",
-        "success": "Exit triggered.",
-        "title": "Exit application process"
+        "success": "Exit triggered"
       },
       "sections": {
         "both": "Both",
@@ -743,17 +732,13 @@
         "action": "Restart",
         "confirmText": "This runs the configured command to restart the application's own service.",
         "confirmTitle": "Restart the application?",
-        "description": "Runs the configured command to restart the application's own service.",
-        "success": "Restart triggered.",
-        "title": "Restart application"
+        "success": "Restart triggered"
       },
       "serverStop": {
         "action": "Stop",
         "confirmText": "This runs the configured command to stop the application's own service.",
         "confirmTitle": "Stop the application?",
-        "description": "Runs the configured command to stop the application's own service.",
-        "success": "Stop triggered.",
-        "title": "Stop application"
+        "success": "Stop triggered"
       },
       "title": "System"
     },
@@ -761,7 +746,7 @@
       "admin": "Admin area",
       "cameraUnavailable": "The camera is currently unavailable. Please ask the team for help.",
       "start": "Start",
-      "title": "Welcome to the photobooth"
+      "title": "Welcome to the photo booth"
     }
   },
   "update": {
@@ -771,13 +756,12 @@
     "confirmTitle": "Install version {version}?",
     "current": "Installed: {version}",
     "failed": "The update failed.",
-    "hint": "Checks for a newer release only when clicked. Install downloads and verifies it, replaces the application, and restarts it.",
     "install": "Install",
     "installing": "Installing the update…",
     "latest": "The installed version is the latest.",
     "releaseNotes": "Release notes",
-    "restarting": "Restarting with the new version…",
     "restartTimeout": "The application did not come back with the new version in time. Check the server and reload the page.",
+    "restarting": "Restarting with the new version…",
     "title": "Updates",
     "unsupported": {
       "container": "The application runs in a container. Pull the new image to update it.",
@@ -794,6 +778,7 @@
     "gte": "{field} must be at least {param}.",
     "hexcolor": "{field} must be a hex color.",
     "invalid": "{field} is invalid.",
+    "invalid_format": "{field} must be a valid {param} file.",
     "listEntry": "{field}, entry {position}",
     "lte": "{field} must be at most {param}.",
     "max": "{field} must be at most {param}.",
@@ -809,6 +794,7 @@
     "required_if": "{field} is required.",
     "required_unless": "{field} is required.",
     "required_with": "{field} is required.",
+    "resolution_too_high": "{field} must be at most {param} pixels.",
     "rgbcolor": "{field} must be a color like #ff8800."
   }
 }

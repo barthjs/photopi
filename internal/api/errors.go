@@ -31,15 +31,13 @@ const (
 	codeServerError            = "server_error"
 )
 
-// ErrorResponse is the JSON body for all non-validation error responses.
-// RequestID matches the X-Request-ID header and the log lines of the request.
 type ErrorResponse struct {
-	Code      string `json:"code"`
-	Message   string `json:"message"`
+	Code    string `json:"code"`
+	Message string `json:"message"`
+	// RequestID matches the X-Request-ID header and the log lines of the request.
 	RequestID string `json:"requestId,omitempty"`
 }
 
-// ValidationErrorResponse is the JSON body for a 422 with per-field details.
 type ValidationErrorResponse struct {
 	Code      string      `json:"code"`
 	Message   string      `json:"message"`
@@ -59,6 +57,12 @@ func (a *API) respondError(w http.ResponseWriter, r *http.Request, err error) {
 	}
 
 	switch {
+	case errors.Is(err, apperr.ErrInvalidSort):
+		a.badRequestResponse(w, r, err)
+	case errors.Is(err, apperr.ErrAuthenticationRequired):
+		a.authenticationRequiredResponse(w, r)
+	case errors.Is(err, apperr.ErrForbidden):
+		a.forbiddenResponse(w, r)
 	case errors.Is(err, apperr.ErrNotFound):
 		a.notFoundResponse(w, r)
 	case errors.Is(err, apperr.ErrConflict):
@@ -169,7 +173,7 @@ func (a *API) serverErrorResponse(w http.ResponseWriter, r *http.Request, err er
 }
 
 // cameraCaptureFailedResponse writes a 502 Bad Gateway response for a capture that came back unusable,
-// such as a truncated image. The request was valid, the device failed, so the client may retry.
+// which the client may retry, since the device failed.
 func (a *API) cameraCaptureFailedResponse(w http.ResponseWriter, r *http.Request) {
 	a.errorResponse(w, r, http.StatusBadGateway, codeCameraCaptureFailed, "the camera did not return a usable image")
 }

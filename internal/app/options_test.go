@@ -19,52 +19,193 @@ import (
 	"github.com/barthjs/photopi/internal/share"
 )
 
-func TestStorageOptions(t *testing.T) {
+func TestAPIOptions(t *testing.T) {
 	t.Parallel()
 
-	t.Run("maps the s3 settings", func(t *testing.T) {
+	t.Run("maps the settings the api reads", func(t *testing.T) {
 		t.Parallel()
 
 		f := apitest.Faker(t)
-		cfg := config.StorageConfig{
-			Driver: media.DriverS3,
-			S3: config.S3Config{
-				Endpoint:     f.URL(),
-				Region:       f.LetterN(8),
-				Bucket:       f.LetterN(8),
-				AccessKey:    f.LetterN(16),
-				SecretKey:    f.LetterN(32),
-				UsePathStyle: true,
-			},
-		}
-
-		got, err := StorageOptions(cfg)
-
+		cfg, err := config.Defaults()
 		require.NoError(t, err)
-		assert.Equal(t, media.Options{
-			Driver:         media.DriverS3,
-			S3Endpoint:     cfg.S3.Endpoint,
-			S3Region:       cfg.S3.Region,
-			S3Bucket:       cfg.S3.Bucket,
-			S3AccessKey:    cfg.S3.AccessKey,
-			S3SecretKey:    cfg.S3.SecretKey,
-			S3UsePathStyle: cfg.S3.UsePathStyle,
-			SignedURLBase:  api.MediaPath,
+		cfg.App.Name = f.LetterN(8)
+		cfg.App.Language = config.LanguageDE
+		cfg.Theme.Primary = f.Color()
+		cfg.Camera.OverlayPath = "overlays/" + f.LetterN(8) + ".png"
+		cfg.Capture.WelcomeMessage = f.LoremIpsumSentence(4)
+		cfg.Capture.AdminEmail = f.Email()
+		cfg.Server.CORSAllowedOrigins = []string{
+			f.URL(),
+		}
+		cfg.Server.CORSAllowCredentials = true
+
+		got := apiOptions(cfg)
+
+		assert.Equal(t, api.Options{
+			Name:     cfg.App.Name,
+			Language: string(cfg.App.Language),
+			Theme: api.ThemeSettings{
+				Primary:   cfg.Theme.Primary,
+				Secondary: cfg.Theme.Secondary,
+				Success:   cfg.Theme.Success,
+				Info:      cfg.Theme.Info,
+				Warning:   cfg.Theme.Warning,
+				Error:     cfg.Theme.Error,
+				Neutral:   cfg.Theme.Neutral,
+			},
+			Camera: api.CameraOptions{
+				Source:      cfg.Camera.Source,
+				OverlayPath: cfg.Camera.OverlayPath,
+			},
+			Capture: api.CaptureOptions{
+				ImagesPerRun:   cfg.Capture.ImagesPerRun,
+				WelcomeMessage: cfg.Capture.WelcomeMessage,
+				AdminEmail:     cfg.Capture.AdminEmail,
+			},
+			TrustedProxies:       cfg.Server.TrustedProxies,
+			CORSAllowedOrigins:   cfg.Server.CORSAllowedOrigins,
+			CORSAllowCredentials: cfg.Server.CORSAllowCredentials,
+			Docs:                 true,
 		}, got)
 	})
 
-	t.Run("keeps the configured path of the local driver", func(t *testing.T) {
+}
+
+func TestAuthOptions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("maps the admin password", func(t *testing.T) {
 		t.Parallel()
 
-		path := t.TempDir()
+		cfg := config.AppConfig{
+			Secret: apitest.Faker(t).LetterN(16),
+		}
 
-		got, err := StorageOptions(config.StorageConfig{
-			Driver: media.DriverLocal,
-			Path:   path,
-		})
+		got := authOptions(cfg)
 
+		assert.Equal(t, service.AuthOptions{
+			Password: cfg.Secret,
+		}, got)
+	})
+}
+
+func TestCameraOptions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("maps the camera settings", func(t *testing.T) {
+		t.Parallel()
+
+		f := apitest.Faker(t)
+		cfg, err := config.Defaults()
 		require.NoError(t, err)
-		assert.Equal(t, path, got.LocalPath)
+		cameraCfg := cfg.Camera
+		cameraCfg.Source = camera.SourceRPiCam
+		cameraCfg.CaptureWidth = f.IntRange(100, 4000)
+		cameraCfg.PreviewFPS = f.IntRange(1, 60)
+		cameraCfg.AnalogueGain = f.Float64Range(1, 16)
+		cameraCfg.HorizontalFlip = true
+		cameraCfg.Rotation = 180
+
+		got := cameraOptions(cameraCfg)
+
+		assert.Equal(t, camera.Options{
+			Source:               cameraCfg.Source,
+			CaptureWidth:         cameraCfg.CaptureWidth,
+			CaptureHeight:        cameraCfg.CaptureHeight,
+			PreviewWidth:         cameraCfg.PreviewWidth,
+			PreviewHeight:        cameraCfg.PreviewHeight,
+			PreviewFPS:           cameraCfg.PreviewFPS,
+			ExposureTime:         cameraCfg.ExposureTime.Duration(),
+			ExposureMode:         cameraCfg.ExposureMode,
+			AnalogueGain:         cameraCfg.AnalogueGain,
+			ExposureCompensation: cameraCfg.ExposureCompensation,
+			WhiteBalance:         cameraCfg.WhiteBalance,
+			HorizontalFlip:       cameraCfg.HorizontalFlip,
+			VerticalFlip:         cameraCfg.VerticalFlip,
+			Rotation:             cameraCfg.Rotation,
+			JPEGQuality:          cameraCfg.JPEGQuality,
+			AutofocusMode:        cameraCfg.AutofocusMode,
+			Denoise:              cameraCfg.Denoise,
+		}, got)
+	})
+}
+
+func TestCaptureOptions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("maps the capture settings with the capture size of the rpicam source", func(t *testing.T) {
+		t.Parallel()
+
+		f := apitest.Faker(t)
+		capture := config.CaptureConfig{
+			ImagesPerRun:  f.IntRange(1, 10),
+			FilePrefix:    f.LetterN(8),
+			EventName:     f.LetterN(8),
+			SaveOriginals: true,
+		}
+		cameraCfg := config.CameraConfig{
+			Source:        camera.SourceRPiCam,
+			CaptureWidth:  f.IntRange(100, 4000),
+			CaptureHeight: f.IntRange(100, 4000),
+			OverlayPath:   "overlays/" + f.LetterN(8) + ".png",
+		}
+
+		got := captureOptions(capture, cameraCfg)
+
+		assert.Equal(t, service.CaptureOptions{
+			ImagesPerRun:  capture.ImagesPerRun,
+			FilePrefix:    capture.FilePrefix,
+			EventName:     capture.EventName,
+			SaveOriginals: capture.SaveOriginals,
+			OverlayPath:   cameraCfg.OverlayPath,
+			CaptureWidth:  cameraCfg.CaptureWidth,
+			CaptureHeight: cameraCfg.CaptureHeight,
+		}, got)
+	})
+
+	t.Run("leaves out the capture size of the other sources", func(t *testing.T) {
+		t.Parallel()
+
+		f := apitest.Faker(t)
+		cameraCfg := config.CameraConfig{
+			Source:        camera.SourceWebcam,
+			CaptureWidth:  f.IntRange(100, 4000),
+			CaptureHeight: f.IntRange(100, 4000),
+		}
+
+		got := captureOptions(config.CaptureConfig{}, cameraCfg)
+
+		assert.Zero(t, got.CaptureWidth)
+		assert.Zero(t, got.CaptureHeight)
+	})
+}
+
+func TestCloudProviderOptions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("maps the nextcloud settings", func(t *testing.T) {
+		t.Parallel()
+
+		f := apitest.Faker(t)
+		cfg := config.CloudShareConfig{
+			Driver: share.DriverNextcloud,
+			Nextcloud: config.NextcloudConfig{
+				URL:      f.URL(),
+				Username: f.Username(),
+				Password: f.LetterN(16),
+				Folder:   f.LetterN(8),
+			},
+		}
+
+		got := cloudProviderOptions(cfg)
+
+		assert.Equal(t, share.Options{
+			Driver:            cfg.Driver,
+			NextcloudURL:      cfg.Nextcloud.URL,
+			NextcloudUsername: cfg.Nextcloud.Username,
+			NextcloudPassword: cfg.Nextcloud.Password,
+			NextcloudFolder:   cfg.Nextcloud.Folder,
+		}, got)
 	})
 }
 
@@ -139,94 +280,6 @@ func TestMailerOptions(t *testing.T) {
 	})
 }
 
-func TestCameraOptions(t *testing.T) {
-	t.Parallel()
-
-	t.Run("maps the camera settings", func(t *testing.T) {
-		t.Parallel()
-
-		f := apitest.Faker(t)
-		cfg, err := config.Defaults()
-		require.NoError(t, err)
-		cameraCfg := cfg.Camera
-		cameraCfg.Source = camera.SourceRPiCam
-		cameraCfg.CaptureWidth = f.IntRange(100, 4000)
-		cameraCfg.PreviewFPS = f.IntRange(1, 60)
-		cameraCfg.AnalogueGain = f.Float64Range(1, 16)
-		cameraCfg.HorizontalFlip = true
-		cameraCfg.Rotation = 180
-
-		got := cameraOptions(cameraCfg)
-
-		assert.Equal(t, camera.Options{
-			Source:               cameraCfg.Source,
-			CaptureWidth:         cameraCfg.CaptureWidth,
-			CaptureHeight:        cameraCfg.CaptureHeight,
-			PreviewWidth:         cameraCfg.PreviewWidth,
-			PreviewHeight:        cameraCfg.PreviewHeight,
-			PreviewFPS:           cameraCfg.PreviewFPS,
-			ExposureTime:         cameraCfg.ExposureTime.Duration(),
-			ExposureMode:         cameraCfg.ExposureMode,
-			AnalogueGain:         cameraCfg.AnalogueGain,
-			ExposureCompensation: cameraCfg.ExposureCompensation,
-			WhiteBalance:         cameraCfg.WhiteBalance,
-			HorizontalFlip:       cameraCfg.HorizontalFlip,
-			VerticalFlip:         cameraCfg.VerticalFlip,
-			Rotation:             cameraCfg.Rotation,
-			JPEGQuality:          cameraCfg.JPEGQuality,
-			AutofocusMode:        cameraCfg.AutofocusMode,
-			Denoise:              cameraCfg.Denoise,
-		}, got)
-	})
-}
-
-func TestCloudProviderOptions(t *testing.T) {
-	t.Parallel()
-
-	t.Run("maps the nextcloud settings", func(t *testing.T) {
-		t.Parallel()
-
-		f := apitest.Faker(t)
-		cfg := config.CloudShareConfig{
-			Driver: share.DriverNextcloud,
-			Nextcloud: config.NextcloudConfig{
-				URL:      f.URL(),
-				Username: f.Username(),
-				Password: f.LetterN(16),
-				Folder:   f.LetterN(8),
-			},
-		}
-
-		got := cloudProviderOptions(cfg)
-
-		assert.Equal(t, share.Options{
-			Driver:            cfg.Driver,
-			NextcloudURL:      cfg.Nextcloud.URL,
-			NextcloudUsername: cfg.Nextcloud.Username,
-			NextcloudPassword: cfg.Nextcloud.Password,
-			NextcloudFolder:   cfg.Nextcloud.Folder,
-		}, got)
-	})
-}
-
-func TestAuthOptions(t *testing.T) {
-	t.Parallel()
-
-	t.Run("maps the admin password", func(t *testing.T) {
-		t.Parallel()
-
-		cfg := config.AppConfig{
-			Secret: apitest.Faker(t).LetterN(16),
-		}
-
-		got := authOptions(cfg)
-
-		assert.Equal(t, service.AuthOptions{
-			Password: cfg.Secret,
-		}, got)
-	})
-}
-
 func TestOverlayOptions(t *testing.T) {
 	t.Parallel()
 
@@ -245,85 +298,6 @@ func TestOverlayOptions(t *testing.T) {
 	})
 }
 
-func TestCaptureOptions(t *testing.T) {
-	t.Parallel()
-
-	t.Run("maps the capture settings with the capture size of the rpicam source", func(t *testing.T) {
-		t.Parallel()
-
-		f := apitest.Faker(t)
-		capture := config.CaptureConfig{
-			ImagesPerRun:  f.IntRange(1, 10),
-			FilePrefix:    f.LetterN(8),
-			EventName:     f.LetterN(8),
-			SaveOriginals: true,
-		}
-		cameraCfg := config.CameraConfig{
-			Source:        camera.SourceRPiCam,
-			CaptureWidth:  f.IntRange(100, 4000),
-			CaptureHeight: f.IntRange(100, 4000),
-			OverlayPath:   "overlays/" + f.LetterN(8) + ".png",
-		}
-
-		got := captureOptions(capture, cameraCfg)
-
-		assert.Equal(t, service.CaptureOptions{
-			ImagesPerRun:  capture.ImagesPerRun,
-			FilePrefix:    capture.FilePrefix,
-			EventName:     capture.EventName,
-			SaveOriginals: capture.SaveOriginals,
-			OverlayPath:   cameraCfg.OverlayPath,
-			CaptureWidth:  cameraCfg.CaptureWidth,
-			CaptureHeight: cameraCfg.CaptureHeight,
-		}, got)
-	})
-
-	t.Run("leaves out the capture size of the other sources", func(t *testing.T) {
-		t.Parallel()
-
-		f := apitest.Faker(t)
-		cameraCfg := config.CameraConfig{
-			Source:        camera.SourceWebcam,
-			CaptureWidth:  f.IntRange(100, 4000),
-			CaptureHeight: f.IntRange(100, 4000),
-		}
-
-		got := captureOptions(config.CaptureConfig{}, cameraCfg)
-
-		assert.Zero(t, got.CaptureWidth)
-		assert.Zero(t, got.CaptureHeight)
-	})
-}
-
-func TestSystemOptions(t *testing.T) {
-	t.Parallel()
-
-	t.Run("maps the commands", func(t *testing.T) {
-		t.Parallel()
-
-		f := apitest.Faker(t)
-		system := config.SystemConfig{
-			ServerRestartCommand: f.LoremIpsumSentence(4),
-			ServerStopCommand:    f.LoremIpsumSentence(4),
-			KioskRestartCommand:  f.LoremIpsumSentence(4),
-			KioskStopCommand:     f.LoremIpsumSentence(4),
-			AllRestartCommand:    f.LoremIpsumSentence(4),
-			AllStopCommand:       f.LoremIpsumSentence(4),
-		}
-
-		got := systemOptions(system)
-
-		assert.Equal(t, service.SystemOptions{
-			ServerRestartCommand: system.ServerRestartCommand,
-			ServerStopCommand:    system.ServerStopCommand,
-			KioskRestartCommand:  system.KioskRestartCommand,
-			KioskStopCommand:     system.KioskStopCommand,
-			AllRestartCommand:    system.AllRestartCommand,
-			AllStopCommand:       system.AllStopCommand,
-		}, got)
-	})
-}
-
 func TestPrintOptions(t *testing.T) {
 	t.Parallel()
 
@@ -334,7 +308,7 @@ func TestPrintOptions(t *testing.T) {
 		printCfg := config.PrintConfig{
 			Enabled:        true,
 			PrinterName:    f.LetterN(8),
-			LayoutID:       f.LetterN(8),
+			Layout:         f.LetterN(8),
 			SubmissionMode: string(service.PrintSubmissionRaw),
 		}
 		capture := config.CaptureConfig{
@@ -347,7 +321,7 @@ func TestPrintOptions(t *testing.T) {
 		assert.Equal(t, service.PrintOptions{
 			Enabled:        printCfg.Enabled,
 			PrinterName:    printCfg.PrinterName,
-			LayoutID:       printCfg.LayoutID,
+			Layout:         printCfg.Layout,
 			SubmissionMode: service.PrintSubmissionRaw,
 			EventName:      capture.EventName,
 			FilePrefix:     capture.FilePrefix,
@@ -423,59 +397,80 @@ func TestShareOptions(t *testing.T) {
 	})
 }
 
-func TestAPIOptions(t *testing.T) {
+func TestStorageOptions(t *testing.T) {
 	t.Parallel()
 
-	t.Run("maps the settings the api reads", func(t *testing.T) {
+	t.Run("maps the s3 settings", func(t *testing.T) {
 		t.Parallel()
 
 		f := apitest.Faker(t)
-		cfg, err := config.Defaults()
-		require.NoError(t, err)
-		cfg.App.Name = f.LetterN(8)
-		cfg.App.Language = config.LanguageDE
-		cfg.Theme.Primary = f.Color()
-		cfg.Camera.OverlayPath = "overlays/" + f.LetterN(8) + ".png"
-		cfg.Capture.WelcomeMessage = f.LoremIpsumSentence(4)
-		cfg.Capture.AdminEmail = f.Email()
-		cfg.Server.CORSAllowedOrigins = []string{
-			f.URL(),
+		cfg := config.StorageConfig{
+			Driver: media.DriverS3,
+			S3: config.S3Config{
+				Endpoint:     f.URL(),
+				Region:       f.LetterN(8),
+				Bucket:       f.LetterN(8),
+				AccessKey:    f.LetterN(16),
+				SecretKey:    f.LetterN(32),
+				UsePathStyle: true,
+			},
 		}
-		cfg.Server.CORSAllowCredentials = true
 
-		got := apiOptions(cfg)
+		got, err := StorageOptions(cfg)
 
-		assert.Equal(t, api.Options{
-			Name:     cfg.App.Name,
-			Language: string(cfg.App.Language),
-			Theme: api.ThemeSettings{
-				Primary:   cfg.Theme.Primary,
-				Secondary: cfg.Theme.Secondary,
-				Success:   cfg.Theme.Success,
-				Info:      cfg.Theme.Info,
-				Warning:   cfg.Theme.Warning,
-				Error:     cfg.Theme.Error,
-				Neutral:   cfg.Theme.Neutral,
-			},
-			Camera: api.CameraOptions{
-				Source:        cfg.Camera.Source,
-				CaptureWidth:  cfg.Camera.CaptureWidth,
-				CaptureHeight: cfg.Camera.CaptureHeight,
-				PreviewWidth:  cfg.Camera.PreviewWidth,
-				PreviewHeight: cfg.Camera.PreviewHeight,
-				PreviewFPS:    cfg.Camera.PreviewFPS,
-				OverlayPath:   cfg.Camera.OverlayPath,
-			},
-			Capture: api.CaptureOptions{
-				ImagesPerRun:   cfg.Capture.ImagesPerRun,
-				WelcomeMessage: cfg.Capture.WelcomeMessage,
-				AdminEmail:     cfg.Capture.AdminEmail,
-			},
-			TrustedProxies:       cfg.Server.TrustedProxies,
-			CORSAllowedOrigins:   cfg.Server.CORSAllowedOrigins,
-			CORSAllowCredentials: cfg.Server.CORSAllowCredentials,
-			Docs:                 true,
+		require.NoError(t, err)
+		assert.Equal(t, media.Options{
+			Driver:         media.DriverS3,
+			S3Endpoint:     cfg.S3.Endpoint,
+			S3Region:       cfg.S3.Region,
+			S3Bucket:       cfg.S3.Bucket,
+			S3AccessKey:    cfg.S3.AccessKey,
+			S3SecretKey:    cfg.S3.SecretKey,
+			S3UsePathStyle: cfg.S3.UsePathStyle,
+			SignedURLBase:  api.MediaPath,
 		}, got)
 	})
 
+	t.Run("keeps the configured path of the local driver", func(t *testing.T) {
+		t.Parallel()
+
+		path := t.TempDir()
+
+		got, err := StorageOptions(config.StorageConfig{
+			Driver: media.DriverLocal,
+			Path:   path,
+		})
+
+		require.NoError(t, err)
+		assert.Equal(t, path, got.LocalPath)
+	})
+}
+
+func TestSystemOptions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("maps the commands", func(t *testing.T) {
+		t.Parallel()
+
+		f := apitest.Faker(t)
+		system := config.SystemConfig{
+			ServerRestartCommand: f.LoremIpsumSentence(4),
+			ServerStopCommand:    f.LoremIpsumSentence(4),
+			KioskRestartCommand:  f.LoremIpsumSentence(4),
+			KioskStopCommand:     f.LoremIpsumSentence(4),
+			AllRestartCommand:    f.LoremIpsumSentence(4),
+			AllStopCommand:       f.LoremIpsumSentence(4),
+		}
+
+		got := systemOptions(system)
+
+		assert.Equal(t, service.SystemOptions{
+			ServerRestartCommand: system.ServerRestartCommand,
+			ServerStopCommand:    system.ServerStopCommand,
+			KioskRestartCommand:  system.KioskRestartCommand,
+			KioskStopCommand:     system.KioskStopCommand,
+			AllRestartCommand:    system.AllRestartCommand,
+			AllStopCommand:       system.AllStopCommand,
+		}, got)
+	})
 }

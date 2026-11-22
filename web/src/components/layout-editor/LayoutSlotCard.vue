@@ -5,14 +5,14 @@ import { useI18n } from 'vue-i18n';
 import EditorItemList, { type EditorListItem } from '@/components/editor/EditorItemList.vue';
 import EditorPanel from '@/components/editor/EditorPanel.vue';
 import EditorTransformFields from '@/components/editor/EditorTransformFields.vue';
-import { MIN_SIZE_FRACTION, useLayoutForm } from '@/composables/useLayoutForm';
-import { useShortcutLabels } from '@/composables/useShortcutLabels';
+import { MIN_SIZE_FRACTION, useLayoutForm } from '@/composables/layout/useLayoutForm';
+import { useShortcutLabels } from '@/composables/ui/useShortcutLabels';
 import { clamp, unionBounds } from '@/lib/editor/geometry';
 import { shortcutKeys } from '@/lib/editor/shortcuts';
-import { LAYOUT_EDITOR_SHORTCUTS } from '@/lib/layoutEditorShortcuts';
-import { parseRatio, roundMm, slotBounds } from '@/lib/layoutGeometry';
+import { LAYOUT_EDITOR_SHORTCUTS } from '@/lib/layout/layoutEditorShortcuts';
+import { parseRatio, roundMm, slotBounds } from '@/lib/layout/layoutGeometry';
 
-// Common width to height ratios of cameras and photos, to set the shape of a slot directly.
+// Common width to height ratios of cameras and photos, to set the shape of a slot directly
 const SLOT_RATIO_PRESETS = [
   {
     label: '1:1',
@@ -49,7 +49,7 @@ const SLOT_RATIO_PRESETS = [
 const { t } = useI18n();
 const { keyLabels } = useShortcutLabels();
 const layout = useLayoutForm();
-const { state, editor, activeSlots, selectedSlot, removeSlots, toggleLock } = layout;
+const { state, editor, activeSlots, selectedSlot, toggleLock } = layout;
 const { selection, visibility } = editor;
 const {
   locked: slotRatioLocked,
@@ -77,7 +77,7 @@ const movableBounds = computed(() =>
   ),
 );
 
-/** onSelect selects a slot of the list, alone or in addition to the selection. */
+/** Selects a slot of the list, alone or in addition to the selection. */
 function onSelect(index: number, additive: boolean): void {
   if (additive) {
     selection.toggle(index);
@@ -86,7 +86,7 @@ function onSelect(index: number, additive: boolean): void {
   selection.selectOnly(index);
 }
 
-/** onToggleLock locks or unlocks a slot of the list. */
+/** Locks or unlocks a slot of the list. */
 function onToggleLock(index: number): void {
   const slot = activeSlots.value[index];
   if (slot) layout.setSlotLocked(index, !slot.locked);
@@ -131,7 +131,7 @@ const hMm = computed<number>({
   },
 });
 
-/** onToggleSlotRatioLock locks or unlocks the ratio of the selected slot at its current value. */
+/** Locks or unlocks the ratio of the selected slot at its current value. */
 function onToggleSlotRatioLock(): void {
   toggleSlotRatioLock(wMm.value / Math.max(hMm.value, 1));
 }
@@ -143,7 +143,7 @@ const slotRatioDisplay = computed(() =>
 );
 
 /**
- * applySlotRatio gives the selected slot a width to height ratio. It keeps the width and derives the height,
+ * Gives the selected slot a width to height ratio. It keeps the width and derives the height,
  * like the width field does while the ratio is locked.
  */
 function applySlotRatio(ratio: number): void {
@@ -153,28 +153,38 @@ function applySlotRatio(ratio: number): void {
   slot.h = clamp(hFrac, MIN_SIZE_FRACTION, 1 - slot.y);
 }
 
-/** applyCustomSlotRatio applies the typed ratio, if it can be read. */
+/** Applies the typed ratio, if it can be read. */
 function applyCustomSlotRatio(): void {
   const ratio = parseRatio(customSlotRatioInput.value);
   if (ratio === null) return;
   applySlotRatio(ratio);
 }
-
-/** removeSelectedSlot removes the selected slot. */
-function removeSelectedSlot(): void {
-  if (selection.active.value === null) return;
-  removeSlots([selection.active.value]);
-}
 </script>
 
 <template>
   <EditorPanel
-    v-if="activeSlots.length"
     :title="t('pages.layouts.panel.slot')"
     storage-key="layoutEditor.panel.slot"
     class="shrink-0"
   >
+    <!-- Without this, removing the last slot would leave the panel without a way back besides the toolbar. -->
+    <UEmpty
+      v-if="activeSlots.length === 0"
+      icon="i-lucide-square-dashed"
+      :description="t('pages.layouts.noSlots')"
+      :actions="[
+        {
+          label: t('pages.layouts.addSlot'),
+          icon: 'i-lucide-square-plus',
+          onClick: layout.addSlot,
+        },
+      ]"
+      size="sm"
+      variant="naked"
+    />
+
     <EditorItemList
+      v-else
       :items="items"
       :selected="selection.selected.value"
       sortable
@@ -184,10 +194,10 @@ function removeSelectedSlot(): void {
       @move="layout.moveSlot"
     />
 
-    <USeparator />
+    <USeparator v-if="activeSlots.length" />
 
     <div v-if="selectedSlot" class="flex items-center justify-between">
-      <h3 class="text-highlighted font-semibold">
+      <h3 class="text-highlighted heading-card">
         {{ t('pages.layouts.slotLabel', { n: (selection.active.value ?? 0) + 1 }) }}
       </h3>
       <UTooltip
@@ -236,15 +246,17 @@ function removeSelectedSlot(): void {
           <UTooltip
             :text="t(slotRatioLocked ? 'pages.layouts.unlockRatio' : 'pages.layouts.lockRatio')"
           >
-            <UButton
+            <UToggle
+              :model-value="slotRatioLocked"
               :icon="slotRatioLocked ? 'i-lucide-link' : 'i-lucide-link-2-off'"
-              :color="slotRatioLocked ? 'primary' : 'neutral'"
+              color="neutral"
               variant="soft"
+              active-color="primary"
+              active-variant="soft"
               :aria-label="
                 t(slotRatioLocked ? 'pages.layouts.unlockRatio' : 'pages.layouts.lockRatio')
               "
-              :aria-pressed="slotRatioLocked"
-              @click="onToggleSlotRatioLock"
+              @update:model-value="onToggleSlotRatioLock"
             />
           </UTooltip>
           <UFormField :label="t('pages.layouts.slot.hMm')" class="min-w-0 flex-1">
@@ -284,9 +296,8 @@ function removeSelectedSlot(): void {
         size="xs"
         color="error"
         variant="outline"
-        :disabled="activeSlots.length <= 1"
         class="w-fit"
-        @click="removeSelectedSlot"
+        @click="layout.removeSelectedSlots"
       />
     </template>
   </EditorPanel>

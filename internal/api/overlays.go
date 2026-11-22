@@ -3,9 +3,9 @@ package api
 import (
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
-
 	"github.com/barthjs/photopi/internal/domain"
+	"github.com/barthjs/photopi/internal/media"
+	"github.com/barthjs/photopi/internal/service"
 )
 
 const (
@@ -14,6 +14,11 @@ const (
 
 var (
 	allowedOverlayUploadTypes = []string{"image/png"}
+	// overlayUploadRules are the format and the resolution bounds of an uploaded overlay.
+	overlayUploadRules = imageRules{
+		Format:  media.ImageFormatPNG,
+		MaxEdge: service.MaxCaptureEdge,
+	}
 )
 
 // overlayListHandler lists every stored overlay PNG.
@@ -30,7 +35,7 @@ var (
 func (a *API) overlayListHandler(w http.ResponseWriter, r *http.Request) {
 	overlays, err := a.overlayService.List(r.Context())
 	if err != nil {
-		a.serverErrorResponse(w, r, err)
+		a.respondError(w, r, err)
 		return
 	}
 
@@ -42,7 +47,32 @@ func (a *API) overlayListHandler(w http.ResponseWriter, r *http.Request) {
 	a.writeJSON(w, r, http.StatusOK, response, nil)
 }
 
-// OverlayResponse is a stored overlay image.
+// overlayGetHandler downloads a stored overlay as it is stored.
+//
+//	@Summary		Get overlay
+//	@Description	Downloads a stored overlay PNG by name (Admin only).
+//	@Tags			camera
+//	@Produce		image/png
+//	@Param			name	path	string	true	"Overlay filename"
+//	@Success		200
+//	@Failure		401	{object}	ErrorResponse
+//	@Failure		404	{object}	ErrorResponse
+//	@Failure		500	{object}	ErrorResponse
+//	@Security		SessionAuth
+//	@Router			/overlays/{name}	[get]
+func (a *API) overlayGetHandler(w http.ResponseWriter, r *http.Request) {
+	name := pathParam(r, "name")
+
+	data, err := a.overlayService.Download(r.Context(), name)
+	if err != nil {
+		a.respondError(w, r, err)
+		return
+	}
+
+	writeDownloadHeaders(w, "image/png", name)
+	_, _ = w.Write(data)
+}
+
 type OverlayResponse struct {
 	Name string `json:"name"`
 	Path string `json:"path"`
@@ -63,7 +93,7 @@ type OverlayResponse struct {
 //	@Security		SessionAuth
 //	@Router			/overlays	[post]
 func (a *API) overlayCreateHandler(w http.ResponseWriter, r *http.Request) {
-	data, filename, ok := a.readUpload(w, r, maxOverlayUploadMB, allowedOverlayUploadTypes)
+	data, filename, ok := a.readImageUpload(w, r, maxOverlayUploadMB, allowedOverlayUploadTypes, overlayUploadRules)
 	if !ok {
 		return
 	}
@@ -99,7 +129,7 @@ func toOverlayResponse(o domain.Overlay) OverlayResponse {
 //	@Security		SessionAuth
 //	@Router			/overlays/{name}	[delete]
 func (a *API) overlayDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	name := chi.URLParam(r, "name")
+	name := pathParam(r, "name")
 
 	if err := a.overlayService.Delete(r.Context(), name); err != nil {
 		a.respondError(w, r, err)
@@ -107,30 +137,4 @@ func (a *API) overlayDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
-}
-
-// overlayDownloadHandler downloads a stored overlay as it is stored.
-//
-//	@Summary		Download overlay
-//	@Description	Downloads a stored overlay PNG by name (Admin only).
-//	@Tags			camera
-//	@Produce		image/png
-//	@Param			name	path	string	true	"Overlay filename"
-//	@Success		200
-//	@Failure		401	{object}	ErrorResponse
-//	@Failure		404	{object}	ErrorResponse
-//	@Failure		500	{object}	ErrorResponse
-//	@Security		SessionAuth
-//	@Router			/overlays/{name}	[get]
-func (a *API) overlayDownloadHandler(w http.ResponseWriter, r *http.Request) {
-	name := chi.URLParam(r, "name")
-
-	data, err := a.overlayService.Download(r.Context(), name)
-	if err != nil {
-		a.respondError(w, r, err)
-		return
-	}
-
-	writeDownloadHeaders(w, "image/png", name)
-	_, _ = w.Write(data)
 }

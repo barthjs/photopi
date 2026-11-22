@@ -4,13 +4,16 @@ import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 
 import { publicShareRepository } from '@/api/repositories/publicShare';
-import { useApiError } from '@/composables/useApiError';
+import { useApiError } from '@/composables/form/useApiError';
 
 const { t } = useI18n();
 const { messageFor } = useApiError();
 const route = useRoute();
 
-const token = computed(() => route.params.token as string);
+const token = computed(() => {
+  const value = route.params.token;
+  return typeof value === 'string' ? value : '';
+});
 
 const loading = ref(true);
 const loadFailed = ref(false);
@@ -32,7 +35,7 @@ onMounted(async () => {
 
 <template>
   <div class="mx-auto flex w-full max-w-2xl flex-col gap-4">
-    <h1 class="text-highlighted text-xl font-semibold">{{ t('pages.guestShare.title') }}</h1>
+    <h1 class="text-highlighted heading-page">{{ t('pages.guestShare.title') }}</h1>
 
     <div v-if="loading" class="grid grid-cols-2 gap-4 sm:grid-cols-3">
       <USkeleton v-for="i in 6" :key="i" class="aspect-square w-full" />

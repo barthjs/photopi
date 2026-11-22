@@ -18,7 +18,7 @@ import (
 func (a *API) printerListHandler(w http.ResponseWriter, r *http.Request) {
 	printers, err := a.printService.ListPrinters(r.Context())
 	if err != nil {
-		a.serverErrorResponse(w, r, err)
+		a.respondError(w, r, err)
 		return
 	}
 
@@ -33,13 +33,11 @@ func (a *API) printerListHandler(w http.ResponseWriter, r *http.Request) {
 	a.writeJSON(w, r, http.StatusOK, response, nil)
 }
 
-// PrinterResponse is a CUPS printer queue with its status.
 type PrinterResponse struct {
 	Name   string `json:"name"`
-	Status string `json:"status"`
+	Status string `json:"status" enums:"idle,printing,disabled,holding"`
 }
 
-// PrintTestRequest names the printer queue to check.
 type PrintTestRequest struct {
 	PrinterName string `json:"printerName" validate:"required"`
 }
@@ -71,7 +69,6 @@ func (a *API) printTestHandler(w http.ResponseWriter, r *http.Request) {
 	}, nil)
 }
 
-// PrintResumeRequest names the printer queue to resume.
 type PrintResumeRequest struct {
 	PrinterName string `json:"printerName" validate:"required"`
 }
@@ -104,7 +101,6 @@ func (a *API) printResumeHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// PrintCancelRequest names the printer queue whose jobs to cancel.
 type PrintCancelRequest struct {
 	PrinterName string `json:"printerName" validate:"required"`
 }

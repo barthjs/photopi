@@ -28,7 +28,7 @@ vi.mock('@/pages/WelcomePage.vue', () => ({
   default: {},
 }));
 
-/** namedRoutes collects every named route of the tree, keyed by its name. */
+/** Collects every named route of the tree, keyed by its name. */
 function namedRoutes(records: RouteRecordRaw[]): Map<string, RouteRecordRaw> {
   const result = new Map<string, RouteRecordRaw>();
   for (const record of records) {
@@ -40,7 +40,7 @@ function namedRoutes(records: RouteRecordRaw[]): Map<string, RouteRecordRaw> {
   return result;
 }
 
-/** hasKey reports whether a dotted key resolves to a string in a locale. */
+/** Reports whether a dotted key resolves to a string in a locale. */
 function hasKey(messages: unknown, key: string): boolean {
   let node = messages;
   for (const part of key.split('.')) {
@@ -92,10 +92,9 @@ describe('routes', () => {
     expect(meta?.requiresGuest).toBe(true);
   });
 
-  it('gives only the layout editor the full width and the viewport height', () => {
+  it('gives only the layout editor the viewport height', () => {
     for (const [name, route] of byName) {
       const expected = name === 'layouts' ? true : undefined;
-      expect(route.meta?.fullWidth).toBe(expected);
       expect(route.meta?.fillViewport).toBe(expected);
     }
   });

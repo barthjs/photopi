@@ -7,8 +7,8 @@ sidebar:
 
 At an event, PhotoPi runs on the computer of the booth, and its screen shows the screens for the guests: the welcome
 screen, the countdown, the review, and the share screen. The admin pages are opened from another device
-in the network, such as a phone or a laptop. The screens for the guests are made for touch screens down to
-800 x 480 pixels.
+in the network, such as a phone or a laptop. The screens for the guests work on touch screens from 800 x 480 pixels
+and grow with larger screens. The photo shown after each shot fits the screen, up to full HD.
 
 The kiosk browser shows PhotoPi in Chromium in full screen, without an address bar or other windows, so guests
 only see the booth. It opens `http://localhost:8080` and waits until PhotoPi answers, and it starts again

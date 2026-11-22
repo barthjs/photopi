@@ -6,37 +6,37 @@ import LayoutBrandingPreview from '@/components/layout-editor/LayoutBrandingPrev
 import LayoutSlotBox from '@/components/layout-editor/LayoutSlotBox.vue';
 import { EDITOR_SURFACE_ATTRIBUTE, useEditorCanvas } from '@/composables/editor/useEditorCanvas';
 import type { EditorViewOptions } from '@/composables/editor/useEditorWorkspace';
-import { useLayoutForm } from '@/composables/useLayoutForm';
-import { useSlotDrag } from '@/composables/useSlotDrag';
+import { useLayoutForm } from '@/composables/layout/useLayoutForm';
+import { useSlotDrag } from '@/composables/layout/useSlotDrag';
 import type { Bounds } from '@/lib/editor/geometry';
-import { paperSize, slotBounds } from '@/lib/layoutGeometry';
+import { paperSize, slotBounds } from '@/lib/layout/layoutGeometry';
 
-// The zoom range relative to the paper fitted into the viewport.
+// The paper of the active page as the editing canvas, with zoom and pan
+const props = defineProps<{
+  view: EditorViewOptions;
+  // Shows the page as printed, without the view options, and blocks editing
+  viewMode: boolean;
+}>();
+
+// The zoom range relative to the paper fitted into the viewport
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 6;
 
-// The free space around the fitted paper, which keeps it clear of the rulers.
+// The free space around the fitted paper, which keeps it clear of the rulers
 const CANVAS_PADDING = 32;
 
-// The distance of the grid lines on the paper.
+// The distance of the grid lines on the paper
 const GRID_STEP_MM = 10;
 
-// The screen pixels per millimeter at 100 percent, the 96 pixels per inch of a screen.
+// The screen pixels per millimeter at 100 percent, the 96 pixels per inch of a screen
 const PIXELS_PER_MM = 96 / 25.4;
-
-// The paper of the active page as the editing canvas, with zoom and pan.
-const props = defineProps<{
-  view: EditorViewOptions;
-  // Shows the page as printed, without the view options, and blocks editing.
-  viewMode: boolean;
-}>();
 
 const form = useLayoutForm();
 const { state, editor, activeSlots } = form;
 const { selection, visibility, sampleImage } = editor;
 
-// The paper is fitted into the viewport in millimeters. The size of the viewport comes from the flex layout
-// of the page, not from the position in the window, so scrolling does not resize the paper.
+// The paper is fitted into the viewport in millimeters. The size of the viewport comes from the flex layout of the page,
+// not from the position in the window, so scrolling does not resize the paper.
 const canvas = useEditorCanvas({
   guides: editor.guides,
   contentWidth: () => state.paper.widthMM,
@@ -48,7 +48,7 @@ const canvas = useEditorCanvas({
   selection,
   // Locked and hidden slots keep their place, so the marquee leaves them out
   items: () =>
-    activeSlots.value.flatMap((slot, index): Array<[number, Bounds]> =>
+    activeSlots.value.flatMap((slot, index): [number, Bounds][] =>
       slot.locked || visibility.isHidden(index) ? [] : [[index, slotBounds(slot, state.paper)]],
     ),
   gesture: () => editor.dragging.value,
@@ -94,7 +94,7 @@ const canvasDisplay = computed(() => ({
   height: state.paper.heightMM * fitScale.value,
 }));
 
-// The grid lines keep one screen pixel at every zoom.
+// The grid lines keep one screen pixel at every zoom
 const paperStyle = computed(() => ({
   width: `${canvasDisplay.value.width}px`,
   height: `${canvasDisplay.value.height}px`,
@@ -104,7 +104,7 @@ const paperStyle = computed(() => ({
   '--grid-line': `${1 / zoom.value}px`,
 }));
 
-/** zoomToSelection fills the canvas with the selected slots. */
+/** Fills the canvas with the selected slots. */
 function zoomToSelection(): void {
   canvas.zoomToBounds(form.selectionBounds.value);
 }
@@ -133,7 +133,7 @@ defineExpose({
     :show-guides="view.guides.value"
     :show-loupe="view.loupe.value && slotDrag.mode.value === 'resize'"
     :view-mode="viewMode"
-    class="h-[60vh] min-h-72 lg:h-auto lg:min-h-0 lg:flex-1"
+    class="h-canvas min-h-72 lg:h-auto lg:min-h-0 lg:flex-1"
   >
     <div
       v-bind="{ [EDITOR_SURFACE_ATTRIBUTE]: '' }"
@@ -149,7 +149,7 @@ defineExpose({
           :index="index"
           :selected="false"
           :show-handles="false"
-          :preview="true"
+          preview
           :outline-only="false"
           :image="sampleImage.url.value ?? null"
           :image-opacity="1"

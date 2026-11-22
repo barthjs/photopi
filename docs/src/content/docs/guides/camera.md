@@ -5,7 +5,7 @@ sidebar:
   order: 1
 ---
 
-PhotoPi takes photos with one of three camera sources, set in the Camera tab of the configuration page:
+PhotoPi takes photos with one of three camera sources, set in the Camera section of the configuration page:
 
 | Source    | Camera                                                                                       |
 | --------- | -------------------------------------------------------------------------------------------- |
@@ -19,7 +19,7 @@ and shared links keep working.
 ## Installing the camera programs
 
 The `webcam` source needs nothing on the computer of PhotoPi. The browser asks for access to the camera, which it only
-allows on `localhost` or over [HTTPS](./access.md#https).
+allows on `localhost` or over [HTTPS](./access.md#https). It takes photos in the largest size the camera offers, up to 4K.
 
 The Debian package installs `gphoto2` and recommends `rpicam-apps`, so `apt` installs both with it. Other installations
 install them by hand.
@@ -64,7 +64,7 @@ the photo will look like. They depend on the light of the venue and on how the c
 ## Overlay
 
 An overlay is a PNG file drawn over every photo, for example a frame with the name of the event. The overlay library
-in the Camera tab uploads and manages the files, and the selected overlay is scaled to the size of each photo.
+in the Camera section uploads and manages the files, and the selected overlay is scaled to the size of each photo.
 With an overlay active, PhotoPi can also keep the photos without it, see [Taking photos](./taking-photos.md#originals).
 
 ## Container

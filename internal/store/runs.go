@@ -29,6 +29,8 @@ const (
 	originalsFolder = "originals"
 	// collagesFolder is the storage folder the rendered collage pages are kept in.
 	collagesFolder = "prints"
+	// thumbnailsFolder holds the thumbnails of the captures with the same folders and file names as capturesFolder.
+	thumbnailsFolder = "thumbnails"
 
 	// runCounterPath stores the last run number handed out. List skips files starting with a dot,
 	// so the counter never shows up as a capture.
@@ -41,12 +43,14 @@ var runFilePattern = regexp.MustCompile(`_(\d{6})-([0-9a-z-]+)_([0-9a-z-]+)\.jpg
 // RunStore keeps the run counter and serves the files of the runs, its captures and its collage pages.
 type RunStore struct {
 	storage media.Storage
+	files   *RunFileIndex
 }
 
 // NewRunStore creates a RunStore.
-func NewRunStore(storage media.Storage) *RunStore {
+func NewRunStore(storage media.Storage, files *RunFileIndex) *RunStore {
 	return &RunStore{
 		storage: storage,
+		files:   files,
 	}
 }
 
@@ -63,15 +67,29 @@ func (s *RunStore) GetFile(ctx context.Context, p string) ([]byte, error) {
 	return data, nil
 }
 
-// Create hands out the next run number and stores it in the counter. Without a counter,
-// it continues after the highest stored run, so a number is never handed out twice. Callers serialize the calls.
+// OpenFile opens the file of a run at a storage path for reading, or returns apperr.ErrNotFound.
+// The caller must close the returned reader.
+func (s *RunStore) OpenFile(ctx context.Context, p string) (io.ReadCloser, error) {
+	reader, err := s.storage.Get(ctx, p)
+	if err != nil {
+		if errors.Is(err, media.ErrNotFound) {
+			return nil, apperr.ErrNotFound
+		}
+		return nil, fmt.Errorf("store: reading %q: %w", p, err)
+	}
+
+	return reader, nil
+}
+
+// Create hands out the next run number, which callers serialize, and stores it in the counter.
 func (s *RunStore) Create(ctx context.Context) (int, error) {
+	// Without a counter, it continues after the highest stored run, so a number is never handed out twice
 	last, err := s.readCounter(ctx)
 	if err != nil {
 		return 0, err
 	}
 
-	files, err := listRunFiles(ctx, s.storage, capturesFolder)
+	files, err := s.files.list(ctx, capturesFolder)
 	if err != nil {
 		return 0, err
 	}
@@ -107,15 +125,26 @@ func (s *RunStore) readCounter(ctx context.Context) (int, error) {
 	return last, nil
 }
 
-// Delete removes every file of a run, its captures, originals, and collage pages.
+// Delete removes every file of a run, its captures, originals, thumbnails, and collage pages.
 func (s *RunStore) Delete(ctx context.Context, run int) error {
-	for _, folder := range []string{capturesFolder, originalsFolder, collagesFolder} {
-		if err := deleteRunFiles(ctx, s.storage, folder, run); err != nil {
+	defer s.files.invalidate()
+
+	for _, folder := range []string{capturesFolder, originalsFolder, thumbnailsFolder} {
+		files, err := s.files.list(ctx, folder)
+		if err != nil {
+			return err
+		}
+		if err := deleteRunFiles(ctx, s.storage, files, run); err != nil {
 			return err
 		}
 	}
 
-	return nil
+	// The collage pages are written by the CollageStore, which keeps no index
+	files, err := listRunFiles(ctx, s.storage, collagesFolder)
+	if err != nil {
+		return err
+	}
+	return deleteRunFiles(ctx, s.storage, files, run)
 }
 
 // SignFile returns a URL that serves the file of a run at a storage path for ttl.
@@ -128,8 +157,7 @@ func (s *RunStore) SignFile(ctx context.Context, p string, ttl time.Duration) (s
 	return url, nil
 }
 
-// ZipFiles streams the files of runs at the storage paths as one zip archive to w.
-// The entries are stored uncompressed, since JPEGs do not shrink any further.
+// ZipFiles streams the files of runs at the storage paths as one uncompressed zip archive to w.
 func (s *RunStore) ZipFiles(ctx context.Context, w io.Writer, paths []string) error {
 	zw := zip.NewWriter(w)
 	defer func(zw *zip.Writer) { _ = zw.Close() }(zw)
@@ -151,7 +179,8 @@ func (s *RunStore) addZipEntry(ctx context.Context, zw *zip.Writer, p string) er
 	defer func() { _ = reader.Close() }()
 
 	entry, err := zw.CreateHeader(&zip.FileHeader{
-		Name:   path.Base(p),
+		Name: path.Base(p),
+		// JPEGs do not shrink any further
 		Method: zip.Store,
 	})
 	if err != nil {
@@ -164,13 +193,15 @@ func (s *RunStore) addZipEntry(ctx context.Context, zw *zip.Writer, p string) er
 	return nil
 }
 
-// runFile is a stored file of a run.
+// runFile is a file of a run with the parts of its path and name.
 type runFile struct {
 	path string
 	// event is the slug of the event folder the file lies in.
 	event string
 	run   int
 	part  string
+	// suffix ends the file name, the time a capture was taken or the hash of a collage page.
+	suffix string
 }
 
 // runFileName joins the prefix, the run number, the part, and the suffix into a file name.
@@ -179,13 +210,8 @@ func runFileName(prefix string, run int, part string, suffix string) string {
 	return fmt.Sprintf("%s_%06d-%s_%s.jpg", strings.TrimRight(prefix, "_- "), run, part, suffix)
 }
 
-// deleteRunFiles removes every file of a run below folder.
-func deleteRunFiles(ctx context.Context, storage media.Storage, folder string, run int) error {
-	files, err := listRunFiles(ctx, storage, folder)
-	if err != nil {
-		return err
-	}
-
+// deleteRunFiles removes the files of a run among files.
+func deleteRunFiles(ctx context.Context, storage media.Storage, files []runFile, run int) error {
 	for _, file := range files {
 		if file.run != run {
 			continue
@@ -213,33 +239,34 @@ func listRunFiles(ctx context.Context, storage media.Storage, folder string) ([]
 			continue
 		}
 
-		run, part, ok := parseRunFile(path.Base(rel))
+		run, part, suffix, ok := parseRunFile(path.Base(rel))
 		if !ok {
 			continue
 		}
 
 		files = append(files, runFile{
-			path:  p,
-			event: path.Dir(rel),
-			run:   run,
-			part:  part,
+			path:   p,
+			event:  path.Dir(rel),
+			run:    run,
+			part:   part,
+			suffix: suffix,
 		})
 	}
 
 	return files, nil
 }
 
-// parseRunFile returns the run and the part of a file name, ok is false if it is no run file.
-func parseRunFile(name string) (run int, part string, ok bool) {
+// parseRunFile returns the run, the part, and the suffix of a file name, ok is false if it is no run file.
+func parseRunFile(name string) (run int, part string, suffix string, ok bool) {
 	match := runFilePattern.FindStringSubmatch(name)
 	if match == nil {
-		return 0, "", false
+		return 0, "", "", false
 	}
 
 	run, err := strconv.Atoi(match[1])
 	if err != nil {
-		return 0, "", false
+		return 0, "", "", false
 	}
 
-	return run, match[2], true
+	return run, match[2], match[3], true
 }

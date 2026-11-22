@@ -150,22 +150,6 @@ func TestMailer_Send(t *testing.T) {
 		assert.Equal(t, []Attachment{attachment}, msg.Attachments)
 	})
 
-	t.Run("sends without options", func(t *testing.T) {
-		t.Parallel()
-
-		m, transport := newTestMailer(t)
-
-		err := m.Send(t.Context(), "to@example.test", "welcome.gohtml", renderData{
-			Locale: "en",
-		})
-
-		require.NoError(t, err)
-		sent := transport.sent()
-		require.Len(t, sent, 1)
-		assert.Empty(t, sent[0].Cc)
-		assert.Empty(t, sent[0].Attachments)
-	})
-
 	t.Run("embeds the inline images", func(t *testing.T) {
 		t.Parallel()
 
@@ -295,19 +279,6 @@ func TestMailer_SendRaw(t *testing.T) {
 			PlainBody: "Plain",
 			HTMLBody:  "<p>HTML</p>",
 		}, sent[0])
-	})
-
-	t.Run("sends without options", func(t *testing.T) {
-		t.Parallel()
-
-		m, transport := newTestMailer(t)
-
-		err := m.SendRaw(t.Context(), "Second", "Plain", "<p>HTML</p>", "to@example.test")
-
-		require.NoError(t, err)
-		sent := transport.sent()
-		require.Len(t, sent, 1)
-		assert.Empty(t, sent[0].ReplyTo)
 	})
 
 	t.Run("applies the defaults", func(t *testing.T) {

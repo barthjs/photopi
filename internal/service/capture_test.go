@@ -13,6 +13,7 @@ import (
 
 	"github.com/barthjs/photopi/internal/apitest"
 	"github.com/barthjs/photopi/internal/apperr"
+	"github.com/barthjs/photopi/internal/domain"
 	"github.com/barthjs/photopi/internal/media"
 )
 
@@ -176,6 +177,17 @@ func TestCaptureService_GetPreview(t *testing.T) {
 		assert.Equal(t, image.Rect(0, 0, 800, 480), decodeJPEG(t, preview).Bounds())
 	})
 
+	t.Run("rejects a stored capture above the pixel budget", func(t *testing.T) {
+		t.Parallel()
+
+		svc, storage := newTestCaptureService(t, captureConfig(3), "")
+		putFile(t, storage, "captures/a/x_000005-01_20260101-000000.jpg", oversizedJPEG(t))
+
+		_, err := svc.GetPreview(t.Context(), 5, 1)
+
+		assert.ErrorIs(t, err, media.ErrImageTooLarge)
+	})
+
 	t.Run("returns not found for an unknown capture", func(t *testing.T) {
 		t.Parallel()
 
@@ -256,7 +268,13 @@ func TestCaptureService_Create(t *testing.T) {
 
 		svc, storage := newTestCaptureService(t, captureConfig(2), "")
 		run := startRun(t, svc)
-		putFile(t, storage, "captures/summer-party/booth_"+pad(run)+"-01_20200101-000000.jpg", []byte("x"))
+		require.NoError(t, svc.captures.Create(t.Context(), domain.Capture{
+			Event:      "summer-party",
+			Prefix:     "booth",
+			Run:        run,
+			ImageIndex: 1,
+			TakenAt:    time.Date(2020, 1, 1, 0, 0, 0, 0, time.Local),
+		}, []byte("x"), nil))
 		jpegData := testJPEG(t, 8, 8, color.White)
 
 		_, err := svc.Create(t.Context(), run, &jpegData)
@@ -266,6 +284,26 @@ func TestCaptureService_Create(t *testing.T) {
 		paths := listFiles(t, storage, "captures/")
 		require.Len(t, paths, 1)
 		assert.Equal(t, jpegData, readFile(t, storage, paths[0]))
+	})
+
+	t.Run("stores a thumbnail of the first capture of the run", func(t *testing.T) {
+		t.Parallel()
+
+		svc, storage := newTestCaptureService(t, captureConfig(2), "")
+		run := startRun(t, svc)
+		first := testJPEG(t, 1600, 1200, color.White)
+		_, err := svc.Create(t.Context(), run, &first)
+		require.NoError(t, err)
+		second := testJPEG(t, 1600, 1200, color.White)
+
+		_, err = svc.Create(t.Context(), run, &second)
+
+		require.NoError(t, err)
+		svc.Wait()
+		paths := listFiles(t, storage, "thumbnails/")
+		require.Len(t, paths, 1)
+		assert.True(t, strings.HasPrefix(paths[0], "thumbnails/summer-party/booth_"+pad(run)+"-01_"), paths[0])
+		assert.Equal(t, image.Rect(0, 0, thumbnailEdge, 360), decodeJPEG(t, readFile(t, storage, paths[0])).Bounds(), "the longest edge fits the thumbnail")
 	})
 
 	t.Run("composites the overlay scaled to the capture", func(t *testing.T) {
@@ -388,12 +426,12 @@ func TestCaptureService_Create(t *testing.T) {
 		owner := apitest.Faker(t).UUID()
 		fake := []byte{0xFF, 0xD8, 0x01, 0x02, 0xFF, 0xD9}
 		capture := testJPEG(t, 8, 8, color.White)
-		first, err := svc.CreateRun(t.Context(), owner)
+		first, err := svc.CreateRun(t.Context(), runInput(owner))
 		require.NoError(t, err)
 		_, err = svc.Create(t.Context(), first.Run, &fake)
 		require.NoError(t, err)
 		svc.Wait()
-		next, err := svc.CreateRun(t.Context(), owner)
+		next, err := svc.CreateRun(t.Context(), runInput(owner))
 		require.NoError(t, err)
 
 		_, err = svc.Create(t.Context(), next.Run, &capture)
@@ -467,6 +505,21 @@ func TestCaptureService_Create(t *testing.T) {
 		_, err = svc.Create(t.Context(), run, &jpegData)
 
 		assert.ErrorIs(t, err, ErrRunNotOpen)
+	})
+
+	t.Run("fails the store of a capture above the pixel budget", func(t *testing.T) {
+		t.Parallel()
+
+		svc, storage := newTestCaptureService(t, captureConfig(2), "")
+		run := startRun(t, svc)
+		capture := oversizedJPEG(t)
+
+		_, err := svc.Create(t.Context(), run, &capture)
+
+		require.NoError(t, err, "the capture is checked further while it is stored in the background")
+		svc.Wait()
+		assert.ErrorIs(t, svc.storeErr, media.ErrImageTooLarge)
+		assert.Empty(t, listFiles(t, storage, "captures/"))
 	})
 
 	t.Run("rejects the next capture after one that only looks like a JPEG", func(t *testing.T) {
@@ -648,7 +701,7 @@ func TestCaptureService_CreateRun(t *testing.T) {
 
 		svc, _ := newTestCaptureService(t, captureConfig(3), "")
 
-		start, err := svc.CreateRun(t.Context(), apitest.Faker(t).UUID())
+		start, err := svc.CreateRun(t.Context(), runInput(apitest.Faker(t).UUID()))
 
 		require.NoError(t, err)
 		assert.Equal(t, RunStart{
@@ -657,13 +710,33 @@ func TestCaptureService_CreateRun(t *testing.T) {
 		}, start)
 	})
 
+	t.Run("fits the screen versions of the run to the screen of the client", func(t *testing.T) {
+		t.Parallel()
+
+		svc, _ := newTestCaptureService(t, captureConfig(1), "")
+		capture := testJPEG(t, 1600, 1200, color.White)
+
+		start, err := svc.CreateRun(t.Context(), RunCreateInput{
+			Owner:        apitest.Faker(t).UUID(),
+			ScreenWidth:  1280,
+			ScreenHeight: 800,
+		})
+
+		require.NoError(t, err)
+		_, err = svc.Create(t.Context(), start.Run, &capture)
+		require.NoError(t, err)
+		preview, err := svc.GetPreview(t.Context(), start.Run, 1)
+		require.NoError(t, err)
+		assert.Equal(t, image.Rect(0, 0, 1066, 800), decodeJPEG(t, preview).Bounds())
+	})
+
 	t.Run("continues after the highest stored run of any event", func(t *testing.T) {
 		t.Parallel()
 
 		svc, storage := newTestCaptureService(t, captureConfig(3), "")
 		putFile(t, storage, "captures/earlier-event/x_000041-01_20260101-000000.jpg", []byte("x"))
 
-		start, err := svc.CreateRun(t.Context(), apitest.Faker(t).UUID())
+		start, err := svc.CreateRun(t.Context(), runInput(apitest.Faker(t).UUID()))
 
 		require.NoError(t, err)
 		assert.Equal(t, 42, start.Run)
@@ -674,10 +747,10 @@ func TestCaptureService_CreateRun(t *testing.T) {
 
 		svc, _ := newTestCaptureService(t, captureConfig(3), "")
 		owner := apitest.Faker(t).UUID()
-		first, err := svc.CreateRun(t.Context(), owner)
+		first, err := svc.CreateRun(t.Context(), runInput(owner))
 		require.NoError(t, err)
 
-		second, err := svc.CreateRun(t.Context(), owner)
+		second, err := svc.CreateRun(t.Context(), runInput(owner))
 
 		require.NoError(t, err)
 		assert.Equal(t, first.Run+1, second.Run)
@@ -689,12 +762,12 @@ func TestCaptureService_CreateRun(t *testing.T) {
 		svc, storage := newTestCaptureService(t, captureConfig(3), "")
 		owner := apitest.Faker(t).UUID()
 		jpegData := testJPEG(t, 8, 8, color.White)
-		first, err := svc.CreateRun(t.Context(), owner)
+		first, err := svc.CreateRun(t.Context(), runInput(owner))
 		require.NoError(t, err)
 		_, err = svc.Create(t.Context(), first.Run, &jpegData)
 		require.NoError(t, err)
 
-		second, err := svc.CreateRun(t.Context(), owner)
+		second, err := svc.CreateRun(t.Context(), runInput(owner))
 
 		require.NoError(t, err)
 		assert.Equal(t, first.Run+1, second.Run)
@@ -707,11 +780,11 @@ func TestCaptureService_CreateRun(t *testing.T) {
 		svc, _ := newTestCaptureService(t, captureConfig(3), "")
 		owner := apitest.Faker(t).UUID()
 		jpegData := testJPEG(t, 8, 8, color.White)
-		first, err := svc.CreateRun(t.Context(), owner)
+		first, err := svc.CreateRun(t.Context(), runInput(owner))
 		require.NoError(t, err)
 		_, err = svc.Create(t.Context(), first.Run, &jpegData)
 		require.NoError(t, err)
-		_, err = svc.CreateRun(t.Context(), owner)
+		_, err = svc.CreateRun(t.Context(), runInput(owner))
 		require.NoError(t, err)
 
 		_, err = svc.Create(t.Context(), first.Run, &jpegData)
@@ -725,12 +798,12 @@ func TestCaptureService_CreateRun(t *testing.T) {
 		svc, storage := newTestCaptureService(t, captureConfig(1), "")
 		owner := apitest.Faker(t).UUID()
 		jpegData := testJPEG(t, 8, 8, color.White)
-		first, err := svc.CreateRun(t.Context(), owner)
+		first, err := svc.CreateRun(t.Context(), runInput(owner))
 		require.NoError(t, err)
 		_, err = svc.Create(t.Context(), first.Run, &jpegData)
 		require.NoError(t, err)
 
-		_, err = svc.CreateRun(t.Context(), owner)
+		_, err = svc.CreateRun(t.Context(), runInput(owner))
 
 		require.NoError(t, err)
 		assert.Len(t, listFiles(t, storage, "captures/"), 1)
@@ -741,11 +814,11 @@ func TestCaptureService_CreateRun(t *testing.T) {
 
 		svc, _ := newTestCaptureService(t, captureConfig(3), "")
 		f := apitest.Faker(t)
-		first, err := svc.CreateRun(t.Context(), f.UUID())
+		first, err := svc.CreateRun(t.Context(), runInput(f.UUID()))
 		require.NoError(t, err)
 		svc.lastActivity = time.Now().Add(-runIdleTimeout - time.Second)
 
-		second, err := svc.CreateRun(t.Context(), f.UUID())
+		second, err := svc.CreateRun(t.Context(), runInput(f.UUID()))
 
 		require.NoError(t, err)
 		assert.Equal(t, first.Run+1, second.Run)
@@ -756,13 +829,53 @@ func TestCaptureService_CreateRun(t *testing.T) {
 
 		svc, _ := newTestCaptureService(t, captureConfig(3), "")
 		f := apitest.Faker(t)
-		_, err := svc.CreateRun(t.Context(), f.UUID())
+		_, err := svc.CreateRun(t.Context(), runInput(f.UUID()))
 		require.NoError(t, err)
 
-		_, err = svc.CreateRun(t.Context(), f.UUID())
+		_, err = svc.CreateRun(t.Context(), runInput(f.UUID()))
 
 		assert.ErrorIs(t, err, ErrRunBusy)
 	})
+}
+
+func TestScreenBounds(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		width  int
+		height int
+		want   image.Point
+	}{
+		{
+			name:   "keeps a screen up to full HD",
+			width:  1280,
+			height: 800,
+			want:   image.Pt(1280, 800),
+		},
+		{
+			name:   "limits the longest edge of a larger screen",
+			width:  3840,
+			height: 2160,
+			want:   image.Pt(maxScreenEdge, 1080),
+		},
+		{
+			name:   "falls back to the default screen without a size",
+			width:  0,
+			height: 0,
+			want:   image.Pt(defaultScreenWidth, defaultScreenHeight),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			bounds := screenBounds(tt.width, tt.height)
+
+			assert.Equal(t, tt.want, bounds)
+		})
+	}
 }
 
 func TestCaptureService_AbortRun(t *testing.T) {
@@ -864,6 +977,20 @@ func TestCaptureService_PrepareOverlay(t *testing.T) {
 		assert.Nil(t, svc.overlay)
 	})
 
+	t.Run("prepares nothing for an overlay above the pixel budget", func(t *testing.T) {
+		t.Parallel()
+
+		cfg := captureConfig(1)
+		cfg.CaptureWidth = 40
+		cfg.CaptureHeight = 20
+		svc, storage := newTestCaptureService(t, cfg, "overlays/frame.png")
+		putFile(t, storage, "overlays/frame.png", oversizedPNG(t))
+
+		svc.PrepareOverlay(t.Context())
+
+		assert.Nil(t, svc.overlay)
+	})
+
 	t.Run("prepares nothing for a missing overlay", func(t *testing.T) {
 		t.Parallel()
 
@@ -878,7 +1005,7 @@ func TestCaptureService_PrepareOverlay(t *testing.T) {
 	})
 }
 
-func TestPreviewBounds(t *testing.T) {
+func TestFitBounds(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -912,7 +1039,7 @@ func TestPreviewBounds(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			bounds := previewBounds(tt.bounds)
+			bounds := fitBounds(tt.bounds, defaultScreenWidth, defaultScreenHeight)
 
 			assert.Equal(t, tt.want, bounds)
 		})
@@ -925,7 +1052,8 @@ func newTestCaptureService(t *testing.T, cfg CaptureOptions, overlayPath string)
 
 	storage := newTestStorage(t)
 	cfg.OverlayPath = overlayPath
-	svc := newCaptureServiceOn(storage, cfg)
+	runs, captures := newTestStores(storage)
+	svc := newCaptureServiceOn(storage, runs, captures, cfg)
 	// The cleanups run in reverse order, so the background stores end before the storage is removed
 	t.Cleanup(svc.Wait)
 	return svc, storage
@@ -935,7 +1063,16 @@ func newTestCaptureService(t *testing.T, cfg CaptureOptions, overlayPath string)
 func startRun(t *testing.T, svc *CaptureService) int {
 	t.Helper()
 
-	start, err := svc.CreateRun(t.Context(), apitest.Faker(t).UUID())
+	start, err := svc.CreateRun(t.Context(), runInput(apitest.Faker(t).UUID()))
 	require.NoError(t, err)
 	return start.Run
+}
+
+// runInput returns the input of a run of owner on a screen of the default size.
+func runInput(owner string) RunCreateInput {
+	return RunCreateInput{
+		Owner:        owner,
+		ScreenWidth:  defaultScreenWidth,
+		ScreenHeight: defaultScreenHeight,
+	}
 }

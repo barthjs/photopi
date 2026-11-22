@@ -10,13 +10,16 @@ each cropped from its center to the aspect ratio of its slot. A run with more ph
 continues on the next page, and pages without a photo are not printed. The layout selected for printing is also
 used for the collages of the emails and the cloud share.
 
-PhotoPi ships two layouts, a photo strip with three photos and a single photo on a full page. The layout
-in use for printing cannot be deleted.
+PhotoPi ships two layouts, a photo strip with three photos and a single photo on a full page. A layout is renamed
+by saving it under a new name. The layout in use for printing can be neither deleted nor renamed.
+
+The name of a layout is also its file name, so it cannot contain any of `/ \ < > : " | ? *`
+or be a name Windows keeps for a device, such as `CON` or `NUL`.
 
 ## Editing a layout
 
 The Layouts page arranges the slots on the page. A slot is moved and resized by dragging or by exact values
-in millimeters. A caption with the event name and the date can be placed anywhere on the page. The order
+in millimeters. A branding with the event name and the date can be placed anywhere on the page. The order
 of the slots in the list sets the order in which the photos fill them. The help of the editor explains the tools.
 
 The configuration page warns when the selected layout has a different number of slots than a run has photos.

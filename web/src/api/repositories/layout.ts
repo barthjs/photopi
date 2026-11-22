@@ -1,32 +1,32 @@
-import { apiFetch } from '@/api/client';
-import type { LayoutDetailResponse, LayoutResponse, LayoutSaveRequest } from '@/api/types';
+import { apiFetch } from '@/api/client/client';
+import type { LayoutDetailResponse, LayoutResponse, LayoutSaveRequest } from '@/api/types/layout';
 
 export const layoutRepository = {
-  /** list returns a summary of every print layout. */
-  list(): Promise<LayoutResponse[]> {
+  /** Returns a summary of every print layout. */
+  async list(): Promise<LayoutResponse[]> {
     return apiFetch('/print/layouts', {
       method: 'GET',
     });
   },
 
-  /** get returns the layout with the given ID, including its pages and slots. */
-  get(id: string): Promise<LayoutDetailResponse> {
-    return apiFetch(`/print/layouts/${encodeURIComponent(id)}`, {
+  /** Returns the layout with the given name, including its pages and slots. */
+  async get(name: string): Promise<LayoutDetailResponse> {
+    return apiFetch(`/print/layouts/${encodeURIComponent(name)}`, {
       method: 'GET',
     });
   },
 
-  /** save creates or replaces the layout with the given ID. */
-  save(id: string, payload: LayoutSaveRequest): Promise<LayoutDetailResponse> {
-    return apiFetch(`/print/layouts/${encodeURIComponent(id)}`, {
+  /** Creates or replaces the layout with the given name. */
+  async save(name: string, payload: LayoutSaveRequest): Promise<LayoutDetailResponse> {
+    return apiFetch(`/print/layouts/${encodeURIComponent(name)}`, {
       method: 'PUT',
       body: payload,
     });
   },
 
-  /** delete removes the layout with the given ID. */
-  delete(id: string): Promise<void> {
-    return apiFetch(`/print/layouts/${encodeURIComponent(id)}`, {
+  /** Removes the layout with the given name. */
+  async delete(name: string): Promise<void> {
+    return apiFetch(`/print/layouts/${encodeURIComponent(name)}`, {
       method: 'DELETE',
     });
   },

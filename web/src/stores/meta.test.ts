@@ -2,7 +2,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { metaRepository } from '@/api/repositories/meta';
-import type { MetaResponse } from '@/api/types';
+import type { MetaResponse } from '@/api/types/meta';
 import { useMetaStore } from '@/stores/meta';
 
 const get = vi.hoisted(() => vi.fn<typeof metaRepository.get>());
@@ -20,11 +20,6 @@ const meta: MetaResponse = {
   language: 'de',
   camera: {
     source: 'webcam',
-    captureWidth: 1920,
-    captureHeight: 1080,
-    previewWidth: 1280,
-    previewHeight: 720,
-    previewFps: 30,
     hasOverlay: false,
   },
   capture: {

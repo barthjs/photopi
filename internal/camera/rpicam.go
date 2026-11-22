@@ -15,16 +15,8 @@ import (
 // which otherwise fills stderr with informational messages on every start.
 const libcameraLogLevels = "LIBCAMERA_LOG_LEVELS=*:WARN"
 
-// rpiCam drives the Raspberry Pi camera through the rpicam-apps command-line tools. rpicam-vid feeds the live preview,
-// and rpicam-still takes the full-resolution still. The ISP processes the sensor data in hardware,
-// while the JPEG encoding of the preview frames and the still runs on the CPU, since the Raspberry Pi 5
-// has no hardware JPEG encoder. The Go process only starts the tools and forwards their output.
-//
-// libcamera only ever lets one process hold the camera device at a time:
-// a second one fails immediately with "Device or resource busy". device coordinates that:
-// since the live preview (StreamPreview) runs for as long as a client stays connected,
-// a still (Capture) requested while it is running has to actively stop it
-// and wait for rpicam-vid to actually release the device first.
+// rpiCam drives the Raspberry Pi camera through rpicam-vid for the preview and rpicam-still for the still,
+// and stops a running preview for a still, since libcamera lets only one process hold the camera.
 type rpiCam struct {
 	cfg    Options
 	logger zerolog.Logger
@@ -50,7 +42,7 @@ func newRPiCam(logger zerolog.Logger, options Options) (*rpiCam, error) {
 }
 
 // rpicamEnv returns the environment of the rpicam tools, which limits libcamera to warnings
-// unless the environment of this process already sets the log levels, for example to debug the camera.
+// unless the environment of this process already sets the log levels.
 func rpicamEnv() []string {
 	env := os.Environ()
 	if _, ok := os.LookupEnv("LIBCAMERA_LOG_LEVELS"); ok {

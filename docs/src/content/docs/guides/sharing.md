@@ -6,15 +6,15 @@ sidebar:
 ---
 
 The share screen offers guests to send their photos by email and shows a QR code that opens them on a phone.
-Both are set in the Share tab of the configuration page. Emails and uploads run in the background, and the share
+Both are set in the Share section of the configuration page. Emails and uploads run in the background, and the share
 screen shows their result. If the mail server or the cloud cannot be reached, the share fails right away,
 since a booth often runs without internet. It is not sent later.
 
 ## Email
 
-The email share sends the photos of a run to an address the guest enters. It uses the settings of the Mail tab:
+The email share sends the photos of a run to an address the guest enters. It uses the settings of the Mail section:
 an SMTP server with its sender address, or the `log` driver, which only writes the emails to the log.
-If sending fails, the guest sees the contact address of the Capture tab with the run number.
+If sending fails, the guest sees the contact address of the Capture section with the run number.
 
 ## Cloud share
 

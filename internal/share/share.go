@@ -30,8 +30,7 @@ type File struct {
 
 // Provider is an interface for uploading files to a remote storage provider.
 type Provider interface {
-	// TestConnection verifies that the provider's configured destination is reachable and,
-	// where applicable, that the credentials are accepted.
+	// TestConnection verifies that the configured destination of the provider is reachable and accepts the credentials.
 	TestConnection(ctx context.Context) error
 	// Upload uploads files into a remoteFolder, creating it if necessary, and returns a public share URL for that folder.
 	Upload(ctx context.Context, remoteFolder string, files []File) (shareURL string, err error)
@@ -46,9 +45,8 @@ type Options struct {
 	NextcloudFolder   string
 }
 
-// New creates a Provider for the configured Driver. DriverNone yields a provider whose uploads
-// fail with ErrUnsupported, so callers never hold a nil provider. DriverSelf shares through the public share page
-// of the application itself, which uploads nothing, so it yields the same provider as DriverNone.
+// New creates a Provider for the configured Driver, whose uploads fail with ErrUnsupported for DriverNone
+// and DriverSelf, which shares through the share page of the application.
 func New(options Options) (Provider, error) {
 	switch options.Driver {
 	case DriverNone:

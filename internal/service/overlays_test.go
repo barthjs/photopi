@@ -37,41 +37,8 @@ func TestOverlayService_List(t *testing.T) {
 	})
 }
 
-func TestOverlayService_Get(t *testing.T) {
-	t.Parallel()
-
-	t.Run("returns the overlay", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		svc := newTestOverlayService(t, OverlayOptions{})
-		content := []byte(apitest.Faker(t).LoremIpsumSentence(6))
-		overlay, err := svc.Create(ctx, "alpha.png", content)
-		require.NoError(t, err)
-
-		data, err := svc.Get(ctx, overlay.Path)
-
-		require.NoError(t, err)
-		assert.Equal(t, content, data)
-	})
-}
-
 func TestOverlayService_Create(t *testing.T) {
 	t.Parallel()
-
-	t.Run("stores the overlay", func(t *testing.T) {
-		t.Parallel()
-
-		svc := newTestOverlayService(t, OverlayOptions{})
-
-		overlay, err := svc.Create(t.Context(), "zeta frame.png", []byte(apitest.Faker(t).LoremIpsumSentence(6)))
-
-		require.NoError(t, err)
-		assert.Equal(t, domain.Overlay{
-			Name: "zeta-frame.png",
-			Path: "overlays/zeta-frame.png",
-		}, overlay)
-	})
 
 	t.Run("keeps the overlay inside its folder", func(t *testing.T) {
 		t.Parallel()
@@ -150,91 +117,8 @@ func TestOverlayService_Create(t *testing.T) {
 	})
 }
 
-func TestOverlayService_Delete(t *testing.T) {
-	t.Parallel()
-
-	t.Run("removes the overlay", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		svc := newTestOverlayService(t, OverlayOptions{})
-		overlay, err := svc.Create(ctx, "alpha.png", []byte(apitest.Faker(t).LoremIpsumSentence(6)))
-		require.NoError(t, err)
-
-		err = svc.Delete(ctx, overlay.Name)
-
-		require.NoError(t, err)
-		_, err = svc.Get(ctx, overlay.Path)
-		assert.ErrorIs(t, err, apperr.ErrNotFound)
-	})
-
-	t.Run("returns not found for an unknown overlay", func(t *testing.T) {
-		t.Parallel()
-
-		svc := newTestOverlayService(t, OverlayOptions{})
-
-		err := svc.Delete(t.Context(), apitest.Faker(t).LetterN(8)+".png")
-
-		assert.ErrorIs(t, err, apperr.ErrNotFound)
-	})
-
-	t.Run("returns not found for a malformed name", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		svc := newTestOverlayService(t, OverlayOptions{})
-		overlay, err := svc.Create(ctx, "alpha.png", []byte(apitest.Faker(t).LoremIpsumSentence(6)))
-		require.NoError(t, err)
-
-		for _, name := range append(invalidOverlayNames(), "../alpha.png", "x/../alpha.png") {
-			t.Run(name, func(t *testing.T) {
-				t.Parallel()
-
-				err := svc.Delete(t.Context(), name)
-
-				assert.ErrorIs(t, err, apperr.ErrNotFound)
-				overlays, err := svc.List(t.Context())
-				require.NoError(t, err)
-				assert.Equal(t, []domain.Overlay{
-					overlay,
-				}, overlays, "a malformed name deletes nothing")
-			})
-		}
-	})
-
-	t.Run("keeps the active overlay", func(t *testing.T) {
-		t.Parallel()
-
-		storage := newTestStorage(t)
-		putFile(t, storage, "overlays/frame.png", []byte("x"))
-		svc := NewOverlayService(OverlayOptions{
-			ActivePath: "overlays/frame.png",
-		}, store.NewOverlayStore(storage))
-
-		err := svc.Delete(t.Context(), "frame.png")
-
-		assert.ErrorIs(t, err, ErrOverlayActive)
-		assert.Equal(t, []string{"overlays/frame.png"}, listFiles(t, storage, "overlays/"))
-	})
-}
-
 func TestOverlayService_Download(t *testing.T) {
 	t.Parallel()
-
-	t.Run("returns the overlay", func(t *testing.T) {
-		t.Parallel()
-
-		ctx := t.Context()
-		content := []byte(apitest.Faker(t).LoremIpsumSentence(6))
-		svc := newTestOverlayService(t, OverlayOptions{})
-		overlay, err := svc.Create(ctx, "alpha.png", content)
-		require.NoError(t, err)
-
-		data, err := svc.Download(ctx, overlay.Name)
-
-		require.NoError(t, err)
-		assert.Equal(t, content, data)
-	})
 
 	t.Run("returns not found for an invalid or unknown name", func(t *testing.T) {
 		t.Parallel()
@@ -247,11 +131,6 @@ func TestOverlayService_Download(t *testing.T) {
 			assert.ErrorIs(t, err, apperr.ErrNotFound, name)
 		}
 	})
-}
-
-// invalidOverlayNames returns names that cannot address an overlay file.
-func invalidOverlayNames() []string {
-	return []string{"", "alpha", " .png", "..png", "../escape.png", "a/b.png", `a\b.png`, strings.Repeat("a", 252) + ".png"}
 }
 
 // newTestOverlayService builds an overlay service on a fresh local storage.

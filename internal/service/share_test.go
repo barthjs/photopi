@@ -88,8 +88,8 @@ type shareFixture struct {
 type shareOptions struct {
 	provider     share.Provider
 	printEnabled bool
-	// layoutID is the layout the collages are rendered with, a stored layout if empty.
-	layoutID    string
+	// layout is the layout the collages are rendered with, a stored layout if empty.
+	layout      string
 	mailErr     error
 	selfBaseURL string
 }
@@ -405,7 +405,7 @@ func TestShareService_RunEmail(t *testing.T) {
 		faker := apitest.Faker(t)
 		f := newShareFixture(t, shareOptions{
 			printEnabled: true,
-			layoutID:     faker.LetterN(8),
+			layout:       faker.LetterN(8),
 		})
 		run := faker.IntRange(1, 1000)
 		f.addCaptures(t, run)
@@ -837,18 +837,17 @@ func newShareFixture(t *testing.T, options shareOptions) shareFixture {
 		options.provider = provider
 	}
 	layouts := store.NewLayoutStore(storage)
-	require.NoError(t, layouts.Save(t.Context(), twoSlotLayout(1).ID, twoSlotLayout(1)))
-	if options.layoutID == "" {
-		options.layoutID = twoSlotLayout(1).ID
+	require.NoError(t, layouts.Save(t.Context(), twoSlotLayout(1).Name, twoSlotLayout(1)))
+	if options.layout == "" {
+		options.layout = twoSlotLayout(1).Name
 	}
 
-	runs := store.NewRunStore(storage)
-	captures := store.NewCaptureStore(storage)
-	capture := newCaptureServiceOn(storage, CaptureOptions{
+	runs, captures := newTestStores(storage)
+	capture := newCaptureServiceOn(storage, runs, captures, CaptureOptions{
 		ImagesPerRun: 2,
 	})
 	printService := NewPrintService(zerolog.Nop(), PrintOptions{
-		LayoutID:   options.layoutID,
+		Layout:     options.layout,
 		EventName:  "Summer Party",
 		FilePrefix: "x",
 	}, &fakeCommands{}, runs, captures, store.NewCollageStore(storage), layouts)

@@ -1,7 +1,6 @@
 package api_test
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -293,19 +292,4 @@ func testPrintQueueAction(t *testing.T, action printQueueAction) {
 
 		response.AssertStatus(http.StatusInternalServerError)
 	})
-}
-
-// lpstatLine is how lpstat -p reports one printer queue in the given status.
-func lpstatLine(name, status string) string {
-	const since = "Mon 12 Oct 2026 09:14:03 CEST"
-	switch status {
-	case "printing":
-		return fmt.Sprintf("printer %s now printing %s-1.  enabled since %s\n", name, name, since)
-	case "disabled":
-		return fmt.Sprintf("printer %s disabled since %s -\n\treason unknown\n", name, since)
-	case "holding":
-		return fmt.Sprintf("printer %s is holding new jobs.  enabled since %s\n", name, since)
-	default:
-		return fmt.Sprintf("printer %s is idle.  enabled since %s\n", name, since)
-	}
 }

@@ -46,10 +46,9 @@ func (a *API) shareCloudUploadGetHandler(w http.ResponseWriter, r *http.Request)
 	a.writeJSON(w, r, http.StatusOK, toShareJobResponse(state), nil)
 }
 
-// ShareJobResponse is the state of a background share job of a run, such as an email or a cloud upload.
 type ShareJobResponse struct {
-	Status string `json:"status"`           // service.JobStatus
-	Reason string `json:"reason,omitempty"` // service.JobReason
+	Status string `json:"status" enums:"pending,done,failed"`
+	Reason string `json:"reason,omitempty" enums:"unreachable,queue_unavailable,failed"`
 	URL    string `json:"url,omitempty"`
 }
 
@@ -111,13 +110,11 @@ func (a *API) shareEmailGetHandler(w http.ResponseWriter, r *http.Request) {
 	a.writeJSON(w, r, http.StatusOK, toShareJobResponse(state), nil)
 }
 
-// ShareEmailRequest holds the address to email the captures of a run to.
 type ShareEmailRequest struct {
 	Email string `json:"email" validate:"required,email"`
 }
 
-// shareEmailHandler starts emailing every capture of a run to the given address in the background
-// and returns immediately, so a slow uplink cannot run into the timeout of the request.
+// shareEmailHandler starts emailing every capture of a run in the background, so a slow uplink cannot run into the timeout.
 //
 //	@Summary		Email run
 //	@Description	Starts emailing every capture of a run to the given address as attachments in the background. Poll GET on the same path for the result. Only available when email sharing is enabled.
@@ -244,7 +241,7 @@ func (a *API) sharePrintHandler(w http.ResponseWriter, r *http.Request) {
 func (a *API) runHasCaptures(w http.ResponseWriter, r *http.Request, run int) bool {
 	exists, err := a.shareService.RunHasCaptures(r.Context(), run)
 	if err != nil {
-		a.serverErrorResponse(w, r, err)
+		a.respondError(w, r, err)
 		return false
 	}
 	if !exists {

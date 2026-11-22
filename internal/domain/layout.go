@@ -40,9 +40,9 @@ type LayoutBranding struct {
 // Layout describes how the captures of a run are composed onto one or more pages.
 // It carries JSON tags because the layout store persists it as JSON.
 type Layout struct {
-	ID       string         `json:"id"`
-	Name     string         `json:"name"`
-	Paper    LayoutPaper    `json:"paper"`
-	Pages    []LayoutPage   `json:"pages"`
-	Branding LayoutBranding `json:"branding"`
+	Name        string         `json:"name"`
+	Description *string        `json:"description"`
+	Paper       LayoutPaper    `json:"paper"`
+	Pages       []LayoutPage   `json:"pages"`
+	Branding    LayoutBranding `json:"branding"`
 }

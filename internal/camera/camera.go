@@ -73,7 +73,7 @@ const (
 	WhiteBalanceCloudy       WhiteBalance = "cloudy"
 )
 
-// AutofocusMode selects the autofocus mode of a rpicam camera with a focus motor, such as the Camera Module 3.
+// AutofocusMode selects the autofocus mode of a rpicam camera with a focus motor.
 type AutofocusMode string
 
 const (
@@ -112,8 +112,8 @@ type Camera interface {
 	Capture(ctx context.Context) (*[]byte, error)
 }
 
-// Options hold the settings required to construct a Camera instance. The image settings apply
-// to the rpicam source only, where their zero values keep the tools' own behavior.
+// Options hold the settings required to construct a Camera instance.
+// The image settings apply to the rpicam source only, where their zero values keep the tools' own behavior.
 type Options struct {
 	Source        Source
 	CaptureWidth  int

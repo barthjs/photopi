@@ -34,6 +34,28 @@ describe('galleryRepository', () => {
     });
   });
 
+  describe('listDays', () => {
+    it('returns the runs per day of the event', async () => {
+      const days = {
+        days: [
+          {
+            day: '2026-11-17',
+            count: 3,
+          },
+        ],
+      };
+      fetchMock.mockResolvedValue(jsonResponse(200, days));
+
+      const result = await galleryRepository.listDays({
+        event: 'summer-party',
+      });
+
+      expect(result).toEqual(days);
+      expect(lastRequest().url).toBe('/api/gallery/days?filter%5Bevent%5D=summer-party');
+      expect(lastRequest().init?.method).toBe('GET');
+    });
+  });
+
   describe('delete', () => {
     it('removes the run', async () => {
       fetchMock.mockResolvedValue(jsonResponse(204, undefined));
@@ -42,6 +64,27 @@ describe('galleryRepository', () => {
 
       expect(lastRequest().url).toBe('/api/gallery/5');
       expect(lastRequest().init?.method).toBe('DELETE');
+    });
+  });
+
+  describe('bulk', () => {
+    it('deletes the runs', async () => {
+      const response = {
+        succeeded: 2,
+        failed: 0,
+        skipped: 0,
+        failedIds: [],
+      };
+      fetchMock.mockResolvedValue(jsonResponse(200, response));
+
+      const result = await galleryRepository.bulk({
+        action: 'delete',
+        ids: ['12', '13'],
+      });
+
+      expect(result).toEqual(response);
+      expect(lastRequest().url).toBe('/api/gallery/bulk');
+      expect(lastRequest().init?.method).toBe('POST');
     });
   });
 
@@ -73,6 +116,12 @@ describe('galleryRepository', () => {
     });
   });
 
+  describe('thumbnailUrl', () => {
+    it('returns the address of the thumbnail of a run', () => {
+      expect(galleryRepository.thumbnailUrl(12)).toBe('/api/gallery/12/thumbnail');
+    });
+  });
+
   describe('originalUrl', () => {
     it('returns the address of the original of a capture', () => {
       expect(galleryRepository.originalUrl(5, 2)).toBe('/api/gallery/5/originals/2');
@@ -86,6 +135,20 @@ describe('galleryRepository', () => {
 
     it('returns the address of the archive with the originals of a run', () => {
       expect(galleryRepository.zipUrl(5, true)).toBe('/api/gallery/5/zip?originals=true');
+    });
+  });
+
+  describe('selectionZipUrl', () => {
+    it('returns the address of the archive of the runs', () => {
+      expect(galleryRepository.selectionZipUrl([12, 13])).toBe(
+        '/api/gallery/zip?filter%5Brun%5D=12%2C13',
+      );
+    });
+
+    it('returns the address of the archive of their originals', () => {
+      expect(galleryRepository.selectionZipUrl([12], true)).toBe(
+        '/api/gallery/zip?filter%5Brun%5D=12&originals=true',
+      );
     });
   });
 

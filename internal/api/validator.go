@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"regexp"
 	"strings"
 	"time"
 
@@ -15,11 +14,12 @@ import (
 )
 
 // v validates the request DTOs.
-var v *validator.Validate
+var v = newValidator()
 
-// init builds the validator once, since it caches the metadata of every struct it checks.
-func init() {
-	v = validator.New(validator.WithRequiredStructEnabled(), validator.WithTagNameFuncBlankOmit())
+// newValidator builds the validator once, since it caches the metadata of every struct it checks.
+// The resources register their own rules in an init function of their file.
+func newValidator() *validator.Validate {
+	v := validator.New(validator.WithRequiredStructEnabled(), validator.WithTagNameFuncBlankOmit())
 
 	// Report errors under the wire-format field name: the JSON tag for request bodies,
 	// falling back to the form tag for multipart/form uploads.
@@ -38,60 +38,58 @@ func init() {
 		return name
 	})
 
-	// The future tag compares a time with the clock of the API, which validate passes in the context
+	// The future and past tags compare a time with the clock of the API, which validate passes in the context
 	if err := v.RegisterValidationCtx("future", validateFuture); err != nil {
 		panic(err)
 	}
-
-	// A required_if tag only sees sibling fields, but the driver that makes the fields of StorageSettings.S3
-	// and CloudShareSettings.Nextcloud/Self required lives one level up. A struct-level validation checks across
-	// that boundary, so a missing field is reported as a field error of the 422 like any other.
-	v.RegisterStructValidation(validateStorageSettings, StorageSettings{})
-	v.RegisterStructValidation(validateCloudShareSettings, CloudShareSettings{})
-
-	// The built-in hexcolor tag also accepts short and alpha forms such as #fff,
-	// which the collage renderer cannot draw, so a layout color is checked for #rrggbb only.
-	if err := v.RegisterValidation("rgbcolor", validateRGBColor); err != nil {
+	if err := v.RegisterValidationCtx("past", validatePast); err != nil {
 		panic(err)
 	}
 
-	// The validator has no rule for a comma-separated list of networks, which the network settings are written as
-	if err := v.RegisterValidation("networks", validateNetworks); err != nil {
-		panic(err)
-	}
-
-	// The origins and the credentials of CORS follow the rules of the config package, see ServerSettings
-	if err := v.RegisterValidation("origin", validateOrigin); err != nil {
-		panic(err)
-	}
-	v.RegisterStructValidation(validateServerSettings, ServerSettings{})
+	return v
 }
 
 // validationClockKey is the context key under which validate hands the clock of the API to the rules,
 // so a rule that compares with the current time follows the clock of the tests.
 type validationClockKey struct{}
 
-// validateFuture reports whether a time lies in the future of the clock that validate passes in the context.
-// It is the "future" tag, such as for an expiry that would otherwise be over from the start.
-// Without a clock in the context it fails, since the validator is only called through validate.
+// validateFuture is the "future" tag, which reports whether a time lies in the future of the clock that validate passes.
 func validateFuture(ctx context.Context, fl validator.FieldLevel) bool {
 	now, ok := ctx.Value(validationClockKey{}).(func() time.Time)
 	if !ok {
 		return false
 	}
-	t, ok := fl.Field().Interface().(time.Time)
+	t, ok := fieldTime(fl)
 	if !ok {
 		return false
 	}
 	return t.After(now())
 }
 
-// rgbColorPattern matches a color as #rrggbb.
-var rgbColorPattern = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
+// validatePast is the "past" tag, which reports whether a time does not lie in the future of the clock that validate passes.
+func validatePast(ctx context.Context, fl validator.FieldLevel) bool {
+	now, ok := ctx.Value(validationClockKey{}).(func() time.Time)
+	if !ok {
+		return false
+	}
+	t, ok := fieldTime(fl)
+	if !ok {
+		return false
+	}
+	return !t.After(now())
+}
 
-// validateRGBColor reports whether the field holds a color as #rrggbb.
-func validateRGBColor(fl validator.FieldLevel) bool {
-	return rgbColorPattern.MatchString(fl.Field().String())
+// fieldTime returns the time a field holds as a time.Time or an RFC 3339 string.
+func fieldTime(fl validator.FieldLevel) (time.Time, bool) {
+	switch value := fl.Field().Interface().(type) {
+	case time.Time:
+		return value, true
+	case string:
+		t, err := time.Parse(time.RFC3339, value)
+		return t, err == nil
+	default:
+		return time.Time{}, false
+	}
 }
 
 // FieldError and FieldErrors are aliases of the apperr types, so handlers build them with short names
@@ -103,8 +101,8 @@ type (
 	FieldErrors = apperr.FieldErrors
 )
 
-// validate validates a struct against the clock of the API and returns structured field errors. Any other error
-// of the validator, such as for a value that is not a struct, is a programming error and returned as an error.
+// validate validates a struct against the clock of the API and returns its field errors,
+// or an error for a value the validator cannot check.
 func (a *API) validate(ctx context.Context, data any) (FieldErrors, error) {
 	err := v.StructCtx(context.WithValue(ctx, validationClockKey{}, a.now), data)
 	if err == nil {

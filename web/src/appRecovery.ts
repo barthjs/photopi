@@ -12,9 +12,9 @@ import { useMetaStore } from '@/stores/meta';
 const VERSION_CHECK_INTERVAL_MS = 60_000;
 
 /**
- * A reload right after a crash recovers from a one-off glitch. A bug that returns right after the reload
- * would loop quickly, so once the reloads within the window reach the threshold, the next reload waits
- * for the longer delay.
+ * A reload right after a crash recovers from a one-off glitch.
+ * A bug that returns right after the reload would loop quickly,
+ * so once the reloads within the window reach the threshold, the next reload waits for the longer delay.
  */
 const RELOAD_DELAY_MS = 2_000;
 const RELOAD_BACKOFF_DELAY_MS = 30_000;
@@ -106,10 +106,10 @@ async function waitForBackend(): Promise<void> {
 }
 
 /**
- * checkBackendIfIdle reloads on the welcome screen, where a reload discards no run, once the backend runs
- * another version or was restarted since the page loaded, since a restart applies a changed configuration.
- * A page whose first metadata request failed reloads as well, it would otherwise keep its fallbacks,
- * such as the webcam as camera.
+ * checkBackendIfIdle reloads on the welcome screen, where a reload discards no run,
+ * once the backend runs another version or was restarted since the page loaded,
+ * since a restart applies a changed configuration. A page whose first metadata request failed reloads as well,
+ * it would otherwise keep its fallbacks, such as the webcam as camera.
  */
 async function checkBackendIfIdle(): Promise<void> {
   if (!isIdle()) return;
@@ -130,7 +130,7 @@ async function checkBackendIfIdle(): Promise<void> {
       );
       return;
     }
-    if (loaded === null || loaded.instance !== meta.instance) {
+    if (loaded?.instance !== meta.instance) {
       reloadOnce('backend-restarted', meta.instance, true);
     }
   } catch {
@@ -149,7 +149,7 @@ export function setupAppRecovery(app: App): void {
   };
 
   useEventListener(window, 'error', (event: ErrorEvent) => {
-    if (event.message?.includes(RESIZE_OBSERVER_LOOP_MESSAGE)) return;
+    if (event.message.includes(RESIZE_OBSERVER_LOOP_MESSAGE)) return;
     reloadOnce('window-error', event.error ?? event);
   });
   useEventListener(window, 'unhandledrejection', (event: PromiseRejectionEvent) =>
@@ -160,5 +160,5 @@ export function setupAppRecovery(app: App): void {
     if (to.name === 'welcome') void checkBackendIfIdle();
   });
 
-  setInterval(checkBackendIfIdle, VERSION_CHECK_INTERVAL_MS);
+  setInterval(() => void checkBackendIfIdle(), VERSION_CHECK_INTERVAL_MS);
 }

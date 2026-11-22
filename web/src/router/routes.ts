@@ -11,16 +11,16 @@ import SharePage from '@/pages/SharePage.vue';
 import WelcomePage from '@/pages/WelcomePage.vue';
 
 declare module 'vue-router' {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-definitions -- augmentation merges into the interface of the library
   interface RouteMeta {
     titleKey?: string;
-    // Resolves the interpolation values of the title from the route.
+    // Resolves the interpolation values of the title from the route
     titleParams?: (route: RouteLocationNormalizedLoaded) => Record<string, string>;
     requiresAuth?: boolean;
     requiresGuest?: boolean;
-    // The page uses the whole width of the main area instead of the container width.
-    fullWidth?: boolean;
-    // From lg up, the page fills the height between header and footer instead of scrolling.
-    fillViewport?: boolean;
+    // From lg up, the page fills the height of the panel instead of scrolling,
+    // for a page with sections only while the route names a section that needs it.
+    fillViewport?: boolean | ((route: RouteLocationNormalizedLoaded) => boolean);
   }
 }
 
@@ -74,7 +74,7 @@ export const routes: RouteRecordRaw[] = [
           titleKey: 'pages.login.title',
           requiresGuest: true,
         },
-        component: () => import('@/pages/LoginPage.vue'),
+        component: async () => import('@/pages/LoginPage.vue'),
       },
     ],
   },
@@ -88,7 +88,7 @@ export const routes: RouteRecordRaw[] = [
         meta: {
           titleKey: 'pages.guestShare.title',
         },
-        component: () => import('@/pages/GuestSharePage.vue'),
+        component: async () => import('@/pages/GuestSharePage.vue'),
       },
     ],
   },
@@ -103,7 +103,7 @@ export const routes: RouteRecordRaw[] = [
           titleKey: 'pages.dashboard.title',
           requiresAuth: true,
         },
-        component: () => import('@/pages/DashboardPage.vue'),
+        component: async () => import('@/pages/DashboardPage.vue'),
       },
       {
         path: 'config',
@@ -112,7 +112,7 @@ export const routes: RouteRecordRaw[] = [
           titleKey: 'pages.config.title',
           requiresAuth: true,
         },
-        component: () => import('@/pages/ConfigPage.vue'),
+        component: async () => import('@/pages/ConfigPage.vue'),
       },
       {
         path: 'gallery',
@@ -121,7 +121,7 @@ export const routes: RouteRecordRaw[] = [
           titleKey: 'pages.gallery.title',
           requiresAuth: true,
         },
-        component: () => import('@/pages/GalleryPage.vue'),
+        component: async () => import('@/pages/GalleryPage.vue'),
       },
       {
         path: 'layouts',
@@ -129,10 +129,9 @@ export const routes: RouteRecordRaw[] = [
         meta: {
           titleKey: 'pages.layouts.title',
           requiresAuth: true,
-          fullWidth: true,
           fillViewport: true,
         },
-        component: () => import('@/pages/LayoutsPage.vue'),
+        component: async () => import('@/pages/LayoutsPage.vue'),
       },
       {
         path: 'system',
@@ -141,7 +140,7 @@ export const routes: RouteRecordRaw[] = [
           titleKey: 'pages.system.title',
           requiresAuth: true,
         },
-        component: () => import('@/pages/SystemPage.vue'),
+        component: async () => import('@/pages/SystemPage.vue'),
       },
     ],
   },

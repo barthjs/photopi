@@ -75,8 +75,8 @@ type PrintOptions struct {
 	Enabled bool
 	// PrinterName is the CUPS queue (see lpstat -p).
 	PrinterName string
-	// LayoutID is the layout used to compose print and share collages.
-	LayoutID       string
+	// Layout is the name of the layout that composes print and share collages.
+	Layout         string
 	SubmissionMode PrintSubmissionMode
 	// EventName is drawn onto collages that carry branding and names the folder of the collages.
 	EventName string
@@ -180,13 +180,14 @@ func (s *PrintService) Enabled() bool {
 	return s.options.Enabled
 }
 
-// LayoutID returns the layout the running service prints with.
-func (s *PrintService) LayoutID() string {
-	return s.options.LayoutID
+// Layout returns the layout the running service prints with.
+func (s *PrintService) Layout() string {
+	return s.options.Layout
 }
 
-// RenderCollage composes the captures of run onto the pages of the configured layout and returns the storage path
-// of each rendered page in order. The pages are cached until the layout changes, so every share reuses them.
+// RenderCollage composes the captures of run onto the pages of the configured layout
+// and returns the storage path of each rendered page in order.
+// The pages are cached until the layout changes, so every share reuses them.
 func (s *PrintService) RenderCollage(ctx context.Context, run int) ([]string, error) {
 	layout, err := s.layout(ctx)
 	if err != nil {
@@ -292,12 +293,12 @@ func (s *PrintService) Print(ctx context.Context, run int) (err error) {
 // layout returns the configured layout, or apperr.ErrNotFound if it does not exist
 // or its ID cannot address a layout file.
 func (s *PrintService) layout(ctx context.Context) (*domain.Layout, error) {
-	layout, err := s.layouts.Get(ctx, s.options.LayoutID)
+	layout, err := s.layouts.Get(ctx, s.options.Layout)
 	if errors.Is(err, store.ErrInvalidName) {
 		return nil, apperr.ErrNotFound
 	}
 	if err != nil {
-		return nil, fmt.Errorf("service: loading layout %q: %w", s.options.LayoutID, err)
+		return nil, fmt.Errorf("service: loading layout %q: %w", s.options.Layout, err)
 	}
 	return layout, nil
 }
@@ -340,7 +341,7 @@ func (s *PrintService) collagePages(ctx context.Context, run int, layout domain.
 
 	pages := filledPages(layout, len(capturePaths))
 	if len(pages) == 0 {
-		return nil, fmt.Errorf("service: layout %q has no slot to fill", layout.ID)
+		return nil, fmt.Errorf("service: layout %q has no slot to fill", layout.Name)
 	}
 
 	collages := make([]domain.Collage, 0, len(pages))
@@ -432,7 +433,7 @@ func (s *PrintService) collagePages(ctx context.Context, run int, layout domain.
 func layoutHash(layout domain.Layout, eventName string) (string, error) {
 	data, err := json.Marshal(layout)
 	if err != nil {
-		return "", fmt.Errorf("service: hashing layout %q: %w", layout.ID, err)
+		return "", fmt.Errorf("service: hashing layout %q: %w", layout.Name, err)
 	}
 
 	sum := sha256.New()
@@ -467,8 +468,8 @@ func filledPages(layout domain.Layout, captures int) []filledPage {
 	return pages
 }
 
-// drawPhoto decodes a capture, turns it upright by its EXIF orientation, crops it from the center
-// to the aspect ratio of dstRect, and scales it into dstRect of canvas.
+// drawPhoto decodes a capture, turns it upright by its EXIF orientation,
+// crops it from the center to the aspect ratio of dstRect, and scales it into dstRect of canvas.
 func drawPhoto(canvas *image.RGBA, dstRect image.Rectangle, data []byte) error {
 	photo, err := jpeg.Decode(bytes.NewReader(data))
 	if err != nil {
@@ -793,7 +794,6 @@ func writeTempFile(pattern string, data []byte) (string, error) {
 }
 
 // wrapJPEGsAsPDF embeds JPEG collage pages as the pages of a minimal PDF with the physical size of the paper.
-// It is built by hand, since full-page JPEG images need only a small, fixed PDF structure.
 func wrapJPEGsAsPDF(pages [][]byte, widthMM, heightMM float64) ([]byte, error) {
 	if len(pages) == 0 {
 		return nil, errors.New("no page to print")
@@ -802,6 +802,7 @@ func wrapJPEGsAsPDF(pages [][]byte, widthMM, heightMM float64) ([]byte, error) {
 	pageWidthPt := widthMM / mmPerInch * ptPerInch
 	pageHeightPt := heightMM / mmPerInch * ptPerInch
 
+	// The PDF is built by hand, since full-page JPEG images need only a small, fixed structure.
 	// Objects: 1 catalog, 2 page tree, 3 the content stream all pages share,
 	// then a page object and its image for every page.
 	const firstPageObject = 4
@@ -865,8 +866,7 @@ func wrapJPEGsAsPDF(pages [][]byte, widthMM, heightMM float64) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// Resume enables a queue again and releases its held jobs,
-// for example after the printer stopped the queue because of an error.
+// Resume enables a queue again and releases its held jobs.
 func (s *PrintService) Resume(ctx context.Context, printerName string) error {
 	name, err := s.knownQueue(ctx, printerName)
 	if err != nil {
@@ -882,7 +882,7 @@ func (s *PrintService) Resume(ctx context.Context, printerName string) error {
 	return nil
 }
 
-// Cancel cancels every job of a queue, for example to drop prints that piled up behind a stuck printer.
+// Cancel cancels every job of a queue.
 func (s *PrintService) Cancel(ctx context.Context, printerName string) error {
 	name, err := s.knownQueue(ctx, printerName)
 	if err != nil {
@@ -985,9 +985,9 @@ func (b *brandingRenderer) Close() {
 	_ = b.face.Close()
 }
 
-// draw renders the caption on a translucent box, so it stays legible on any photo, rotated by rotationDeg
-// around its center at x, y. font.Drawer only draws horizontal text, so the caption is rendered into a sprite first
-// and then rotated onto canvas.
+// draw renders the caption on a translucent box, so it stays legible on any photo,
+// rotated by rotationDeg around its center at x, y. font.Drawer only draws horizontal text,
+// so the caption is rendered into a sprite first and then rotated onto canvas.
 func (b *brandingRenderer) draw(canvas *image.RGBA, eventName string) error {
 	text := strings.NewReplacer("{{eventName}}", eventName, "{{date}}", time.Now().Format("02.01.2006")).Replace(b.template)
 	if text == "" {

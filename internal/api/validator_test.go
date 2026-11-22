@@ -20,34 +20,54 @@ func TestValidateFuture(t *testing.T) {
 		},
 	}
 
+	// A form sends the time as an RFC 3339 string, a decoded body as a time
 	type request struct {
-		ExpiresAt *time.Time `json:"expiresAt" validate:"omitempty,future"`
+		ExpiresAt   *time.Time `json:"expiresAt" validate:"omitempty,future"`
+		ExpiresText string     `json:"expiresText" validate:"omitempty,future"`
 	}
 
 	tests := []struct {
-		name      string
-		expiresAt *time.Time
-		valid     bool
+		name    string
+		request request
+		// field is the field whose time is rejected, empty for an accepted request
+		field string
 	}{
 		{
-			name:      "accepts a missing time",
-			expiresAt: nil,
-			valid:     true,
+			name:    "accepts a missing time",
+			request: request{},
 		},
 		{
-			name:      "accepts a time after the clock",
-			expiresAt: new(clock.Add(time.Duration(f.IntRange(1, 1000)) * time.Hour)),
-			valid:     true,
+			name: "accepts a time after the clock",
+			request: request{
+				ExpiresAt: new(clock.Add(time.Duration(f.IntRange(1, 1000)) * time.Hour)),
+			},
 		},
 		{
-			name:      "rejects the time of the clock",
-			expiresAt: new(clock),
-			valid:     false,
+			name: "accepts an RFC 3339 string after the clock",
+			request: request{
+				ExpiresText: clock.Add(time.Duration(f.IntRange(1, 1000)) * time.Hour).Format(time.RFC3339),
+			},
 		},
 		{
-			name:      "rejects a time before the clock",
-			expiresAt: new(clock.Add(-time.Duration(f.IntRange(1, 1000)) * time.Hour)),
-			valid:     false,
+			name: "rejects the time of the clock",
+			request: request{
+				ExpiresAt: new(clock),
+			},
+			field: "expiresAt",
+		},
+		{
+			name: "rejects a time before the clock",
+			request: request{
+				ExpiresAt: new(clock.Add(-time.Duration(f.IntRange(1, 1000)) * time.Hour)),
+			},
+			field: "expiresAt",
+		},
+		{
+			name: "rejects a value that is no time",
+			request: request{
+				ExpiresText: f.LetterN(10),
+			},
+			field: "expiresText",
 		},
 	}
 
@@ -55,16 +75,15 @@ func TestValidateFuture(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			errs, err := a.validate(t.Context(), request{
-				ExpiresAt: tt.expiresAt,
-			})
+			errs, err := a.validate(t.Context(), tt.request)
+
 			require.NoError(t, err)
-			if tt.valid {
+			if tt.field == "" {
 				assert.Nil(t, errs)
 				return
 			}
 			assert.Equal(t, FieldErrors{
-				"expiresAt": {
+				tt.field: {
 					{
 						Tag: "future",
 					},
@@ -74,42 +93,49 @@ func TestValidateFuture(t *testing.T) {
 	}
 }
 
-func TestValidateRGBColor(t *testing.T) {
+func TestValidatePast(t *testing.T) {
 	t.Parallel()
+	f := apitest.Faker(t)
+	clock := f.Date()
+	a := &API{
+		now: func() time.Time {
+			return clock
+		},
+	}
 
 	type request struct {
-		Color string `json:"color" validate:"rgbcolor"`
+		OccurredAt string `json:"occurredAt" validate:"omitempty,past"`
 	}
 
 	tests := []struct {
-		name  string
-		color string
-		valid bool
+		name       string
+		occurredAt string
+		valid      bool
 	}{
 		{
-			name:  "accepts six hex digits",
-			color: apitest.Faker(t).HexColor(),
-			valid: true,
+			name:       "accepts a missing time",
+			occurredAt: "",
+			valid:      true,
 		},
 		{
-			name:  "accepts upper case hex digits",
-			color: "#A1B2C3",
-			valid: true,
+			name:       "accepts a time before the clock",
+			occurredAt: clock.Add(-time.Duration(f.IntRange(1, 1000)) * time.Hour).Format(time.RFC3339),
+			valid:      true,
 		},
 		{
-			name:  "rejects the short form",
-			color: "#fff",
-			valid: false,
+			name:       "accepts the time of the clock",
+			occurredAt: clock.Format(time.RFC3339),
+			valid:      true,
 		},
 		{
-			name:  "rejects an alpha channel",
-			color: "#a1b2c3ff",
-			valid: false,
+			name:       "rejects a time after the clock",
+			occurredAt: clock.Add(time.Duration(f.IntRange(1, 1000)) * time.Hour).Format(time.RFC3339),
+			valid:      false,
 		},
 		{
-			name:  "rejects a color without hash",
-			color: "a1b2c3",
-			valid: false,
+			name:       "rejects a value that is no time",
+			occurredAt: f.LetterN(10),
+			valid:      false,
 		},
 	}
 
@@ -117,8 +143,8 @@ func TestValidateRGBColor(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			errs, err := newBareAPI().validate(t.Context(), request{
-				Color: tt.color,
+			errs, err := a.validate(t.Context(), request{
+				OccurredAt: tt.occurredAt,
 			})
 			require.NoError(t, err)
 			if tt.valid {
@@ -126,9 +152,9 @@ func TestValidateRGBColor(t *testing.T) {
 				return
 			}
 			assert.Equal(t, FieldErrors{
-				"color": {
+				"occurredAt": {
 					{
-						Tag: "rgbcolor",
+						Tag: "past",
 					},
 				},
 			}, errs)

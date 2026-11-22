@@ -130,7 +130,7 @@ aspect ratio. [Camera](../guides/camera.md) explains the image settings.
 | ----------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `PRINT_ENABLED`         | `false`   | Print the composed layout of every run through a CUPS queue.                                                                                            |
 | `PRINT_PRINTER_NAME`    |           | CUPS queue name as listed by lpstat -p, required when printing is enabled.                                                                              |
-| `PRINT_LAYOUT_ID`       | `strip-3` | Layout file without .json that composes the print and share collages.                                                                                   |
+| `PRINT_LAYOUT`          |           | Name of the print layout that composes the print and share collages, required when printing is enabled.                                                 |
 | `PRINT_SUBMISSION_MODE` | `managed` | How print jobs reach CUPS, managed lets the printer driver convert and scale the PDF, raw sends it untouched to a printer with its own PDF interpreter. |
 
 [Printing](../guides/printing.md) explains the submission modes and the queue.
@@ -191,8 +191,10 @@ the `local` driver stores its files in the first writable of these directories:
 | Windows | `%ProgramData%\photopi`                | `%LOCALAPPDATA%\photopi`                                      |
 | macOS   | `/Library/Application Support/photopi` | `~/Library/Application Support/photopi`                       |
 
-The storage contains the photos in `captures/`, the originals in `originals/`, the collages in `prints/`,
-the overlays in `overlays/`, and the layouts in `layouts/`, each with a folder per event where it applies.
+The storage contains the photos in `captures/`, the originals in `originals/`, the thumbnails of the gallery
+in `thumbnails/`, the collages in `prints/`, the overlays in `overlays/`, and the layouts in `layouts/`,
+each with a folder per event where it applies. The booth stores the thumbnail of a run with its first photo,
+and the gallery shows the first photo itself for a run without one.
 
 ## System
 

@@ -6,9 +6,9 @@ import ui from '@nuxt/ui/vue-plugin';
 
 import App from '@/App.vue';
 import { setupAppRecovery } from '@/appRecovery';
-import { setAuthenticationRequiredHandler } from '@/api/client';
+import { setAuthenticationRequiredHandler } from '@/api/client/client';
 import { loginLocation } from '@/lib/auth/redirect';
-import { applyThemeColors } from '@/lib/theme';
+import { applyThemeColors } from '@/lib/app/theme';
 import { i18n, setLocaleFromBackend } from '@/i18n';
 import { router } from '@/router';
 import { useAuthStore } from '@/stores/auth';
@@ -48,6 +48,6 @@ void useMetaStore()
     setLocaleFromBackend(meta.language);
     applyThemeColors(meta.theme);
   })
-  .catch((err) => {
+  .catch((err: unknown) => {
     console.error(err);
   });

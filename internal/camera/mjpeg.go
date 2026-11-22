@@ -12,10 +12,8 @@ import (
 	"time"
 )
 
-// jpegSOI and jpegEOI mark the start and end of a JPEG image.
-// The raw MJPEG output of the camera tools has no framing of its own beyond these markers:
-// frames are simply concatenated JPEG images. The two-byte EOI sequence does not occur inside the entropy-coded image data,
-// because a JPEG encoder byte-stuffs a 0x00 after every literal 0xFF there, so scanning for it is reliable.
+// jpegSOI and jpegEOI mark the start and end of a JPEG image, the only framing of the MJPEG output of the camera tools.
+// A JPEG encoder byte-stuffs a 0x00 after every literal 0xFF in the image data, so EOI occurs only at the end.
 var (
 	jpegSOI = []byte{0xFF, 0xD8}
 	jpegEOI = []byte{0xFF, 0xD9}
@@ -56,10 +54,10 @@ type frameTimeouts struct {
 	next  time.Duration
 }
 
-// streamMJPEGFrames reads a raw MJPEG byte stream from src and writes each JPEG frame it finds to w as one part
-// of a multipart/x-mixed-replace body with the given boundary, flushing after each part so the browser renders it
-// immediately instead of waiting for more buffered data. It runs until ctx is canceled, reading src or writing w fails,
-// or no frame arrives in time.
+// streamMJPEGFrames reads a raw MJPEG byte stream from src and writes each JPEG frame it finds to w
+// as one part of a multipart/x-mixed-replace body with the given boundary,
+// flushing after each part so the browser renders it immediately instead of waiting for more buffered data.
+// It runs until ctx is canceled, reading src or writing w fails, or no frame arrives in time.
 func streamMJPEGFrames(ctx context.Context, src io.ReadCloser, w io.Writer, boundary string) error {
 	return streamFrames(ctx, src, w, boundary, frameTimeouts{
 		first: firstFrameTimeout,
@@ -88,9 +86,8 @@ func streamFrames(ctx context.Context, src io.ReadCloser, w io.Writer, boundary 
 
 		frame, err := frames.next()
 		if err != nil {
-			// A canceled context, by a client disconnect or a capture that takes over the device,
-			// stops the source process, and the blocking read fails with a plain I/O error such as io.EOF.
-			// The context error lets the caller tell an intentional stop apart from a stream failure.
+			// A canceled context stops the source process, and the blocking read fails with a plain I/O error,
+			// so the context error tells an intentional stop apart from a stream failure.
 			if ctxErr := ctx.Err(); ctxErr != nil {
 				return ctxErr
 			}
@@ -144,8 +141,8 @@ func newFrameReader(src io.Reader) *frameReader {
 	}
 }
 
-// next reads and returns the next complete JPEG image. Any bytes preceding the next start-of-image marker
-// are discarded, and so is a frame larger than maxFrameBytes, so the reader resynchronizes on its own
+// next reads and returns the next complete JPEG image. Any bytes preceding the next start-of-image marker are discarded,
+// and so is a frame larger than maxFrameBytes, so the reader resynchronizes on its own
 // if the stream starts or ever ends up mid-frame.
 func (f *frameReader) next() ([]byte, error) {
 	for {

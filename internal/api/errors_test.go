@@ -12,10 +12,10 @@ import (
 
 	"github.com/barthjs/photopi/internal/apitest"
 	"github.com/barthjs/photopi/internal/apperr"
+	"github.com/barthjs/photopi/internal/service"
 )
 
-// TestAPI_RespondError covers the mappings that the feature tests do not reach, such as a concurrent modification
-// that cannot be provoked reliably through a request.
+// TestAPI_RespondError checks the status and the code respondError answers an error with.
 func TestAPI_RespondError(t *testing.T) {
 	t.Parallel()
 
@@ -26,10 +26,66 @@ func TestAPI_RespondError(t *testing.T) {
 		code   string
 	}{
 		{
+			name: "answers invalid settings as a bad request",
+			err: &service.InvalidConfigError{
+				Err: errors.New("invalid"),
+			},
+			status: http.StatusBadRequest,
+			code:   codeBadRequest,
+		},
+		{
+			name:   "answers an invalid sort field with a bad request",
+			err:    apperr.ErrInvalidSort,
+			status: http.StatusBadRequest,
+			code:   codeBadRequest,
+		},
+		{
+			name:   "answers a missing sign-in as unauthenticated",
+			err:    apperr.ErrAuthenticationRequired,
+			status: http.StatusUnauthorized,
+			code:   codeAuthenticationRequired,
+		},
+		{
+			name:   "answers a denied action as forbidden",
+			err:    apperr.ErrForbidden,
+			status: http.StatusForbidden,
+			code:   codeForbidden,
+		},
+		{
 			name:   "answers a concurrent modification with a conflict",
 			err:    apperr.ErrVersionConflict,
 			status: http.StatusConflict,
 			code:   codeConflict,
+		},
+		{
+			name:   "answers a busy run with a conflict",
+			err:    service.ErrRunBusy,
+			status: http.StatusConflict,
+			code:   codeConflict,
+		},
+		{
+			name:   "answers a run that is not open with a conflict",
+			err:    service.ErrRunNotOpen,
+			status: http.StatusConflict,
+			code:   codeConflict,
+		},
+		{
+			name:   "answers an active overlay with a conflict",
+			err:    service.ErrOverlayActive,
+			status: http.StatusConflict,
+			code:   codeConflict,
+		},
+		{
+			name:   "answers an unavailable print queue with a conflict",
+			err:    service.ErrPrintQueueUnavailable,
+			status: http.StatusConflict,
+			code:   codeConflict,
+		},
+		{
+			name:   "answers a corrupt capture as a failed camera capture",
+			err:    service.ErrCaptureCorrupt,
+			status: http.StatusBadGateway,
+			code:   codeCameraCaptureFailed,
 		},
 		{
 			name:   "answers any other error with a server error",

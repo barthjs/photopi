@@ -40,9 +40,12 @@ only emits theme variables that a utility class uses, while Nuxt UI references t
   The black behind the camera image and photos, and the dimming laid over them.
   Both stay black in both modes, since a photo looks the same in either. Text on the dimming uses on-scrim.
   */
-  --color-media-backdrop: #000000;
-  --color-scrim: #000000;
-  --color-on-scrim: #ffffff;
+  --color-media-backdrop: var(--color-black);
+  --color-scrim: var(--color-black);
+  --color-on-scrim: var(--color-white);
+
+  /* The headline of the welcome page, which scales with the width of the kiosk screen. */
+  --text-display: clamp(1.75rem, 6vw, 3.75rem);
 }
 
 /*
@@ -56,7 +59,20 @@ so a handle stands out on both the paper and the canvas around it.
 /*
 Set on <html> while a guest page of KioskLayout.vue is mounted.
 It blocks the pull-to-refresh gesture of the browser without affecting the admin pages.
+The root font size grows with the shorter side of the screen, from the usual 16px on an 800 x 480 touch display,
+so every size of the guest pages in rem scales with the screen up to a limit for very large displays.
 */
 html.kiosk-mode {
   overscroll-behavior: none;
+  font-size: clamp(16px, calc(100vmin / 30), 40px);
+}
+
+/* A scroll area that is scrolled by its own controls hides its scrollbar. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+}
+
+/* The canvas of the layout editor leaves room for the fields around it. */
+@utility h-canvas {
+  height: 60vh;
 }

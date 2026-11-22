@@ -1,16 +1,16 @@
-import { apiFetch, UPLOAD_TIMEOUT_MS } from '@/api/client';
-import type { OverlayResponse } from '@/api/types';
+import { apiFetch, UPLOAD_TIMEOUT_MS } from '@/api/client/client';
+import type { OverlayResponse } from '@/api/types/overlay';
 
 export const overlayRepository = {
-  /** list returns every uploaded overlay. */
-  list(): Promise<OverlayResponse[]> {
+  /** Returns every uploaded overlay. */
+  async list(): Promise<OverlayResponse[]> {
     return apiFetch('/overlays', {
       method: 'GET',
     });
   },
 
-  /** create uploads a new overlay. */
-  create(file: File): Promise<OverlayResponse> {
+  /** Uploads a new overlay. */
+  async create(file: File): Promise<OverlayResponse> {
     const form = new FormData();
     form.append('file', file);
     return apiFetch('/overlays', {
@@ -20,14 +20,14 @@ export const overlayRepository = {
     });
   },
 
-  /** delete removes the overlay with the given name. */
-  delete(name: string): Promise<void> {
+  /** Removes the overlay with the given name. */
+  async delete(name: string): Promise<void> {
     return apiFetch(`/overlays/${encodeURIComponent(name)}`, {
       method: 'DELETE',
     });
   },
 
-  /** downloadUrl returns the address that downloads the overlay as it is stored. */
+  /** Returns the address that downloads the overlay as it is stored. */
   downloadUrl(name: string): string {
     return `/api/overlays/${encodeURIComponent(name)}`;
   },

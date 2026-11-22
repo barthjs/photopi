@@ -1,173 +1,181 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import type { DropdownMenuItem } from '@nuxt/ui';
 
 import { galleryRepository } from '@/api/repositories/gallery';
-import HelpHint from '@/components/form/HelpHint.vue';
+import type { GalleryRunResponse } from '@/api/types/gallery';
+import ImageViewer from '@/components/gallery/ImageViewer.vue';
 import { useMutation } from '@/composables/form/useMutation';
+import { useDeleteConfirm } from '@/composables/ui/useDeleteConfirm';
 
+// The photos of a run in the image viewer, with or without the overlay for a run that keeps its originals,
+// the downloads of the photo and of the run, the deletion of the run, and its details beside the photos.
 const props = defineProps<{
-  run: number | null;
-  imageCount: number;
-  originalCount: number;
-}>();
-
-const emit = defineEmits<{
-  deleted: [run: number];
+  run: GalleryRunResponse | null;
 }>();
 
 const open = defineModel<boolean>('open', {
   required: true,
 });
 
-const { t } = useI18n();
-// Counts from 0 like the select event of the carousel. The shown position adds 1.
-const selectedIndex = ref(0);
+const emit = defineEmits<{
+  deleted: [run: number];
+}>();
 
-// Shows the originals without the overlay instead of the captures, for a run that has them
-const showOriginals = ref(false);
+const { t, locale } = useI18n();
+const { confirmDelete } = useDeleteConfirm();
+
+// The shown photo, counted from 0, -1 while the viewer is closed
+const index = ref(-1);
+
+// Shows the captures with the overlay, or the originals without it for a run that has them
+const showOverlay = ref(true);
+
+// The positions of the photos of the run, which count from 1 in their addresses
+const images = computed(() => Array.from({ length: props.run?.imageCount ?? 0 }, (_, i) => i + 1));
+const originalCount = computed(() => props.run?.originalCount ?? 0);
+
+// The time of the first photo in the locale, which the clock of the booth may not know
+const takenAt = computed(() =>
+  props.run?.takenAt
+    ? new Intl.DateTimeFormat(locale.value, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      }).format(new Date(props.run.takenAt))
+    : t('pages.gallery.takenAtUnknown'),
+);
 
 watch(open, (isOpen) => {
-  if (isOpen) {
-    selectedIndex.value = 0;
-    showOriginals.value = false;
+  if (!isOpen) {
+    index.value = -1;
+    return;
   }
+  index.value = 0;
+  showOverlay.value = true;
 });
 
-/** imageUrl returns the address of the photo shown at a position, the capture or its original. */
-function imageUrl(run: number, index: number): string {
-  return showOriginals.value
-    ? galleryRepository.originalUrl(run, index)
-    : galleryRepository.captureUrl(run, index);
+// The viewer closes itself with -1, which closes the lightbox
+watch(index, (value) => {
+  if (value < 0) open.value = false;
+});
+
+/** Returns the address of the photo shown at a position, the capture or its original. */
+function imageUrl(image: number): string {
+  if (props.run === null) return '';
+  return showOverlay.value
+    ? galleryRepository.captureUrl(props.run.run, image)
+    : galleryRepository.originalUrl(props.run.run, image);
 }
 
-/** onSelect follows the photo shown in the carousel. */
-function onSelect(index: number): void {
-  selectedIndex.value = index;
-}
-
-const showDeleteConfirm = ref(false);
-
-/** openDeleteConfirm asks before the run is deleted. */
-function openDeleteConfirm(): void {
-  showDeleteConfirm.value = true;
+/** Returns the downloads of the shown photo and of the whole run. */
+function downloadItems(image: number): DropdownMenuItem[] {
+  if (props.run === null) return [];
+  const items: DropdownMenuItem[] = [
+    {
+      label: t('pages.gallery.downloadImage'),
+      icon: 'i-lucide-image-down',
+      to: imageUrl(image),
+      external: true,
+      download: true,
+    },
+    {
+      label: t('pages.gallery.downloadZip'),
+      icon: 'i-lucide-folder-down',
+      to: galleryRepository.zipUrl(props.run.run),
+      external: true,
+      download: true,
+    },
+  ];
+  if (originalCount.value > 0) {
+    items.push({
+      label: t('pages.gallery.downloadOriginals'),
+      icon: 'i-lucide-folder-down',
+      to: galleryRepository.zipUrl(props.run.run, true),
+      external: true,
+      download: true,
+    });
+  }
+  return items;
 }
 
 const { mutate: deleteRun, pending: deleting } = useMutation(
-  () => galleryRepository.delete(props.run as number),
+  async () => {
+    if (props.run) await galleryRepository.delete(props.run.run);
+  },
   {
+    confirm: async () =>
+      confirmDelete({
+        title: t('pages.gallery.deleteConfirmTitle'),
+        description: t('pages.gallery.deleteConfirmText'),
+      }),
     success: () => t('pages.gallery.deleteSuccess'),
     onSuccess: () => {
-      showDeleteConfirm.value = false;
       open.value = false;
-      emit('deleted', props.run as number);
+      if (props.run) emit('deleted', props.run.run);
     },
   },
 );
 </script>
 
 <template>
-  <UModal
-    v-model:open="open"
-    :title="`${t('pages.gallery.run')} #${run}`"
-    fullscreen
-    :ui="{ body: 'flex-1' }"
+  <ImageViewer
+    v-if="open && run !== null && index >= 0"
+    :key="run.run"
+    v-model:index="index"
+    :items="images"
+    :src="imageUrl"
+    :alt="`${t('pages.gallery.run')} ${run.run}`"
   >
-    <template #body>
-      <div v-if="run !== null" class="flex h-full flex-col items-center justify-center gap-4">
-        <!-- Keyed on the run, so the carousel starts at the first photo every time it opens. -->
-        <UCarousel
-          :key="run"
-          :items="Array.from({ length: imageCount }, (_, i) => i + 1)"
-          :arrows="imageCount > 1"
-          :ui="{
-            root: 'h-full w-full',
-            viewport: 'h-full',
-            container: 'h-full',
-            item: 'flex h-full min-w-0 shrink-0 basis-full items-center justify-center',
-            // The carousel fills the modal, so the arrows sit inside its edge instead of outside,
-            // where they would add a horizontal scrollbar.
-            prev: 'start-2 sm:start-2',
-            next: 'end-2 sm:end-2',
-          }"
-          @select="onSelect"
-        >
-          <template #default="{ item }">
-            <img
-              :src="imageUrl(run, item)"
-              :alt="`${t('pages.gallery.run')} ${run} - ${item}`"
-              class="mx-auto max-h-full max-w-full rounded-lg object-contain"
-            />
-          </template>
-        </UCarousel>
-        <div class="flex items-center gap-4">
-          <p class="text-muted text-sm">{{ selectedIndex + 1 }} / {{ imageCount }}</p>
-          <USwitch
-            v-if="originalCount > 0"
-            v-model="showOriginals"
-            :label="t('pages.gallery.showOriginals')"
-          />
-        </div>
-      </div>
+    <template #caption>
+      <span class="text-on-scrim text-sm font-medium"
+        >{{ t('pages.gallery.run') }} #{{ run.run }}</span
+      >
+      <USwitch
+        v-if="originalCount > 0"
+        v-model="showOverlay"
+        :label="t('pages.gallery.overlay')"
+        :ui="{ label: 'text-on-scrim' }"
+      />
     </template>
-
-    <template #footer>
-      <div class="flex w-full items-center justify-between gap-2">
-        <div class="flex items-center gap-1.5">
-          <UButton
-            :label="t('common.delete')"
-            icon="i-lucide-trash-2"
-            color="error"
-            variant="outline"
-            @click="openDeleteConfirm"
-          />
-          <HelpHint :text="t('pages.gallery.deleteHint')" />
-        </div>
-        <div class="flex flex-wrap items-center justify-end gap-1.5">
-          <UButton
-            v-if="run !== null"
-            :label="t('pages.gallery.downloadImage')"
-            icon="i-lucide-image-down"
-            color="neutral"
-            variant="outline"
-            :to="imageUrl(run, selectedIndex + 1)"
-            download
-          />
-          <HelpHint :text="t('pages.gallery.downloadZipHint')" />
-          <UButton
-            :label="t('pages.gallery.downloadZip')"
-            icon="i-lucide-download"
-            :to="run !== null ? galleryRepository.zipUrl(run) : undefined"
-            target="_blank"
-          />
-          <UButton
-            v-if="originalCount > 0"
-            :label="t('pages.gallery.downloadOriginals')"
-            icon="i-lucide-download"
-            color="neutral"
-            variant="outline"
-            :to="run !== null ? galleryRepository.zipUrl(run, true) : undefined"
-            target="_blank"
-          />
-        </div>
-      </div>
-    </template>
-  </UModal>
-
-  <UModal
-    v-model:open="showDeleteConfirm"
-    :title="t('pages.gallery.deleteConfirmTitle')"
-    :description="t('pages.gallery.deleteConfirmText')"
-    :ui="{ footer: 'justify-end' }"
-  >
-    <template #footer="{ close }">
-      <UButton :label="t('common.cancel')" color="neutral" variant="outline" @click="close" />
+    <template #actions="{ item }">
+      <!-- The menu stays inside the viewer, which lies above every portal of the page -->
+      <UDropdownMenu :items="downloadItems(item)" :portal="false">
+        <UButton
+          :label="t('pages.gallery.download')"
+          icon="i-lucide-download"
+          trailing-icon="i-lucide-chevron-down"
+          color="neutral"
+          variant="ghost"
+          size="sm"
+          class="text-on-scrim hover:bg-on-scrim/10"
+        />
+      </UDropdownMenu>
       <UButton
         :label="t('common.delete')"
+        icon="i-lucide-trash-2"
         color="error"
+        variant="ghost"
+        size="sm"
         :loading="deleting"
         @click="void deleteRun()"
       />
     </template>
-  </UModal>
+    <template #info>
+      <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+        <dt class="text-muted">{{ t('pages.gallery.run') }}</dt>
+        <dd class="text-highlighted">#{{ run.run }}</dd>
+        <dt class="text-muted">{{ t('pages.gallery.event') }}</dt>
+        <dd class="text-highlighted">{{ run.event }}</dd>
+        <dt class="text-muted">{{ t('pages.gallery.takenAt') }}</dt>
+        <dd class="text-highlighted">{{ takenAt }}</dd>
+        <dt class="text-muted">{{ t('pages.gallery.photos') }}</dt>
+        <dd class="text-highlighted tabular-nums">{{ run.imageCount }}</dd>
+        <template v-if="originalCount > 0">
+          <dt class="text-muted">{{ t('pages.gallery.originals') }}</dt>
+          <dd class="text-highlighted tabular-nums">{{ originalCount }}</dd>
+        </template>
+      </dl>
+    </template>
+  </ImageViewer>
 </template>

@@ -11,19 +11,21 @@ import type {
   CameraDenoise,
   CameraRotation,
   CameraWhiteBalance,
-  OverlayResponse,
-} from '@/api/types';
+  CameraSource,
+} from '@/api/types/config';
+import type { OverlayResponse } from '@/api/types/overlay';
 import ConfigFieldHint from '@/components/config/ConfigFieldHint.vue';
-import HelpHint from '@/components/form/HelpHint.vue';
-import { useApiError } from '@/composables/useApiError';
-import { useAspectRatioLock } from '@/composables/useAspectRatioLock';
-import { useConfigForm } from '@/composables/useConfigForm';
+import { useApiError } from '@/composables/form/useApiError';
+import { useAspectRatioLock } from '@/composables/layout/useAspectRatioLock';
+import { useConfigForm } from '@/composables/config/useConfigForm';
 import { useMutation } from '@/composables/form/useMutation';
+import { useDeleteConfirm } from '@/composables/ui/useDeleteConfirm';
 
-// The camera that takes the photos and the overlay drawn over every capture.
+// The camera that takes the photos and the overlay drawn over every capture
 const { t } = useI18n();
 const toast = useToast();
 const { messageFor } = useApiError();
+const { confirmDelete } = useDeleteConfirm();
 const { state, fieldProps } = useConfigForm();
 
 const {
@@ -55,7 +57,7 @@ const {
   },
 );
 
-const sourceItems = [
+const sourceItems: { label: string; value: CameraSource }[] = [
   {
     label: 'Webcam',
     value: 'webcam',
@@ -70,7 +72,7 @@ const sourceItems = [
   },
 ];
 
-// The exposure times a camera offers in its usual steps, from long to short.
+// The exposure times a camera offers in its usual steps, from long to short
 const EXPOSURE_TIMES: CameraExposureTime[] = [
   '1/15',
   '1/20',
@@ -199,23 +201,19 @@ const overlays = ref<OverlayResponse[]>([]);
 const fileInput = useTemplateRef<HTMLInputElement>('fileInput');
 
 // A configured overlay that is not listed, such as one set in the environment, shows the name in its path
-const selectedOverlayName = computed(
-  () =>
-    overlays.value.find((overlay) => overlay.path === state.camera.overlayPath)?.name ??
-    state.camera.overlayPath.split('/').pop(),
-);
+const overlayFileName = computed(() => state.camera.overlayPath.split('/').pop());
 
-/** clearOverlay selects no overlay. */
+/** Selects no overlay. */
 function clearOverlay(): void {
   state.camera.overlayPath = '';
 }
 
-/** selectOverlay selects the overlay stored at the given path. */
+/** Selects the overlay stored at the given path. */
 function selectOverlay(path: string): void {
   state.camera.overlayPath = path;
 }
 
-/** loadOverlays reads the uploaded overlays. */
+/** Reads the uploaded overlays. */
 async function loadOverlays(): Promise<void> {
   try {
     overlays.value = await overlayRepository.list();
@@ -231,8 +229,9 @@ async function loadOverlays(): Promise<void> {
 onMounted(loadOverlays);
 
 const { mutate: uploadOverlay, pending: uploading } = useMutation(
-  (file: File) => overlayRepository.create(file),
+  async (file: File) => overlayRepository.create(file),
   {
+    loading: () => t('pages.config.camera.overlayUploading'),
     onSuccess: async (overlay) => {
       await loadOverlays();
       state.camera.overlayPath = overlay.path;
@@ -240,18 +239,30 @@ const { mutate: uploadOverlay, pending: uploading } = useMutation(
   },
 );
 
-const { mutate: deleteOverlay } = useMutation((name: string) => overlayRepository.delete(name), {
-  onSuccess: async (_result, name) => {
-    if (state.camera.overlayPath.endsWith(`/${name}`)) {
-      state.camera.overlayPath = '';
-    }
-    await loadOverlays();
+const { mutate: deleteOverlay } = useMutation(
+  async (name: string) => overlayRepository.delete(name),
+  {
+    key: (name) => name,
+    confirm: async (name) =>
+      confirmDelete({
+        title: t('pages.config.camera.overlayDeleteConfirmTitle'),
+        description: t('pages.config.camera.overlayDeleteConfirmText', {
+          name,
+        }),
+      }),
+    onSuccess: async (_result, name) => {
+      if (state.camera.overlayPath.endsWith(`/${name}`)) {
+        state.camera.overlayPath = '';
+      }
+      await loadOverlays();
+    },
   },
-});
+);
 
-/** onOverlayFileChange uploads the chosen file and resets the input, so the same file can be chosen again. */
+/** Uploads the chosen file and resets the input, so the same file can be chosen again. */
 function onOverlayFileChange(event: Event): void {
-  const input = event.target as HTMLInputElement;
+  const input = event.target;
+  if (!(input instanceof HTMLInputElement)) return;
   const file = input.files?.[0];
   input.value = '';
   if (file) void uploadOverlay(file);
@@ -259,7 +270,7 @@ function onOverlayFileChange(event: Event): void {
 </script>
 
 <template>
-  <UCard variant="subtle" class="mt-4">
+  <UCard variant="subtle">
     <div class="flex flex-col gap-4">
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <UFormField :label="t('fields.camera.source')" name="camera.source">
@@ -278,8 +289,7 @@ function onOverlayFileChange(event: Event): void {
           />
         </UFormField>
       </div>
-
-      <div v-if="state.camera.source === 'rpicam'" class="flex flex-col gap-4">
+      <template v-if="state.camera.source === 'rpicam'">
         <div class="grid grid-cols-2 gap-4">
           <UFormField :label="t('fields.camera.captureWidth')" name="camera.captureWidth" required>
             <template #hint>
@@ -310,18 +320,19 @@ function onOverlayFileChange(event: Event): void {
             />
           </UFormField>
           <div class="col-span-2 -mt-2 flex items-center gap-2">
-            <UButton
-              :icon="captureRatioLocked ? 'i-lucide-lock' : 'i-lucide-lock-open'"
-              :color="captureRatioLocked ? 'primary' : 'neutral'"
-              :variant="captureRatioLocked ? 'solid' : 'outline'"
-              size="xs"
-              :aria-label="t('pages.config.camera.aspectRatioLock')"
-              @click="toggleCaptureRatioLock"
-            />
+            <UTooltip :text="t('pages.config.camera.aspectRatioHint')">
+              <UButton
+                :icon="captureRatioLocked ? 'i-lucide-lock' : 'i-lucide-lock-open'"
+                :color="captureRatioLocked ? 'primary' : 'neutral'"
+                :variant="captureRatioLocked ? 'solid' : 'outline'"
+                size="xs"
+                :aria-label="t('pages.config.camera.aspectRatioLock')"
+                @click="toggleCaptureRatioLock"
+              />
+            </UTooltip>
             <span class="text-muted text-sm">
               {{ t('pages.config.camera.aspectRatioLabel', { ratio: captureRatioLabel }) }}
             </span>
-            <HelpHint :text="t('pages.config.camera.aspectRatioHint')" />
           </div>
           <UFormField :label="t('fields.camera.previewWidth')" name="camera.previewWidth" required>
             <template #hint>
@@ -352,42 +363,41 @@ function onOverlayFileChange(event: Event): void {
             />
           </UFormField>
           <div class="col-span-2 -mt-2 flex items-center gap-2">
-            <UButton
-              :icon="previewRatioLocked ? 'i-lucide-lock' : 'i-lucide-lock-open'"
-              :color="previewRatioLocked ? 'primary' : 'neutral'"
-              :variant="previewRatioLocked ? 'solid' : 'outline'"
-              size="xs"
-              :aria-label="t('pages.config.camera.aspectRatioLock')"
-              @click="togglePreviewRatioLock"
-            />
+            <UTooltip :text="t('pages.config.camera.aspectRatioHint')">
+              <UButton
+                :icon="previewRatioLocked ? 'i-lucide-lock' : 'i-lucide-lock-open'"
+                :color="previewRatioLocked ? 'primary' : 'neutral'"
+                :variant="previewRatioLocked ? 'solid' : 'outline'"
+                size="xs"
+                :aria-label="t('pages.config.camera.aspectRatioLock')"
+                @click="togglePreviewRatioLock"
+              />
+            </UTooltip>
             <span class="text-muted text-sm">
               {{ t('pages.config.camera.aspectRatioLabel', { ratio: previewRatioLabel }) }}
             </span>
           </div>
         </div>
-        <UFormField
-          :label="t('fields.camera.previewFps')"
-          name="camera.previewFps"
-          required
-          class="sm:max-w-[calc(50%-0.5rem)]"
-        >
-          <template #hint>
-            <ConfigFieldHint
-              path="camera.previewFps"
-              :help="t('pages.config.camera.previewFpsHint')"
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <UFormField :label="t('fields.camera.previewFps')" name="camera.previewFps" required>
+            <template #hint>
+              <ConfigFieldHint
+                path="camera.previewFps"
+                :help="t('pages.config.camera.previewFpsHint')"
+              />
+            </template>
+            <UInputNumber
+              v-model="state.camera.previewFps"
+              v-bind="fieldProps('camera.previewFps')"
+              :min="1"
+              :max="120"
+              class="w-full"
             />
-          </template>
-          <UInputNumber
-            v-model="state.camera.previewFps"
-            v-bind="fieldProps('camera.previewFps')"
-            :min="1"
-            :max="120"
-            class="w-full"
-          />
-        </UFormField>
-
-        <USeparator :label="t('pages.config.camera.imageSettings')" />
-
+          </UFormField>
+        </div>
+      </template>
+      <template v-if="state.camera.source === 'rpicam'">
+        <h3 class="text-highlighted heading-card">{{ t('pages.config.camera.imageSettings') }}</h3>
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <UFormField :label="t('fields.camera.exposureTime')" name="camera.exposureTime">
             <template #hint>
@@ -457,11 +467,7 @@ function onOverlayFileChange(event: Event): void {
           </UFormField>
           <UFormField :label="t('fields.camera.whiteBalance')" name="camera.whiteBalance">
             <template #hint>
-              <ConfigFieldHint
-                path="camera.whiteBalance"
-                :help="t('pages.config.camera.whiteBalanceHint')"
-                :options="whiteBalanceItems"
-              />
+              <ConfigFieldHint path="camera.whiteBalance" :options="whiteBalanceItems" />
             </template>
             <USelect
               v-model="state.camera.whiteBalance"
@@ -502,10 +508,7 @@ function onOverlayFileChange(event: Event): void {
           </UFormField>
           <UFormField :label="t('fields.camera.jpegQuality')" name="camera.jpegQuality" required>
             <template #hint>
-              <ConfigFieldHint
-                path="camera.jpegQuality"
-                :help="t('pages.config.camera.jpegQualityHint')"
-              />
+              <ConfigFieldHint path="camera.jpegQuality" />
             </template>
             <UInputNumber
               v-model="state.camera.jpegQuality"
@@ -531,11 +534,11 @@ function onOverlayFileChange(event: Event): void {
             />
           </UFormField>
           <UFormField :label="t('fields.camera.horizontalFlip')" name="camera.horizontalFlip">
-            <template #hint>
-              <ConfigFieldHint
-                path="camera.horizontalFlip"
-                :help="t('pages.config.camera.flipHint')"
-              />
+            <template #label="{ label }">
+              <span class="inline-flex items-center gap-1.5">
+                {{ label }}
+                <ConfigFieldHint path="camera.horizontalFlip" />
+              </span>
             </template>
             <USwitch
               v-model="state.camera.horizontalFlip"
@@ -543,11 +546,11 @@ function onOverlayFileChange(event: Event): void {
             />
           </UFormField>
           <UFormField :label="t('fields.camera.verticalFlip')" name="camera.verticalFlip">
-            <template #hint>
-              <ConfigFieldHint
-                path="camera.verticalFlip"
-                :help="t('pages.config.camera.flipHint')"
-              />
+            <template #label="{ label }">
+              <span class="inline-flex items-center gap-1.5">
+                {{ label }}
+                <ConfigFieldHint path="camera.verticalFlip" />
+              </span>
             </template>
             <USwitch
               v-model="state.camera.verticalFlip"
@@ -555,14 +558,10 @@ function onOverlayFileChange(event: Event): void {
             />
           </UFormField>
         </div>
-      </div>
-
+      </template>
       <UFormField :label="t('fields.camera.overlayPath')" name="camera.overlayPath">
         <template #hint>
-          <ConfigFieldHint
-            path="camera.overlayPath"
-            :help="t('pages.config.camera.overlayPathHint')"
-          />
+          <ConfigFieldHint path="camera.overlayPath" />
         </template>
         <USelectMenu
           v-model="state.camera.overlayPath"
@@ -584,13 +583,13 @@ function onOverlayFileChange(event: Event): void {
               @click.stop="clearOverlay"
             />
           </template>
-          <template #default="{ ui }">
+          <template #default="{ item, ui }">
             <span
-              v-if="selectedOverlayName"
+              v-if="item?.name ?? overlayFileName"
               data-slot="value"
               :class="ui.value?.({ class: undefined })"
             >
-              {{ selectedOverlayName }}
+              {{ item?.name ?? overlayFileName }}
             </span>
             <span v-else data-slot="placeholder" :class="ui.placeholder?.({ class: undefined })">
               {{ t('pages.config.camera.overlayNone') }}
@@ -599,77 +598,79 @@ function onOverlayFileChange(event: Event): void {
         </USelectMenu>
       </UFormField>
 
-      <UCard :ui="{ body: 'flex flex-col gap-3' }">
-        <template #header>
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-1.5">
-              <span class="text-highlighted font-medium">
-                {{ t('pages.config.camera.overlayLibrary') }}
-              </span>
-              <HelpHint :text="t('pages.config.camera.overlayLibraryHint')" />
-            </div>
-            <UButton
-              :label="t('pages.config.camera.uploadOverlay')"
-              icon="i-lucide-upload"
-              size="sm"
-              :loading="uploading"
-              @click="fileInput?.click()"
-            />
-            <input
-              ref="fileInput"
-              type="file"
-              accept="image/png"
-              class="hidden"
-              @change="onOverlayFileChange"
-            />
+      <!-- The library is a group of the section, its overlays a list without a box of their own -->
+      <div class="flex flex-col gap-3">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-1.5">
+            <h3 class="text-highlighted heading-card">
+              {{ t('pages.config.camera.overlayLibrary') }}
+            </h3>
           </div>
-        </template>
+          <UButton
+            :label="t('pages.config.camera.uploadOverlay')"
+            icon="i-lucide-upload"
+            size="sm"
+            color="neutral"
+            variant="outline"
+            :loading="uploading"
+            @click="fileInput?.click()"
+          />
+          <input
+            ref="fileInput"
+            type="file"
+            accept="image/png"
+            class="hidden"
+            @change="onOverlayFileChange"
+          />
+        </div>
 
         <p v-if="!overlays.length" class="text-muted text-sm">
           {{ t('pages.config.camera.overlayEmpty') }}
         </p>
-        <div
-          v-for="overlay in overlays"
-          :key="overlay.path"
-          class="border-default flex items-center justify-between gap-2 rounded-md border px-3 py-2"
-        >
-          <span class="truncate text-sm">{{ overlay.name }}</span>
-          <div class="flex shrink-0 items-center gap-2">
-            <UBadge
-              v-if="state.camera.overlayPath === overlay.path"
-              color="primary"
-              variant="solid"
-            >
-              {{ t('pages.config.camera.overlayActive') }}
-            </UBadge>
-            <UButton
-              v-else
-              :label="t('pages.config.camera.overlaySelect')"
-              size="xs"
-              color="neutral"
-              variant="outline"
-              @click="selectOverlay(overlay.path)"
-            />
-            <UButton
-              icon="i-lucide-download"
-              size="xs"
-              color="neutral"
-              variant="ghost"
-              :to="overlayRepository.downloadUrl(overlay.name)"
-              target="_blank"
-              :aria-label="t('pages.config.camera.overlayDownload')"
-            />
-            <UButton
-              icon="i-lucide-trash-2"
-              size="xs"
-              color="error"
-              variant="ghost"
-              :aria-label="t('pages.config.camera.overlayDelete')"
-              @click="deleteOverlay(overlay.name)"
-            />
+        <div v-else class="border-default divide-default divide-y rounded-md border">
+          <div
+            v-for="overlay in overlays"
+            :key="overlay.path"
+            class="flex items-center justify-between gap-2 px-3 py-2"
+          >
+            <span class="truncate text-sm">{{ overlay.name }}</span>
+            <div class="flex shrink-0 items-center gap-2">
+              <UBadge
+                v-if="state.camera.overlayPath === overlay.path"
+                color="primary"
+                variant="solid"
+              >
+                {{ t('pages.config.camera.overlayActive') }}
+              </UBadge>
+              <UButton
+                v-else
+                :label="t('pages.config.camera.overlaySelect')"
+                size="xs"
+                color="neutral"
+                variant="outline"
+                @click="selectOverlay(overlay.path)"
+              />
+              <UButton
+                icon="i-lucide-download"
+                size="xs"
+                color="neutral"
+                variant="ghost"
+                :to="overlayRepository.downloadUrl(overlay.name)"
+                target="_blank"
+                :aria-label="t('pages.config.camera.overlayDownload')"
+              />
+              <UButton
+                icon="i-lucide-trash-2"
+                size="xs"
+                color="error"
+                variant="ghost"
+                :aria-label="t('pages.config.camera.overlayDelete')"
+                @click="deleteOverlay(overlay.name)"
+              />
+            </div>
           </div>
         </div>
-      </UCard>
+      </div>
     </div>
   </UCard>
 </template>

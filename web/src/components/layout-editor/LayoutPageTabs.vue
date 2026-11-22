@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { useLayoutForm } from '@/composables/useLayoutForm';
+import { useLayoutForm } from '@/composables/layout/useLayoutForm';
 
 // The pages of the layout. A run continues on the next page once the slots of one are filled.
 const { t } = useI18n();

@@ -19,7 +19,7 @@ const (
 type PrintConfig struct {
 	Enabled        bool   `mapstructure:"enabled" json:"enabled" default:"false" usage:"Print the composed layout of every run through a CUPS queue"`
 	PrinterName    string `mapstructure:"printer_name" json:"printerName" usage:"CUPS queue name as listed by lpstat -p, required when printing is enabled"`
-	LayoutID       string `mapstructure:"layout_id" json:"layoutId" default:"strip-3" usage:"Layout file without .json that composes the print and share collages"`
+	Layout         string `mapstructure:"layout" json:"layout" usage:"Name of the print layout that composes the print and share collages, required when printing is enabled"`
 	SubmissionMode string `mapstructure:"submission_mode" json:"submissionMode" default:"managed" usage:"How print jobs reach CUPS, managed lets the printer driver convert and scale the PDF, raw sends it untouched to a printer with its own PDF interpreter"`
 }
 
@@ -35,12 +35,12 @@ func validatePrint(cfg *PrintConfig) error {
 		p.Addf("print.printer_name is required when print.enabled is true")
 	}
 
-	cfg.LayoutID = strings.TrimSpace(cfg.LayoutID)
-	if cfg.LayoutID == "" {
-		p.Addf("print.layout_id is required when print.enabled is true")
+	cfg.Layout = strings.TrimSpace(cfg.Layout)
+	if cfg.Layout == "" {
+		p.Addf("print.layout is required when print.enabled is true")
 	}
-	if len(cfg.LayoutID) > maxShortText {
-		p.Addf("print.layout_id must be at most %d characters", maxShortText)
+	if len(cfg.Layout) > maxShortText {
+		p.Addf("print.layout must be at most %d characters", maxShortText)
 	}
 
 	switch cfg.SubmissionMode {

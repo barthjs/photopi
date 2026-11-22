@@ -4,7 +4,7 @@ import (
 	"sync"
 )
 
-// JobStatus is the state of a background job of a run, such as an email or a cloud upload.
+// JobStatus is the state of a background job of a run.
 type JobStatus string
 
 const (
@@ -19,10 +19,9 @@ type JobReason string
 const (
 	// JobReasonNone is the reason of a job that did not fail.
 	JobReasonNone JobReason = ""
-	// JobReasonUnreachable means the destination could not be reached, for example without internet.
+	// JobReasonUnreachable means the destination could not be reached.
 	JobReasonUnreachable JobReason = "unreachable"
-	// JobReasonQueueUnavailable means the printer queue did not accept the print,
-	// for example because it is stopped or already holds too many jobs.
+	// JobReasonQueueUnavailable means the printer queue did not accept the print.
 	JobReasonQueueUnavailable JobReason = "queue_unavailable"
 	// JobReasonFailed covers every other failure.
 	JobReasonFailed JobReason = "failed"

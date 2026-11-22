@@ -1,12 +1,12 @@
-import { apiFetch, UPLOAD_TIMEOUT_MS } from '@/api/client';
-import type { CaptureResponse } from '@/api/types';
+import { apiFetch, UPLOAD_TIMEOUT_MS } from '@/api/client/client';
+import type { CaptureResponse } from '@/api/types/capture';
 
 export const captureRepository = {
   /**
-   * create takes the next photo of a run. Only the webcam source passes a blob,
+   * Takes the next photo of a run. Only the webcam source passes a blob,
    * since the browser takes that photo itself.
    */
-  create(run: number, blob?: Blob): Promise<CaptureResponse> {
+  async create(run: number, blob?: Blob): Promise<CaptureResponse> {
     if (!blob) {
       return apiFetch(`/camera/runs/${run}/captures`, {
         method: 'POST',
@@ -22,7 +22,7 @@ export const captureRepository = {
     });
   },
 
-  /** previewUrl returns the address of the screen version of one capture of a run, sized for the kiosk. */
+  /** Returns the address of the screen version of one capture of a run, sized for the kiosk. */
   previewUrl(run: number, index: number): string {
     return `/api/camera/runs/${run}/captures/${index}/preview`;
   },

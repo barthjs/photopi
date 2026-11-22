@@ -4,9 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"path"
 	"slices"
-	"strings"
+	"time"
 
 	"github.com/barthjs/photopi/internal/apperr"
 	"github.com/barthjs/photopi/internal/domain"
@@ -20,8 +19,8 @@ type GalleryService struct {
 	captureService *CaptureService
 }
 
-// NewGalleryService creates a GalleryService. Every method waits for the capture captureService stores
-// in the background, so it sees the latest capture and never deletes a run while it is written.
+// NewGalleryService creates a GalleryService. Every method waits for the capture captureService stores in the background,
+// so it sees the latest capture and never deletes a run while it is written.
 func NewGalleryService(runs *store.RunStore, captures *store.CaptureStore, captureService *CaptureService) *GalleryService {
 	return &GalleryService{
 		runs:           runs,
@@ -38,10 +37,14 @@ type RunSummary struct {
 	ImageCount int
 	// OriginalCount is the number of captures stored without the overlay as well.
 	OriginalCount int
+	// TakenAt is the time of the earliest capture of the run, zero if no file name holds one.
+	TakenAt time.Time
 }
 
 // List returns one page of the stored runs that match the filter, the most recent first, and the number of all of them.
 func (s *GalleryService) List(ctx context.Context, filter domain.RunListFilter) ([]RunSummary, int, error) {
+	// The runs are ordered by the time they were taken, so they follow the days of ListDays even after the clock
+	// of the booth went back. Runs of the same time follow their number, and runs without a time come last.
 	all, err := s.summarizeRuns(ctx)
 	if err != nil {
 		return nil, 0, err
@@ -53,7 +56,7 @@ func (s *GalleryService) List(ctx context.Context, filter domain.RunListFilter) 
 			runs = append(runs, run)
 		}
 	}
-	slices.SortFunc(runs, func(a, b RunSummary) int { return b.Run - a.Run })
+	slices.SortFunc(runs, compareRunsByTime)
 
 	total := len(runs)
 	start := min(filter.Offset, total)
@@ -62,13 +65,27 @@ func (s *GalleryService) List(ctx context.Context, filter domain.RunListFilter) 
 	return runs[start:end], total, nil
 }
 
+// compareRunsByTime orders runs by the time they were taken and then by number, the most recent first,
+// with the runs without a time last.
+func compareRunsByTime(a, b RunSummary) int {
+	if a.TakenAt.IsZero() != b.TakenAt.IsZero() {
+		if a.TakenAt.IsZero() {
+			return 1
+		}
+		return -1
+	}
+	if order := b.TakenAt.Compare(a.TakenAt); order != 0 {
+		return order
+	}
+	return b.Run - a.Run
+}
+
 // EventSummary describes the stored runs of one event folder.
 type EventSummary struct {
 	// Event is the slug of the event folder.
 	Event string
 	// Current is set for the event the booth files new captures under.
 	Current       bool
-	RunCount      int
 	ImageCount    int
 	OriginalCount int
 	// LastRun is the highest run number of the event, which orders the events by time.
@@ -92,7 +109,6 @@ func (s *GalleryService) ListEvents(ctx context.Context) ([]EventSummary, error)
 			}
 			byEvent[run.Event] = event
 		}
-		event.RunCount++
 		event.ImageCount += run.ImageCount
 		event.OriginalCount += run.OriginalCount
 		event.LastRun = max(event.LastRun, run.Run)
@@ -105,6 +121,42 @@ func (s *GalleryService) ListEvents(ctx context.Context) ([]EventSummary, error)
 	slices.SortFunc(events, func(a, b EventSummary) int { return b.LastRun - a.LastRun })
 
 	return events, nil
+}
+
+// DaySummary counts the stored runs taken on one calendar day.
+type DaySummary struct {
+	// Day is the midnight in the local time zone that starts the day.
+	Day      time.Time
+	RunCount int
+}
+
+// ListDays counts the stored runs of an event, or of every event without one, per local calendar day of their TakenAt,
+// the most recent day first. Runs without TakenAt are left out.
+func (s *GalleryService) ListDays(ctx context.Context, event *string) ([]DaySummary, error) {
+	runs, err := s.summarizeRuns(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	byDay := make(map[time.Time]int)
+	for _, run := range runs {
+		if run.TakenAt.IsZero() || (event != nil && run.Event != *event) {
+			continue
+		}
+		local := run.TakenAt.In(time.Local)
+		byDay[time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, time.Local)]++
+	}
+
+	days := make([]DaySummary, 0, len(byDay))
+	for day, count := range byDay {
+		days = append(days, DaySummary{
+			Day:      day,
+			RunCount: count,
+		})
+	}
+	slices.SortFunc(days, func(a, b DaySummary) int { return b.Day.Compare(a.Day) })
+
+	return days, nil
 }
 
 // summarizeRuns counts the captures and originals of every stored run,
@@ -134,6 +186,9 @@ func (s *GalleryService) summarizeRuns(ctx context.Context) ([]RunSummary, error
 			byRun[file.Run] = run
 		}
 		run.ImageCount++
+		if !file.TakenAt.IsZero() && (run.TakenAt.IsZero() || file.TakenAt.Before(run.TakenAt)) {
+			run.TakenAt = file.TakenAt
+		}
 	}
 	for _, file := range originals {
 		if run, ok := byRun[file.Run]; ok {
@@ -148,39 +203,85 @@ func (s *GalleryService) summarizeRuns(ctx context.Context) ([]RunSummary, error
 	return runs, nil
 }
 
-// ListFiles returns the storage paths of every stored capture of a run, or of its originals if originals is set,
-// so a caller can answer an unknown run before it starts streaming them with Zip.
-// It returns apperr.ErrNotFound if the run has no such file.
-func (s *GalleryService) ListFiles(ctx context.Context, run int, originals bool) ([]string, error) {
+// ListFiles returns every stored capture or original of the runs, ordered by run and image index,
+// so a caller can answer unknown runs before streaming them with Zip.
+func (s *GalleryService) ListFiles(ctx context.Context, runs []int, originals bool) ([]domain.CaptureFile, error) {
+	return s.listFiles(ctx, originals, func(file domain.CaptureFile) bool { return slices.Contains(runs, file.Run) })
+}
+
+// ListEventFiles returns every stored capture or original of an event, ordered like ListFiles.
+func (s *GalleryService) ListEventFiles(ctx context.Context, event string, originals bool) ([]domain.CaptureFile, error) {
+	return s.listFiles(ctx, originals, func(file domain.CaptureFile) bool { return file.Event == event })
+}
+
+// listFiles returns the stored captures, or their originals, that match, ordered by run and image index,
+// or returns apperr.ErrNotFound if none does.
+func (s *GalleryService) listFiles(ctx context.Context, originals bool, match func(file domain.CaptureFile) bool) ([]domain.CaptureFile, error) {
 	if err := s.captureService.awaitStore(ctx); err != nil {
 		return nil, err
 	}
 
-	paths, err := s.captures.ListByRun(ctx, run, originals)
+	all, err := s.captures.List(ctx, originals)
 	if err != nil {
-		return nil, fmt.Errorf("service: listing run %d files: %w", run, err)
+		return nil, fmt.Errorf("service: listing the files of the gallery: %w", err)
 	}
-	if len(paths) == 0 {
+
+	files := make([]domain.CaptureFile, 0)
+	for _, file := range all {
+		if match(file) {
+			files = append(files, file)
+		}
+	}
+	if len(files) == 0 {
 		return nil, apperr.ErrNotFound
 	}
+	slices.SortFunc(files, func(a, b domain.CaptureFile) int {
+		if a.Run != b.Run {
+			return a.Run - b.Run
+		}
+		return a.ImageIndex - b.ImageIndex
+	})
 
-	return paths, nil
+	return files, nil
 }
 
-// GetCapture reads one stored capture of a run, or its original without the overlay if original is set.
-// It returns apperr.ErrNotFound if it does not exist.
-func (s *GalleryService) GetCapture(ctx context.Context, run, imageIndex int, original bool) ([]byte, error) {
+// GetCapture returns one stored capture of a run, or its original without the overlay.
+func (s *GalleryService) GetCapture(ctx context.Context, run, imageIndex int, original bool) (domain.CaptureFile, error) {
 	if err := s.captureService.awaitStore(ctx); err != nil {
-		return nil, err
+		return domain.CaptureFile{}, err
 	}
 
-	return s.captures.Get(ctx, run, imageIndex, original)
+	return s.captures.Find(ctx, run, imageIndex, original)
 }
 
-// Delete removes every stored file of a run.
+// GetThumbnail returns the thumbnail of a run, or its first capture for a run stored before thumbnails existed.
+// It returns apperr.ErrNotFound if the run does not exist.
+func (s *GalleryService) GetThumbnail(ctx context.Context, run int) (domain.CaptureFile, error) {
+	if err := s.captureService.awaitStore(ctx); err != nil {
+		return domain.CaptureFile{}, err
+	}
+
+	return s.captures.FindThumbnail(ctx, run)
+}
+
+// OpenFile opens a file returned by GetCapture or GetThumbnail for reading, or returns apperr.ErrNotFound
+// if it was deleted since. The caller must close the returned reader.
+func (s *GalleryService) OpenFile(ctx context.Context, file domain.CaptureFile) (io.ReadCloser, error) {
+	return s.runs.OpenFile(ctx, file.Path)
+}
+
+// Delete removes every stored file of a run, or returns apperr.ErrNotFound if the run has no capture.
 func (s *GalleryService) Delete(ctx context.Context, run int) error {
 	if err := s.captureService.awaitStore(ctx); err != nil {
 		return err
+	}
+
+	captures, err := s.captures.ListByRun(ctx, run, false)
+	if err != nil {
+		return fmt.Errorf("service: listing run %d: %w", run, err)
+	}
+	if len(captures) == 0 {
+		return apperr.ErrNotFound
 	}
 
 	if err := s.runs.Delete(ctx, run); err != nil {
@@ -190,31 +291,12 @@ func (s *GalleryService) Delete(ctx context.Context, run int) error {
 	return nil
 }
 
-// Zip streams the files of a run at paths, as listed by ListFiles, as a zip archive to w.
-func (s *GalleryService) Zip(ctx context.Context, w io.Writer, paths []string) error {
-	return s.runs.ZipFiles(ctx, w, paths)
-}
-
-// ZipEvent streams every stored capture of an event, or their originals if originals is set,
-// as one zip archive to w, ordered by run and image index.
-func (s *GalleryService) ZipEvent(ctx context.Context, w io.Writer, event string, originals bool) error {
-	if err := s.captureService.awaitStore(ctx); err != nil {
-		return err
-	}
-
-	files, err := s.captures.List(ctx, originals)
-	if err != nil {
-		return fmt.Errorf("service: listing the files of event %q: %w", event, err)
-	}
-
+// Zip streams files, as listed by ListFiles or ListEventFiles, as a zip archive to w.
+func (s *GalleryService) Zip(ctx context.Context, w io.Writer, files []domain.CaptureFile) error {
 	paths := make([]string, 0, len(files))
 	for _, file := range files {
-		if file.Event == event {
-			paths = append(paths, file.Path)
-		}
+		paths = append(paths, file.Path)
 	}
-	// The file names start with the run number and the image index, so they sort by both
-	slices.SortFunc(paths, func(a, b string) int { return strings.Compare(path.Base(a), path.Base(b)) })
 
 	return s.runs.ZipFiles(ctx, w, paths)
 }

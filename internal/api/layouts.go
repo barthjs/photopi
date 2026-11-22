@@ -3,8 +3,9 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"regexp"
 
-	"github.com/go-chi/chi/v5"
+	"github.com/go-playground/validator/v10"
 
 	"github.com/barthjs/photopi/internal/domain"
 )
@@ -29,37 +30,40 @@ func (a *API) layoutListHandler(w http.ResponseWriter, r *http.Request) {
 
 	response := make([]LayoutResponse, 0, len(layouts))
 	for _, l := range layouts {
-		response = append(response, toLayoutResponse(l))
+		response = append(response, toLayoutResponse(l, a.layoutInUse(l.Name)))
 	}
 
 	a.writeJSON(w, r, http.StatusOK, response, nil)
 }
 
-// LayoutResponse is the summary of a print layout in the layout list.
 type LayoutResponse struct {
-	ID            string  `json:"id"`
 	Name          string  `json:"name"`
+	Description   *string `json:"description"`
 	PaperWidthMM  float64 `json:"paperWidthMM"`
 	PaperHeightMM float64 `json:"paperHeightMM"`
 	// Slots is the total slot count summed across every page.
 	Slots int `json:"slots"`
 	Pages int `json:"pages"`
+	// InUse is true for the layout the running or the saved configuration prints with,
+	// which can be neither deleted nor renamed.
+	InUse bool `json:"inUse"`
 }
 
 // toLayoutResponse maps a layout to its summary response.
-func toLayoutResponse(l domain.Layout) LayoutResponse {
+func toLayoutResponse(l domain.Layout, inUse bool) LayoutResponse {
 	slots := 0
 	for _, page := range l.Pages {
 		slots += len(page.Slots)
 	}
 
 	return LayoutResponse{
-		ID:            l.ID,
 		Name:          l.Name,
+		Description:   l.Description,
 		PaperWidthMM:  l.Paper.WidthMM,
 		PaperHeightMM: l.Paper.HeightMM,
 		Slots:         slots,
 		Pages:         len(l.Pages),
+		InUse:         inUse,
 	}
 }
 
@@ -69,17 +73,15 @@ func toLayoutResponse(l domain.Layout) LayoutResponse {
 //	@Description	Returns one stored print layout with its pages and slots (Admin only).
 //	@Tags			print
 //	@Produce		json
-//	@Param			id	path		string	true	"Layout ID"
-//	@Success		200	{object}	LayoutDetailResponse
-//	@Failure		401	{object}	ErrorResponse
-//	@Failure		404	{object}	ErrorResponse
-//	@Failure		500	{object}	ErrorResponse
+//	@Param			name	path		string	true	"Layout name"
+//	@Success		200		{object}	LayoutDetailResponse
+//	@Failure		401		{object}	ErrorResponse
+//	@Failure		404		{object}	ErrorResponse
+//	@Failure		500		{object}	ErrorResponse
 //	@Security		SessionAuth
-//	@Router			/print/layouts/{id} [get]
+//	@Router			/print/layouts/{name} [get]
 func (a *API) layoutGetHandler(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-
-	layout, err := a.layoutService.Get(r.Context(), id)
+	layout, err := a.layoutService.Get(r.Context(), pathParam(r, "name"))
 	if err != nil {
 		a.respondError(w, r, err)
 		return
@@ -88,21 +90,19 @@ func (a *API) layoutGetHandler(w http.ResponseWriter, r *http.Request) {
 	a.writeJSON(w, r, http.StatusOK, toLayoutDetailResponse(*layout), nil)
 }
 
-// LayoutDetailResponse is a print layout with its pages and slots.
 type LayoutDetailResponse struct {
-	ID       string                 `json:"id"`
-	Name     string                 `json:"name"`
-	Paper    LayoutPaperResponse    `json:"paper"`
-	Pages    []LayoutPageResponse   `json:"pages"`
-	Branding LayoutBrandingResponse `json:"branding"`
+	Name        string                 `json:"name"`
+	Description *string                `json:"description"`
+	Paper       LayoutPaperResponse    `json:"paper"`
+	Pages       []LayoutPageResponse   `json:"pages"`
+	Branding    LayoutBrandingResponse `json:"branding"`
 }
 
-// LayoutPageResponse is the slots of one printed page.
 type LayoutPageResponse struct {
 	Slots []LayoutSlotResponse `json:"slots"`
 }
 
-// LayoutSlotResponse places one capture on the page, relative to the page size (0..1).
+// LayoutSlotResponse places one capture on the page relative to the page size.
 type LayoutSlotResponse struct {
 	X float64 `json:"x"`
 	Y float64 `json:"y"`
@@ -112,13 +112,11 @@ type LayoutSlotResponse struct {
 	Locked bool `json:"locked"`
 }
 
-// LayoutPaperResponse is the paper size the layout is designed for.
 type LayoutPaperResponse struct {
 	WidthMM  float64 `json:"widthMM"`
 	HeightMM float64 `json:"heightMM"`
 }
 
-// LayoutBrandingResponse is the optional caption on the page.
 type LayoutBrandingResponse struct {
 	Enabled     bool    `json:"enabled"`
 	Template    string  `json:"template"`
@@ -129,20 +127,21 @@ type LayoutBrandingResponse struct {
 	Color       string  `json:"color,omitzero"`
 }
 
-// LayoutSaveRequest holds the print layout to create or replace.
 type LayoutSaveRequest struct {
-	Name     string                `json:"name" validate:"required,max=100"`
-	Paper    LayoutPaperRequest    `json:"paper"`
-	Pages    []LayoutPageRequest   `json:"pages" validate:"required,min=1,max=10,dive"`
-	Branding LayoutBrandingRequest `json:"branding"`
+	// Name matches the name in the path and names the file, so 60 characters of up to 4 bytes
+	// stay within the 255 bytes a file name may have.
+	Name        string                `json:"name" validate:"required,min=1,max=60"`
+	Description *string               `json:"description" validate:"omitempty,min=1,max=1000"`
+	Paper       LayoutPaperRequest    `json:"paper"`
+	Pages       []LayoutPageRequest   `json:"pages" validate:"required,min=1,max=10,dive"`
+	Branding    LayoutBrandingRequest `json:"branding"`
 }
 
-// LayoutPageRequest is one physical page's worth of slots.
 type LayoutPageRequest struct {
 	Slots []LayoutSlotRequest `json:"slots" validate:"required,min=1,max=12,dive"`
 }
 
-// LayoutSlotRequest is the position and size of one capture on a page, as fractions of the page.
+// LayoutSlotRequest places one capture on the page relative to the page size.
 type LayoutSlotRequest struct {
 	X float64 `json:"x" validate:"min=0,max=1"`
 	Y float64 `json:"y" validate:"min=0,max=1"`
@@ -152,36 +151,36 @@ type LayoutSlotRequest struct {
 	Locked bool `json:"locked"`
 }
 
-// LayoutPaperRequest is the paper size of a layout.
 type LayoutPaperRequest struct {
-	// WidthMM/HeightMM are capped at 500mm: RenderCollage allocates a canvas of mm/25.4*renderDPI pixels per side,
-	// so an unbounded value risks running out of memory on a device with little RAM.
-	// 500mm covers any realistic print size.
-	WidthMM  float64 `json:"widthMM" validate:"gt=0,max=500"`
+	// WidthMM is capped, since the collage allocates a canvas of mm/25.4*renderDPI pixels per side,
+	// which could run out of memory on a device with little RAM.
+	WidthMM float64 `json:"widthMM" validate:"gt=0,max=500"`
+	// HeightMM is capped like WidthMM.
 	HeightMM float64 `json:"heightMM" validate:"gt=0,max=500"`
 }
 
-// LayoutBrandingRequest is the caption a layout draws onto its pages.
 type LayoutBrandingRequest struct {
 	Enabled  bool   `json:"enabled"`
 	Template string `json:"template" validate:"max=1024"`
-	// X/Y are the center of the caption on the page (0..1, same convention as LayoutSlotRequest).
-	X           float64 `json:"x" validate:"gte=0,lte=1"`
+	// X is the horizontal center of the caption relative to the page width.
+	X float64 `json:"x" validate:"gte=0,lte=1"`
+	// Y is the vertical center of the caption relative to the page height.
 	Y           float64 `json:"y" validate:"gte=0,lte=1"`
 	RotationDeg float64 `json:"rotationDeg" validate:"gte=-180,lte=180"`
-	// FontSizePt and Color are optional. Left unset, the caption is drawn with domain.DefaultBrandingFontSizePt in black.
+	// FontSizePt is domain.DefaultBrandingFontSizePt when unset.
 	FontSizePt float64 `json:"fontSizePt" validate:"omitempty,gte=6,lte=72"`
-	Color      string  `json:"color" validate:"omitempty,rgbcolor"`
+	// Color is black when unset.
+	Color string `json:"color" validate:"omitempty,rgbcolor"`
 }
 
-// layoutSaveHandler creates or replaces the print layout stored under id.
+// layoutSaveHandler creates or replaces a print layout.
 //
 //	@Summary		Save layout
-//	@Description	Validates and stores the submitted layout under id, creating it if it doesn't exist yet (Admin only).
+//	@Description	Creates or replaces the print layout with the given name, which has to match the name in the body (Admin only).
 //	@Tags			print
 //	@Accept			json
 //	@Produce		json
-//	@Param			id		path		string				true	"Layout ID"
+//	@Param			name	path		string				true	"Layout name"
 //	@Param			request	body		LayoutSaveRequest	true	"Layout"
 //	@Success		200		{object}	LayoutDetailResponse
 //	@Failure		400		{object}	ErrorResponse
@@ -189,10 +188,8 @@ type LayoutBrandingRequest struct {
 //	@Failure		422		{object}	ValidationErrorResponse
 //	@Failure		500		{object}	ErrorResponse
 //	@Security		SessionAuth
-//	@Router			/print/layouts/{id} [put]
+//	@Router			/print/layouts/{name} [put]
 func (a *API) layoutSaveHandler(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-
 	req, ok := a.decodeJSON[LayoutSaveRequest](w, r)
 	if !ok {
 		return
@@ -203,8 +200,8 @@ func (a *API) layoutSaveHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	layout := req.toLayout(id)
-	if err := a.layoutService.Save(r.Context(), id, layout); err != nil {
+	layout := req.toLayout()
+	if err := a.layoutService.Save(r.Context(), pathParam(r, "name"), layout); err != nil {
 		a.respondError(w, r, err)
 		return
 	}
@@ -212,8 +209,8 @@ func (a *API) layoutSaveHandler(w http.ResponseWriter, r *http.Request) {
 	a.writeJSON(w, r, http.StatusOK, toLayoutDetailResponse(layout), nil)
 }
 
-// toLayout maps the request to the layout stored under id.
-func (r LayoutSaveRequest) toLayout(id string) domain.Layout {
+// toLayout maps the request to the layout it stores.
+func (r LayoutSaveRequest) toLayout() domain.Layout {
 	pages := make([]domain.LayoutPage, 0, len(r.Pages))
 	for _, p := range r.Pages {
 		slots := make([]domain.LayoutSlot, 0, len(p.Slots))
@@ -232,8 +229,8 @@ func (r LayoutSaveRequest) toLayout(id string) domain.Layout {
 	}
 
 	return domain.Layout{
-		ID:   id,
-		Name: r.Name,
+		Name:        r.Name,
+		Description: r.Description,
 		Paper: domain.LayoutPaper{
 			WidthMM:  r.Paper.WidthMM,
 			HeightMM: r.Paper.HeightMM,
@@ -271,8 +268,8 @@ func toLayoutDetailResponse(l domain.Layout) LayoutDetailResponse {
 	}
 
 	return LayoutDetailResponse{
-		ID:   l.ID,
-		Name: l.Name,
+		Name:        l.Name,
+		Description: l.Description,
 		Paper: LayoutPaperResponse{
 			WidthMM:  l.Paper.WidthMM,
 			HeightMM: l.Paper.HeightMM,
@@ -290,9 +287,9 @@ func toLayoutDetailResponse(l domain.Layout) LayoutDetailResponse {
 	}
 }
 
-// validateLayoutPages rejects slots that would extend past the page, a check that isn't expressible
-// with validator struct tags alone since it compares two fields of the same slot.
+// validateLayoutPages rejects slots that would extend past the page.
 func validateLayoutPages(pages []LayoutPageRequest) error {
+	// Struct tags cannot express this rule, since it compares two fields of the same slot
 	for p, page := range pages {
 		for i, s := range page.Slots {
 			if s.X+s.W > 1 {
@@ -306,33 +303,53 @@ func validateLayoutPages(pages []LayoutPageRequest) error {
 	return nil
 }
 
-// layoutDeleteHandler removes a stored print layout by id.
-// The layout the running or the saved configuration prints with cannot be deleted,
-// so printing and sharing never lose their layout.
+// layoutDeleteHandler deletes a print layout, except the one the running or the saved configuration uses.
 //
 //	@Summary		Delete layout
-//	@Description	Removes a stored print layout by id. The layout configured for printing cannot be deleted (Admin only).
+//	@Description	Deletes the print layout with the given name. The layout configured for printing cannot be deleted (Admin only).
 //	@Tags			print
-//	@Param			id	path	string	true	"Layout ID"
+//	@Param			name	path	string	true	"Layout name"
 //	@Success		204
 //	@Failure		401	{object}	ErrorResponse
 //	@Failure		404	{object}	ErrorResponse
 //	@Failure		409	{object}	ErrorResponse
 //	@Failure		500	{object}	ErrorResponse
 //	@Security		SessionAuth
-//	@Router			/print/layouts/{id} [delete]
+//	@Router			/print/layouts/{name} [delete]
 func (a *API) layoutDeleteHandler(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	name := pathParam(r, "name")
 
-	if id == a.configService.PrintLayoutID() || id == a.printService.LayoutID() {
+	if a.layoutInUse(name) {
 		a.conflictResponse(w, r, "the layout is configured for printing")
 		return
 	}
 
-	if err := a.layoutService.Delete(r.Context(), id); err != nil {
+	if err := a.layoutService.Delete(r.Context(), name); err != nil {
 		a.respondError(w, r, err)
 		return
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// layoutInUse reports whether the running or the saved configuration prints with the layout.
+func (a *API) layoutInUse(name string) bool {
+	return name == a.configService.PrintLayout() || name == a.printService.Layout()
+}
+
+// init registers the rules of the layout DTOs with the validator.
+func init() {
+	// The built-in hexcolor tag also accepts short and alpha forms, which the collage renderer cannot draw,
+	// so a layout color is checked for #rrggbb only.
+	if err := v.RegisterValidation("rgbcolor", validateRGBColor); err != nil {
+		panic(err)
+	}
+}
+
+// rgbColorPattern matches a color as #rrggbb.
+var rgbColorPattern = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
+
+// validateRGBColor reports whether the field holds a color as #rrggbb.
+func validateRGBColor(fl validator.FieldLevel) bool {
+	return rgbColorPattern.MatchString(fl.Field().String())
 }

@@ -393,11 +393,6 @@ func TestShareEmailHandler(t *testing.T) {
 	})
 }
 
-// withEmailSharing lets guests email their captures.
-func withEmailSharing() option {
-	return withConfig(func(cfg *config.Config) { cfg.Share.Email.Enabled = true })
-}
-
 func TestSharePrintGetHandler(t *testing.T) {
 	t.Parallel()
 
@@ -561,24 +556,12 @@ func TestSharePrintHandler(t *testing.T) {
 	})
 }
 
-// awaitJob polls the share job at path until it is no longer pending and returns its final state.
-func (h *harness) awaitJob(jobPath string) api.ShareJobResponse {
-	h.t.Helper()
-
-	var state api.ShareJobResponse
-	require.Eventually(h.t, func() bool {
-		state = h.Client.GET(jobPath).AssertOK().Decode[api.ShareJobResponse]()
-		return state.Status != "pending"
-	}, eventuallyTimeout, eventuallyTick)
-	return state
-}
-
 // withPrinting turns printing on with a random, idle printer and the first default layout.
 func withPrinting(mode string) option {
 	return func(h *harness) {
 		h.Config.Print.Enabled = true
 		h.Config.Print.PrinterName = h.Faker.LetterN(8)
-		h.Config.Print.LayoutID = defaultLayoutIDs[0]
+		h.Config.Print.Layout = defaultLayoutNames[0]
 		h.Config.Print.SubmissionMode = mode
 		h.Commands.answer("lpstat", lpstatLine(h.Config.Print.PrinterName, "idle"), nil)
 	}

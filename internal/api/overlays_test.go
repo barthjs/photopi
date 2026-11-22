@@ -82,6 +82,34 @@ func TestOverlayListHandler(t *testing.T) {
 	})
 }
 
+func TestOverlayGetHandler(t *testing.T) {
+	t.Parallel()
+
+	t.Run("downloads the overlay as it is stored", func(t *testing.T) {
+		t.Parallel()
+		h := newHarness(t)
+		client := h.asAdmin()
+		overlay := newPNG(t, h.Faker)
+		created := client.POST("/api/overlays", newUpload(h.Faker, "png", overlay)).AssertCreated().Decode[api.OverlayResponse]()
+
+		response := client.GET(overlayPath(created.Name))
+
+		response.AssertOK().
+			AssertHeader("Content-Type", "image/png").
+			AssertHeader("Content-Disposition", "attachment; filename="+created.Name)
+		assert.Equal(t, overlay, response.Body)
+	})
+
+	t.Run("returns not found for an unknown overlay", func(t *testing.T) {
+		t.Parallel()
+		h := newHarness(t)
+
+		response := h.asAdmin().GET(overlayPath(h.Faker.LetterN(8) + ".png"))
+
+		response.AssertNotFound().AssertJSONPath("code", "not_found")
+	})
+}
+
 func TestOverlayCreateHandler(t *testing.T) {
 	t.Parallel()
 
@@ -115,6 +143,7 @@ func TestOverlayCreateHandler(t *testing.T) {
 
 		faker := apitest.Faker(t)
 		jpegData := newJPEG(t, faker)
+		oversizedData := newOversizedPNG(t, faker)
 
 		tests := []struct {
 			name   string
@@ -139,6 +168,23 @@ func TestOverlayCreateHandler(t *testing.T) {
 				},
 				field: "file",
 				tag:   "required",
+			},
+			{
+				name: "image above the pixel budget",
+				change: func(m *apitest.Multipart, _ *gofakeit.Faker) {
+					m.Files[0].Content = oversizedData
+				},
+				field: "file",
+				tag:   "resolution_too_high",
+			},
+			{
+				name: "undecodable image",
+				change: func(m *apitest.Multipart, f *gofakeit.Faker) {
+					// The PNG signature passes the type check, the rest cannot be decoded
+					m.Files[0].Content = append([]byte("\x89PNG\r\n\x1a\n"), f.LoremIpsumSentence(8)...)
+				},
+				field: "file",
+				tag:   "invalid_format",
 			},
 			{
 				name: "too large file",
@@ -271,34 +317,6 @@ func TestOverlayDeleteHandler(t *testing.T) {
 		h.Client.DELETE(overlayPath(created.Name)).AssertUnauthorized()
 
 		h.asAdmin().GET("/api/overlays").AssertOK().AssertJSON([]api.OverlayResponse{created})
-	})
-}
-
-func TestOverlayDownloadHandler(t *testing.T) {
-	t.Parallel()
-
-	t.Run("downloads the overlay as it is stored", func(t *testing.T) {
-		t.Parallel()
-		h := newHarness(t)
-		client := h.asAdmin()
-		overlay := newPNG(t, h.Faker)
-		created := client.POST("/api/overlays", newUpload(h.Faker, "png", overlay)).AssertCreated().Decode[api.OverlayResponse]()
-
-		response := client.GET(overlayPath(created.Name))
-
-		response.AssertOK().
-			AssertHeader("Content-Type", "image/png").
-			AssertHeader("Content-Disposition", "attachment; filename="+created.Name)
-		assert.Equal(t, overlay, response.Body)
-	})
-
-	t.Run("returns not found for an unknown overlay", func(t *testing.T) {
-		t.Parallel()
-		h := newHarness(t)
-
-		response := h.asAdmin().GET(overlayPath(h.Faker.LetterN(8) + ".png"))
-
-		response.AssertNotFound().AssertJSONPath("code", "not_found")
 	})
 }
 

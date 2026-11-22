@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, useTemplateRef, watch } from 'vue';
+import { computed, onMounted, useTemplateRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
 
@@ -15,19 +15,22 @@ import DocsLink from '@/components/system/DocsLink.vue';
 import { useEditorShortcuts } from '@/composables/editor/useEditorShortcuts';
 import { useEditorWorkspace } from '@/composables/editor/useEditorWorkspace';
 import type { FormErrorTarget } from '@/composables/form/useFormValidation';
-import { provideLayoutForm } from '@/composables/useLayoutForm';
+import { provideLayoutForm } from '@/composables/layout/useLayoutForm';
 import { useSaveShortcut, type SubmitTarget } from '@/composables/form/useSaveShortcut';
-import { useShortcutLabels } from '@/composables/useShortcutLabels';
-import { useUnloadGuard } from '@/composables/useUnloadGuard';
-import { shortcutDefinition, shortcutKeys } from '@/lib/editor/shortcuts';
+import { useShortcutLabels } from '@/composables/ui/useShortcutLabels';
+import { useUnloadGuard } from '@/composables/ui/useUnloadGuard';
+import { shortcutKeys } from '@/lib/editor/shortcuts';
 import { FORM_VALIDATE_ON } from '@/lib/form/validation';
-import { LAYOUT_EDITOR_SHORTCUTS } from '@/lib/layoutEditorShortcuts';
+import { LAYOUT_EDITOR_SHORTCUTS } from '@/lib/layout/layoutEditorShortcuts';
+import { layoutMenuItems } from '@/lib/layout/layoutItems';
+import { replaceRouteQuery } from '@/lib/ui/routeQuery';
+import { shortcutDefinition } from '@/lib/ui/shortcuts';
 
-// How far the arrow keys move the selected slots.
+// How far the arrow keys move the selected slots
 const NUDGE_STEP_MM = 1;
 const NUDGE_STEP_LARGE_MM = 10;
 
-// The zoom factor of one click on the zoom buttons.
+// The zoom factor of one click on the zoom buttons
 const ZOOM_STEP = 1.25;
 
 const { t } = useI18n();
@@ -52,7 +55,7 @@ const workspace = useEditorWorkspace({
 });
 const { sidebarOpen, viewMode, helpOpen, fullscreen, whenEditing } = workspace;
 
-// The hidden file input that picks the sample photo of the layout.
+// The hidden file input that picks the sample photo of the layout
 const imageInput = useTemplateRef<HTMLInputElement>('imageInput');
 
 // Another layout starts fitted, since the zoom and the pan of the last one rarely suit it
@@ -61,32 +64,32 @@ watch(
   () => canvas.value?.resetZoom(),
 );
 
-// The URL keeps the ID of the stored layout, so a reload shows it again
+// The URL keeps the name of the stored layout, so a reload shows it again
 watch(
-  () => layout.savedId.value,
-  (id) => {
-    const query = {
-      ...route.query,
-    };
-    if (id) query.id = id;
-    else delete query.id;
-    void router.replace({
-      query,
+  () => layout.savedName.value,
+  (name) => {
+    void replaceRouteQuery(route, router, (query) => {
+      const next = {
+        ...query,
+      };
+      if (name) next.name = name;
+      else delete next.name;
+      return next;
     });
   },
 );
 
-/** onSelectLayoutId switches to another layout. */
-function onSelectLayoutId(id: unknown): void {
-  if (typeof id !== 'string' || !id) return;
-  void layout.selectLayout(id);
+/** Switches to another layout. */
+function onSelectLayout(name: unknown): void {
+  if (typeof name !== 'string' || !name) return;
+  void layout.selectLayout(name);
 }
 
 onMounted(async () => {
   await layout.loadLayouts();
-  const queryId = route.query.id;
-  if (typeof queryId === 'string' && layout.layouts.value.some((l) => l.id === queryId)) {
-    await layout.selectLayout(queryId);
+  const queryName = route.query.name;
+  if (typeof queryName === 'string' && layout.layouts.value.some((l) => l.name === queryName)) {
+    await layout.selectLayout(queryName);
   } else {
     await layout.showFirstLayout();
   }
@@ -97,16 +100,20 @@ const { kbds: saveKbds } = useSaveShortcut(
   () => !layout.hasEmptyPage.value && !layout.saving.value,
 );
 
-/** onImageChange shows the chosen file as the sample photo and keeps it for the layout. */
+// Saving a draft creates the layout, so the button names that
+const saveLabel = computed(() => (layout.isDraft.value ? t('common.create') : t('common.save')));
+
+/** Shows the chosen file as the sample photo and keeps it for the layout. */
 function onImageChange(event: Event): void {
-  const input = event.target as HTMLInputElement;
+  const input = event.target;
+  if (!(input instanceof HTMLInputElement)) return;
   const file = input.files?.[0] ?? null;
   // Reset the input so choosing the same file again triggers another change
   input.value = '';
   if (file) void layout.setSampleImage(file);
 }
 
-// The digit keys select a slot of the active page.
+// The digit keys select a slot of the active page
 const slotShortcuts = Object.fromEntries(
   ['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => [
     digit,
@@ -143,17 +150,17 @@ useEditorShortcuts({
 
 useUnloadGuard(() => layout.isDirty.value);
 
-onBeforeRouteLeave(() => layout.confirmDiscard());
+onBeforeRouteLeave(async () => layout.confirmDiscard());
 </script>
 
 <template>
   <!--
-    From lg up, the admin layout gives the page the height between header and footer, so the canvas size follows
+    From lg up, the admin layout gives the page the height of its panel, so the canvas size follows
     the layout and not the scroll position. Below lg, the canvas and the cards stack and the page scrolls.
   -->
   <UForm
-    :validate-on="FORM_VALIDATE_ON"
     ref="form"
+    :validate-on="FORM_VALIDATE_ON"
     :state="state"
     :validate="layout.validate"
     class="flex flex-col gap-3 lg:min-h-0 lg:flex-1"
@@ -161,25 +168,39 @@ onBeforeRouteLeave(() => layout.confirmDiscard());
   >
     <input ref="imageInput" type="file" accept="image/*" class="hidden" @change="onImageChange" />
 
-    <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-      <div class="flex flex-wrap items-center gap-2">
+    <!--
+      The buttons share the row of the container, so on narrow screens the menu takes its own row,
+      and the buttons below show only their icons.
+    -->
+    <div class="flex flex-wrap items-center gap-2">
+      <div class="contents">
         <USelectMenu
-          :model-value="state.id"
-          value-key="id"
+          :model-value="layout.savedName.value ?? undefined"
+          value-key="name"
           label-key="name"
-          :items="layout.layouts.value"
+          :items="layoutMenuItems(layout.layouts.value)"
           :loading="layout.loadingList.value"
           :placeholder="t('pages.layouts.selectPlaceholder')"
           :aria-label="t('pages.layouts.selectLabel')"
-          class="w-56 max-w-full"
-          @update:model-value="onSelectLayoutId"
-        />
+          class="w-full sm:w-56"
+          @update:model-value="onSelectLayout"
+        >
+          <!-- A draft is not in the list yet, so the menu names it and marks it instead of showing the placeholder. -->
+          <template v-if="layout.isDraft.value" #default>
+            <span class="flex min-w-0 items-center gap-2">
+              <span class="truncate">{{ state.name || t('pages.layouts.newLayout') }}</span>
+              <UBadge :label="t('pages.layouts.draft')" color="info" size="sm" />
+            </span>
+          </template>
+        </USelectMenu>
         <DocsLink page="layouts" />
         <UButton
           :label="t('pages.layouts.new')"
+          :aria-label="t('pages.layouts.new')"
           icon="i-lucide-plus"
           color="neutral"
           variant="outline"
+          :ui="{ label: 'hidden sm:inline' }"
           @click="layout.newLayout"
         />
         <UTooltip :text="t('common.delete')">
@@ -188,12 +209,12 @@ onBeforeRouteLeave(() => layout.confirmDiscard());
             color="error"
             variant="outline"
             :aria-label="t('common.delete')"
-            :disabled="!layout.savedId.value"
+            :disabled="!layout.savedName.value"
             @click="layout.deleteLayout"
           />
         </UTooltip>
 
-        <div class="bg-accented mx-1 hidden h-5 w-px sm:block" />
+        <div class="bg-accented mx-1 hidden h-5 w-px sm:block"></div>
 
         <UFileUpload
           v-slot="{ open }"
@@ -203,20 +224,25 @@ onBeforeRouteLeave(() => layout.confirmDiscard());
           :preview="false"
           :dropzone="false"
           @update:model-value="(file: File | null | undefined) => void layout.importLayout(file)"
+          @reject="(files: File[]) => void layout.importLayout(files[0])"
         >
           <UButton
             :label="t('pages.layouts.import')"
+            :aria-label="t('pages.layouts.import')"
             icon="i-lucide-file-up"
             color="neutral"
             variant="outline"
+            :ui="{ label: 'hidden sm:inline' }"
             @click="open()"
           />
         </UFileUpload>
         <UButton
           :label="t('pages.layouts.download')"
+          :aria-label="t('pages.layouts.download')"
           icon="i-lucide-file-down"
           color="neutral"
           variant="outline"
+          :ui="{ label: 'hidden sm:inline' }"
           @click="layout.downloadLayout"
         />
       </div>
@@ -224,15 +250,17 @@ onBeforeRouteLeave(() => layout.confirmDiscard());
         <UButton
           v-if="layout.isDirty.value"
           :label="t('common.reset')"
+          :aria-label="t('common.reset')"
           icon="i-lucide-rotate-ccw"
           color="neutral"
           variant="outline"
+          :ui="{ label: 'hidden sm:inline' }"
           @click="layout.resetChanges"
         />
-        <UTooltip :text="t('common.save')" :kbds="saveKbds">
+        <UTooltip :text="saveLabel" :kbds="saveKbds">
           <UButton
             type="submit"
-            :label="t('common.save')"
+            :label="saveLabel"
             icon="i-lucide-save"
             :loading="layout.saving.value"
             :disabled="layout.hasEmptyPage.value"

@@ -19,45 +19,42 @@ import (
 	"github.com/barthjs/photopi/internal/camera"
 	"github.com/barthjs/photopi/internal/config"
 	"github.com/barthjs/photopi/internal/config/structconf"
-	"github.com/barthjs/photopi/internal/health"
-	"github.com/barthjs/photopi/internal/i18n"
 	"github.com/barthjs/photopi/internal/mailer"
 	"github.com/barthjs/photopi/internal/media"
 	"github.com/barthjs/photopi/internal/ratelimiter"
 	"github.com/barthjs/photopi/internal/service"
-	"github.com/barthjs/photopi/internal/session"
 	"github.com/barthjs/photopi/internal/share"
 )
 
 // rateLimitCleanupInterval is how often expired rate limit entries are removed.
 const rateLimitCleanupInterval = 15 * time.Minute
 
-// Deps holds what New cannot derive from the configuration. Stop is required,
-// every other field is optional, and a zero value selects the production default.
+// Deps holds what New cannot derive from the configuration, where Stop is required
+// and a zero field selects the production default.
 type Deps struct {
-	// Stop ends the application, for example after a self-update or a request to exit the process.
-	Stop context.CancelFunc
-	// Version is reported by the health endpoints and the public metadata.
-	Version string
 	// ConfigFilePath is where a saved configuration is written, empty if no config file was found.
 	ConfigFilePath string
 	// ConfigSources reports by JSON path where each setting was loaded from, see structconf.PathSources.
 	ConfigSources map[string]structconf.Source
+	// OnUpdated runs once a newer release is installed, to restart into it.
+	OnUpdated func()
+	// Stop ends the application.
+	Stop context.CancelFunc
+	// Version is reported by the health endpoints and the public metadata.
+	Version string
 
-	// Storage replaces the storage selected by the configuration.
-	Storage media.Storage
 	// Camera replaces the camera selected by the configuration.
 	Camera camera.Camera
-	// MailTransport replaces the transport selected by the mail driver.
-	MailTransport mailer.Transport
 	// CloudProvider replaces the cloud share provider selected by the configuration.
 	CloudProvider share.Provider
 	// Commands replaces the runner of external programs.
 	Commands service.CommandRunner
+	// MailTransport replaces the transport selected by the mail driver.
+	MailTransport mailer.Transport
+	// Storage replaces the storage selected by the configuration.
+	Storage media.Storage
 	// Updater installs newer releases. Nil builds one for Version, see NewUpdater.
 	Updater service.Updater
-	// OnUpdated runs once a newer release is installed, to restart into it.
-	OnUpdated func()
 }
 
 // App is the assembled application.
@@ -75,8 +72,7 @@ type App struct {
 	closeOnce sync.Once
 }
 
-// New assembles the application, but starts no background work, see Start.
-// If it fails, it closes what it opened so far.
+// New assembles the application without starting background work, see Start, and closes what it opened when it fails.
 func New(ctx context.Context, logger zerolog.Logger, cfg config.Config, deps Deps) (_ *App, err error) {
 	if deps.Stop == nil {
 		return nil, errors.New("Deps.Stop is required")
@@ -88,97 +84,30 @@ func New(ctx context.Context, logger zerolog.Logger, cfg config.Config, deps Dep
 		}
 	}()
 
-	if deps.Commands == nil {
-		deps.Commands = service.NewExecRunner(logger)
-	}
-
-	i18nBundle, err := i18n.New(i18nOptions(logger, cfg)...)
+	in, err := a.newInfra(logger, cfg, deps)
 	if err != nil {
-		return nil, fmt.Errorf("loading i18n catalogs: %w", err)
+		return nil, err
 	}
-
-	mailOptions := mailerOptions(cfg.Mail)
-	mailOptions.Transport = deps.MailTransport
-	mailService, err := mailer.New(logger, mailOptions, i18nBundle)
-	if err != nil {
-		return nil, fmt.Errorf("initializing mailer: %w", err)
-	}
-
-	rl, err := ratelimiter.New()
-	if err != nil {
-		return nil, fmt.Errorf("initializing rate limiter: %w", err)
-	}
-	a.rateLimiter = rl
-
-	storage := deps.Storage
-	if storage == nil {
-		storage, err = NewStorage(logger, cfg)
-		if err != nil {
-			return nil, err
-		}
-	}
+	a.rateLimiter = in.RateLimiter
+	stores := NewStores(in.Storage)
 
 	shareSigningKey, err := selfShareSigningKey(cfg.App.Secret)
 	if err != nil {
 		return nil, err
 	}
 
-	cam := deps.Camera
-	if cam == nil {
-		cam, err = camera.New(logger, cameraOptions(cfg.Camera))
-		if err != nil {
-			return nil, fmt.Errorf("initializing camera: %w", err)
-		}
-	}
-
-	cloudProvider := deps.CloudProvider
-	if cloudProvider == nil {
-		cloudProvider, err = share.New(cloudProviderOptions(cfg.Share.Cloud))
-		if err != nil {
-			return nil, fmt.Errorf("initializing cloud share provider: %w", err)
-		}
-	}
-
-	cameraHealth := health.NewRecorder()
-	// Without the camera, the gallery and the shared links keep working,
-	// so a failing camera degrades the application instead of making it unavailable.
-	healthChecker := health.NewChecker(deps.Version, nil, health.WithOptional("camera", cameraHealth))
-
-	sm, err := session.New(cfg.Server.SSLEnabled)
-	if err != nil {
-		return nil, fmt.Errorf("initializing session manager: %w", err)
-	}
-	a.closers = append(a.closers, closerFunc(func() error {
-		session.StopCleanup(sm)
-		return nil
-	}))
-
-	authService := service.NewAuthService(authOptions(cfg.App), sm)
-	configService := service.NewConfigService(cfg, service.ConfigOptions{
-		FilePath: deps.ConfigFilePath,
-		Sources:  deps.ConfigSources,
-	})
-	stores := NewStores(storage)
 	captureService := service.NewCaptureService(logger, captureOptions(cfg.Capture, cfg.Camera), stores.Run, stores.Capture, stores.Overlay)
 	a.captureService = captureService
-	galleryService := service.NewGalleryService(stores.Run, stores.Capture, captureService)
-	overlayService := service.NewOverlayService(overlayOptions(cfg.Camera), stores.Overlay)
-	systemService := service.NewSystemService(systemOptions(cfg.System), healthChecker, deps.Commands, deps.Stop)
-	updater := deps.Updater
-	if updater == nil {
-		updater = NewUpdater(deps.Version)
-	}
-	updateService := service.NewUpdateService(logger, updater, deps.OnUpdated)
 
 	layoutService := service.NewLayoutService(stores.Layout)
-	if err := layoutService.EnsureDefaults(ctx, i18nBundle, string(cfg.App.Language)); err != nil {
+	if err := layoutService.EnsureDefaults(ctx, in.Bundle, string(cfg.App.Language)); err != nil {
 		return nil, fmt.Errorf("seeding default print layouts: %w", err)
 	}
 
 	printService := service.NewPrintService(
 		logger,
 		printOptions(cfg.Print, cfg.Capture),
-		deps.Commands,
+		in.Commands,
 		stores.Run,
 		stores.Capture,
 		stores.Collage,
@@ -187,8 +116,8 @@ func New(ctx context.Context, logger zerolog.Logger, cfg config.Config, deps Dep
 	shareService := service.NewShareService(
 		logger,
 		shareOptions(cfg, shareSigningKey),
-		mailService,
-		cloudProvider,
+		in.Mailer,
+		in.CloudProvider,
 		stores.Run,
 		captureService,
 		printService,
@@ -200,26 +129,29 @@ func New(ctx context.Context, logger zerolog.Logger, cfg config.Config, deps Dep
 		Logger:  logger,
 		WG:      &a.background,
 
-		Health:      healthChecker,
-		RateLimiter: rl,
-		Session:     sm,
+		Health:      in.Health,
+		RateLimiter: in.RateLimiter,
+		Session:     in.Session,
 
-		Camera:       cam,
-		CameraHealth: cameraHealth,
-		Mailer:       mailService,
-		MediaHandler: media.SignedHandler(storage),
+		Camera:       in.Camera,
+		CameraHealth: in.CameraHealth,
+		Mailer:       in.Mailer,
+		MediaHandler: media.SignedHandler(in.Storage),
 
-		AuthService:       authService,
-		CaptureService:    captureService,
-		ConfigService:     configService,
-		GalleryService:    galleryService,
+		AuthService:    service.NewAuthService(authOptions(cfg.App), in.Session),
+		CaptureService: captureService,
+		ConfigService: service.NewConfigService(cfg, service.ConfigOptions{
+			FilePath: deps.ConfigFilePath,
+			Sources:  deps.ConfigSources,
+		}),
+		GalleryService:    service.NewGalleryService(stores.Run, stores.Capture, captureService),
 		LayoutService:     layoutService,
-		OverlayService:    overlayService,
+		OverlayService:    service.NewOverlayService(overlayOptions(cfg.Camera), stores.Overlay),
 		PrintService:      printService,
-		RunSessionService: service.NewRunSessionService(sm),
+		RunSessionService: service.NewRunSessionService(in.Session),
 		ShareService:      shareService,
-		SystemService:     systemService,
-		UpdateService:     updateService,
+		SystemService:     service.NewSystemService(systemOptions(cfg.System), in.Health, in.Commands, deps.Stop),
+		UpdateService:     service.NewUpdateService(logger, in.Updater, deps.OnUpdated),
 	}).Routes()
 
 	return a, nil
@@ -235,6 +167,7 @@ func (a *App) Start(ctx context.Context) {
 	a.background.Go(func() { ratelimiter.RunCleanup(ctx, a.rateLimiter, rateLimitCleanupInterval) })
 	a.background.Go(func() { a.shareService.RunCloudCheck(ctx) })
 	a.background.Go(func() { a.captureService.PrepareOverlay(ctx) })
+	a.background.Go(func() { ratelimiter.RunCleanup(ctx, a.rateLimiter, rateLimitCleanupInterval) })
 }
 
 // Close waits for the background work to end, the work of Start and the work requests started,
@@ -255,9 +188,8 @@ func (a *App) Close() error {
 	return errors.Join(errs...)
 }
 
-// selfShareSigningKey returns the key that signs the self share links. It is derived from the app secret,
-// so the links survive a restart. Without a secret, a random key is generated,
-// and the links stay valid only for the lifetime of the process.
+// selfShareSigningKey returns the key that signs the self share links, derived from the app secret,
+// so the links survive a restart, or a random one for the lifetime of the process.
 func selfShareSigningKey(secret string) ([]byte, error) {
 	if secret != "" {
 		return []byte(secret), nil

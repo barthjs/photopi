@@ -125,8 +125,8 @@ func (s *ShareService) ListSharedFiles(ctx context.Context, run int) ([]string, 
 	return urls, nil
 }
 
-// ListSharedFilePaths returns the storage paths of every file of a shared run, its captures followed by its collage
-// pages, so a caller can answer an unknown run before it starts streaming them with ZipSharedFiles.
+// ListSharedFilePaths returns the storage paths of every file of a shared run, its captures followed by its collage pages,
+// so a caller can answer an unknown run before it starts streaming them with ZipSharedFiles.
 func (s *ShareService) ListSharedFilePaths(ctx context.Context, run int) ([]string, error) {
 	return s.runFilePaths(ctx, run)
 }
@@ -163,8 +163,7 @@ func (s *ShareService) RunHasCaptures(ctx context.Context, run int) (bool, error
 	return len(paths) > 0, nil
 }
 
-// BeginEmail marks the email of a run as pending, unless one is already being sent,
-// and reports whether the caller should start RunEmail.
+// BeginEmail marks the email of a run as pending and reports whether the caller starts RunEmail.
 func (s *ShareService) BeginEmail(run int) bool {
 	return s.emails.begin(run)
 }
@@ -205,8 +204,7 @@ func (s *ShareService) sendEmail(ctx context.Context, run int, recipient string)
 // errCloudUnreachable fails an upload right away while the cloud share is known to be unreachable.
 var errCloudUnreachable = errors.New("service: cloud share is unreachable")
 
-// BeginCloudUpload marks a run's cloud upload as pending, unless one is already in flight for it,
-// and reports whether the caller should start RunCloudUpload.
+// BeginCloudUpload marks the cloud upload of a run as pending and reports whether the caller starts RunCloudUpload.
 func (s *ShareService) BeginCloudUpload(run int) bool {
 	return s.uploads.begin(run)
 }

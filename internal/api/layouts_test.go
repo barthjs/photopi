@@ -2,18 +2,15 @@ package api_test
 
 import (
 	"net/http"
-	"net/url"
 	"strings"
 	"testing"
 
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/barthjs/photopi/internal/api"
 )
-
-// defaultLayoutIDs are the print layouts every installation starts with.
-var defaultLayoutIDs = []string{"single-4x6", "strip-3"}
 
 func TestLayoutAccess(t *testing.T) {
 	t.Parallel()
@@ -29,9 +26,9 @@ func TestLayoutAccess(t *testing.T) {
 		},
 		{
 			method: http.MethodGet,
-			path:   "/api/print/layouts/{id}",
+			path:   "/api/print/layouts/{name}",
 			arrange: func(*harness) (string, any) {
-				return layoutPath(defaultLayoutIDs[0]), nil
+				return layoutPath(defaultLayoutNames[0]), nil
 			},
 			statuses: map[*clientKind]int{
 				clientGuest: http.StatusUnauthorized,
@@ -40,9 +37,10 @@ func TestLayoutAccess(t *testing.T) {
 		},
 		{
 			method: http.MethodPut,
-			path:   "/api/print/layouts/{id}",
+			path:   "/api/print/layouts/{name}",
 			arrange: func(h *harness) (string, any) {
-				return layoutPath(h.Faker.LetterN(8)), newLayoutSaveRequest(h.Faker)
+				request := newLayoutSaveRequest(h.Faker)
+				return layoutPath(request.Name), request
 			},
 			statuses: map[*clientKind]int{
 				clientGuest: http.StatusUnauthorized,
@@ -51,9 +49,9 @@ func TestLayoutAccess(t *testing.T) {
 		},
 		{
 			method: http.MethodDelete,
-			path:   "/api/print/layouts/{id}",
+			path:   "/api/print/layouts/{name}",
 			arrange: func(*harness) (string, any) {
-				return layoutPath(defaultLayoutIDs[0]), nil
+				return layoutPath(defaultLayoutNames[0]), nil
 			},
 			statuses: map[*clientKind]int{
 				clientGuest: http.StatusUnauthorized,
@@ -66,19 +64,24 @@ func TestLayoutAccess(t *testing.T) {
 func TestLayoutListHandler(t *testing.T) {
 	t.Parallel()
 
-	t.Run("returns the layouts", func(t *testing.T) {
+	t.Run("returns the layouts sorted by name and marks the one in use", func(t *testing.T) {
 		t.Parallel()
-		h := newHarness(t)
+		h := newHarness(t, withPrinting("managed"))
 
 		layouts := h.asAdmin().GET("/api/print/layouts").AssertOK().Decode[[]api.LayoutResponse]()
 
-		ids := make([]string, 0, len(layouts))
+		names := make([]string, 0, len(layouts))
+		inUse := make([]string, 0, 1)
 		for _, layout := range layouts {
-			ids = append(ids, layout.ID)
+			names = append(names, layout.Name)
+			if layout.InUse {
+				inUse = append(inUse, layout.Name)
+			}
 			assert.Positive(t, layout.Slots)
 			assert.Positive(t, layout.Pages)
 		}
-		assert.Equal(t, defaultLayoutIDs, ids)
+		assert.Equal(t, defaultLayoutNames, names)
+		assert.Equal(t, []string{h.Config.Print.Layout}, inUse)
 	})
 }
 
@@ -89,21 +92,21 @@ func TestLayoutGetHandler(t *testing.T) {
 		t.Parallel()
 		h := newHarness(t)
 
-		response := h.asAdmin().GET(layoutPath(defaultLayoutIDs[0]))
+		response := h.asAdmin().GET(layoutPath(defaultLayoutNames[0]))
 
-		response.AssertOK().AssertJSONPath("id", defaultLayoutIDs[0]).AssertJSONPath("pages.0.slots.0.locked", false)
+		response.AssertOK().AssertJSONPath("name", defaultLayoutNames[0]).AssertJSONPath("pages.0.slots.0.locked", false)
 	})
 
 	t.Run("returns not found for an unknown layout", func(t *testing.T) {
 		t.Parallel()
 		h := newHarness(t)
 
-		response := h.asAdmin().GET(layoutPath(h.Faker.LetterN(10)))
+		response := h.asAdmin().GET(layoutPath(layoutName(h.Faker)))
 
 		response.AssertNotFound().AssertJSONPath("code", "not_found")
 	})
 
-	t.Run("returns not found for a malformed id", func(t *testing.T) {
+	t.Run("returns not found for a malformed name", func(t *testing.T) {
 		t.Parallel()
 		h := newHarness(t)
 
@@ -120,77 +123,77 @@ func TestLayoutSaveHandler(t *testing.T) {
 		t.Parallel()
 		h := newHarness(t)
 		client := h.asAdmin()
-		id := h.Faker.LetterN(10)
-		request := newLayoutSaveRequest(h.Faker)
+		hexColor := h.Faker.HexColor()
+		request := newLayoutSaveRequest(h.Faker, func(r *api.LayoutSaveRequest) {
+			r.Branding.Color = hexColor
+			r.Pages[0].Slots[0].Locked = true
+		})
 
-		saved := client.PUT(layoutPath(id), request).AssertOK().Decode[api.LayoutDetailResponse]()
+		saved := client.PUT(layoutPath(request.Name), request).AssertOK().Decode[api.LayoutDetailResponse]()
 
-		assert.Equal(t, id, saved.ID)
 		assert.Equal(t, request.Name, saved.Name)
+		assert.Equal(t, request.Description, saved.Description)
+		assert.Equal(t, hexColor, saved.Branding.Color)
 		assert.Len(t, saved.Pages[0].Slots, len(request.Pages[0].Slots))
-		client.GET(layoutPath(id)).AssertOK().AssertJSON(saved)
-		client.GET("/api/print/layouts").AssertJSONCount("", len(defaultLayoutIDs)+1)
+		assert.True(t, saved.Pages[0].Slots[0].Locked)
+		exists, err := h.Storage.Exists(t.Context(), "layouts/"+request.Name+".json")
+		require.NoError(t, err)
+		assert.True(t, exists, "the layout is stored as a file named after it")
+		client.GET(layoutPath(request.Name)).AssertOK().AssertJSON(saved)
+		client.GET("/api/print/layouts").AssertJSONCount("", len(defaultLayoutNames)+1)
 	})
 
 	t.Run("replaces the layout", func(t *testing.T) {
 		t.Parallel()
 		h := newHarness(t)
 		client := h.asAdmin()
-		id := h.Faker.LetterN(10)
-		client.PUT(layoutPath(id), newLayoutSaveRequest(h.Faker)).AssertOK()
-		replaced := newLayoutSaveRequest(h.Faker)
+		layout := newLayoutSaveRequest(h.Faker)
+		client.PUT(layoutPath(layout.Name), layout).AssertOK()
+		replaced := newLayoutSaveRequest(h.Faker, func(r *api.LayoutSaveRequest) { r.Name = layout.Name })
 
-		saved := client.PUT(layoutPath(id), replaced).AssertOK().Decode[api.LayoutDetailResponse]()
+		saved := client.PUT(layoutPath(layout.Name), replaced).AssertOK().Decode[api.LayoutDetailResponse]()
 
-		assert.Equal(t, replaced.Name, saved.Name)
-		client.GET(layoutPath(id)).AssertOK().AssertJSON(saved)
-		client.GET("/api/print/layouts").AssertJSONCount("", len(defaultLayoutIDs)+1)
+		assert.Equal(t, replaced.Description, saved.Description)
+		client.GET(layoutPath(layout.Name)).AssertOK().AssertJSON(saved)
+		client.GET("/api/print/layouts").AssertJSONCount("", len(defaultLayoutNames)+1)
 	})
 
-	t.Run("stores the branding color", func(t *testing.T) {
-		t.Parallel()
-		h := newHarness(t)
-		hexColor := h.Faker.HexColor()
-		request := newLayoutSaveRequest(h.Faker, func(r *api.LayoutSaveRequest) {
-			r.Branding.Color = hexColor
-		})
-
-		response := h.asAdmin().PUT(layoutPath(h.Faker.LetterN(10)), request)
-
-		response.AssertOK().AssertJSONPath("branding.color", hexColor)
-	})
-
-	t.Run("stores the slot lock", func(t *testing.T) {
+	t.Run("stores the longest name of wide characters", func(t *testing.T) {
 		t.Parallel()
 		h := newHarness(t)
 		client := h.asAdmin()
-		id := h.Faker.LetterN(10)
-		request := newLayoutSaveRequest(h.Faker, func(r *api.LayoutSaveRequest) {
-			r.Pages[0].Slots[0].Locked = true
-		})
+		// Characters of 4 bytes each give the longest file name the name limit allows
+		name := make([]rune, 60)
+		for i := range name {
+			name[i] = rune(h.Faker.IntRange(0x1F600, 0x1F64F))
+		}
+		layout := newLayoutSaveRequest(h.Faker, func(r *api.LayoutSaveRequest) { r.Name = string(name) })
 
-		response := client.PUT(layoutPath(id), request)
+		client.PUT(layoutPath(layout.Name), layout).AssertOK()
 
-		response.AssertOK().AssertJSONPath("pages.0.slots.0.locked", true)
-		client.GET(layoutPath(id)).AssertOK().AssertJSONPath("pages.0.slots.0.locked", true)
+		client.GET(layoutPath(layout.Name)).AssertOK().AssertJSONPath("name", layout.Name)
 	})
 
 	t.Run("rejects invalid input", func(t *testing.T) {
 		t.Parallel()
 
-		// The id is no field of the request but the file name of the layout, so its rows set the path
 		tests := []struct {
 			name   string
 			change func(*api.LayoutSaveRequest, *gofakeit.Faker)
 			field  string
 			tag    string
-			id     string
 		}{
 			{
 				name:   "missing name",
 				change: func(r *api.LayoutSaveRequest, _ *gofakeit.Faker) { r.Name = "" },
 				field:  "name",
 				tag:    "required",
+			},
+			{
+				name:   "empty description",
+				change: func(r *api.LayoutSaveRequest, _ *gofakeit.Faker) { empty := ""; r.Description = &empty },
+				field:  "description",
+				tag:    "min",
 			},
 			{
 				name: "paper wider than the limit",
@@ -213,22 +216,28 @@ func TestLayoutSaveHandler(t *testing.T) {
 				tag:    "rgbcolor",
 			},
 			{
-				name:  "blank id",
-				field: "id",
-				tag:   "invalid",
-				id:    " ",
+				name:   "name too long",
+				change: func(r *api.LayoutSaveRequest, _ *gofakeit.Faker) { r.Name = strings.Repeat(r.Name[:1], 61) },
+				field:  "name",
+				tag:    "max",
 			},
 			{
-				name:  "id outside the folder",
-				field: "id",
-				tag:   "invalid",
-				id:    "..",
+				name:   "blank name",
+				change: func(r *api.LayoutSaveRequest, _ *gofakeit.Faker) { r.Name = " " },
+				field:  "name",
+				tag:    "invalid",
 			},
 			{
-				name:  "id too long for a file",
-				field: "id",
-				tag:   "invalid",
-				id:    strings.Repeat("a", 251),
+				name:   "name outside the folder",
+				change: func(r *api.LayoutSaveRequest, _ *gofakeit.Faker) { r.Name = ".." },
+				field:  "name",
+				tag:    "invalid",
+			},
+			{
+				name:   "name a file system refuses",
+				change: func(r *api.LayoutSaveRequest, _ *gofakeit.Faker) { r.Name += ":" },
+				field:  "name",
+				tag:    "invalid",
 			},
 		}
 
@@ -237,21 +246,35 @@ func TestLayoutSaveHandler(t *testing.T) {
 				t.Parallel()
 				h := newHarness(t)
 				client := h.asAdmin()
-				id := tt.id
-				if id == "" {
-					id = h.Faker.LetterN(10)
-				}
 				request := newLayoutSaveRequest(h.Faker)
-				if tt.change != nil {
-					tt.change(&request, h.Faker)
+				name := request.Name
+				tt.change(&request, h.Faker)
+				// The path carries the changed name, so the name check of the store sees it.
+				// An empty name has no route and keeps the original one.
+				if request.Name != "" {
+					name = request.Name
 				}
 
-				response := client.PUT(layoutPath(id), request)
+				response := client.PUT(layoutPath(name), request)
 
 				assertFieldError(t, response, tt.field, tt.tag)
-				client.GET("/api/print/layouts").AssertJSONCount("", len(defaultLayoutIDs))
+				client.GET("/api/print/layouts").AssertJSONCount("", len(defaultLayoutNames))
 			})
 		}
+	})
+
+	t.Run("rejects a name other than the path", func(t *testing.T) {
+		t.Parallel()
+		h := newHarness(t)
+		client := h.asAdmin()
+		layout := newLayoutSaveRequest(h.Faker)
+		pathName := layoutName(h.Faker)
+
+		response := client.PUT(layoutPath(pathName), layout)
+
+		assertFieldError(t, response, "name", "invalid")
+		client.GET(layoutPath(pathName)).AssertNotFound()
+		client.GET(layoutPath(layout.Name)).AssertNotFound()
 	})
 
 	t.Run("rejects a slot outside the page", func(t *testing.T) {
@@ -286,15 +309,14 @@ func TestLayoutSaveHandler(t *testing.T) {
 				t.Parallel()
 				h := newHarness(t)
 				client := h.asAdmin()
-				id := h.Faker.LetterN(10)
 				request := newLayoutSaveRequest(h.Faker, func(r *api.LayoutSaveRequest) {
 					r.Pages[0].Slots[0] = tt.slot
 				})
 
-				response := client.PUT(layoutPath(id), request)
+				response := client.PUT(layoutPath(request.Name), request)
 
 				response.AssertBadRequest()
-				client.GET(layoutPath(id)).AssertNotFound()
+				client.GET(layoutPath(request.Name)).AssertNotFound()
 			})
 		}
 	})
@@ -302,11 +324,11 @@ func TestLayoutSaveHandler(t *testing.T) {
 	t.Run("stores nothing for a guest", func(t *testing.T) {
 		t.Parallel()
 		h := newHarness(t)
-		id := h.Faker.LetterN(10)
+		request := newLayoutSaveRequest(h.Faker)
 
-		h.Client.PUT(layoutPath(id), newLayoutSaveRequest(h.Faker)).AssertUnauthorized()
+		h.Client.PUT(layoutPath(request.Name), request).AssertUnauthorized()
 
-		h.asAdmin().GET(layoutPath(id)).AssertNotFound()
+		h.asAdmin().GET(layoutPath(request.Name)).AssertNotFound()
 	})
 }
 
@@ -318,23 +340,23 @@ func TestLayoutDeleteHandler(t *testing.T) {
 		h := newHarness(t)
 		client := h.asAdmin()
 
-		response := client.DELETE(layoutPath(defaultLayoutIDs[0]))
+		response := client.DELETE(layoutPath(defaultLayoutNames[0]))
 
 		response.AssertNoContent()
-		client.GET(layoutPath(defaultLayoutIDs[0])).AssertNotFound()
-		client.GET("/api/print/layouts").AssertJSONCount("", len(defaultLayoutIDs)-1)
+		client.GET(layoutPath(defaultLayoutNames[0])).AssertNotFound()
+		client.GET("/api/print/layouts").AssertJSONCount("", len(defaultLayoutNames)-1)
 	})
 
 	t.Run("returns not found for an unknown layout", func(t *testing.T) {
 		t.Parallel()
 		h := newHarness(t)
 
-		response := h.asAdmin().DELETE(layoutPath(h.Faker.LetterN(8)))
+		response := h.asAdmin().DELETE(layoutPath(layoutName(h.Faker)))
 
 		response.AssertNotFound().AssertJSONPath("code", "not_found")
 	})
 
-	t.Run("returns not found for a malformed id", func(t *testing.T) {
+	t.Run("returns not found for a malformed name", func(t *testing.T) {
 		t.Parallel()
 		h := newHarness(t)
 		client := h.asAdmin()
@@ -342,31 +364,26 @@ func TestLayoutDeleteHandler(t *testing.T) {
 		response := client.DELETE(layoutPath(".."))
 
 		response.AssertNotFound().AssertJSONPath("code", "not_found")
-		client.GET("/api/print/layouts").AssertJSONCount("", len(defaultLayoutIDs))
+		client.GET("/api/print/layouts").AssertJSONCount("", len(defaultLayoutNames))
 	})
 
 	t.Run("keeps the configured layout", func(t *testing.T) {
 		t.Parallel()
-		h := newHarness(t)
+		h := newHarness(t, withPrinting("managed"))
 		client := h.asAdmin()
 
-		response := client.DELETE(layoutPath(h.Config.Print.LayoutID))
+		response := client.DELETE(layoutPath(h.Config.Print.Layout))
 
 		response.AssertStatus(http.StatusConflict).AssertJSONPath("code", "conflict")
-		client.GET(layoutPath(h.Config.Print.LayoutID)).AssertOK()
+		client.GET(layoutPath(h.Config.Print.Layout)).AssertOK()
 	})
 
 	t.Run("keeps the layout for a guest", func(t *testing.T) {
 		t.Parallel()
 		h := newHarness(t)
 
-		h.Client.DELETE(layoutPath(defaultLayoutIDs[0])).AssertUnauthorized()
+		h.Client.DELETE(layoutPath(defaultLayoutNames[0])).AssertUnauthorized()
 
-		h.asAdmin().GET(layoutPath(defaultLayoutIDs[0])).AssertOK()
+		h.asAdmin().GET(layoutPath(defaultLayoutNames[0])).AssertOK()
 	})
-}
-
-// layoutPath returns the API path of a print layout.
-func layoutPath(id string) string {
-	return "/api/print/layouts/" + url.PathEscape(id)
 }

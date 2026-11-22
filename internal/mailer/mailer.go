@@ -8,8 +8,8 @@
 // from templates/images/ or from SendOptions.InlineImages, instead of being loaded from a URL,
 // which many mail clients block. Only the images the HTML uses are attached.
 //
-// Options set what every email carries: the sender, a Reply-To address such as a support mailbox
-// next to a no-reply sender, custom headers, and the domain of the Message-ID. SendOptions override them per email
+// Options set what every email carries: the sender, a Reply-To address such as a support mailbox next to a no-reply sender,
+// custom headers, and the domain of the Message-ID. SendOptions override them per email
 // and add the List-Unsubscribe headers mailbox providers expect on notifications.
 package mailer
 

@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json/v2"
 	"mime"
 	"net/http"
 	"net/http/httptest"
@@ -13,38 +12,6 @@ import (
 
 	"github.com/barthjs/photopi/internal/apitest"
 )
-
-func TestAPI_WritePaginated(t *testing.T) {
-	t.Parallel()
-
-	t.Run("writes the data with the page meta", func(t *testing.T) {
-		t.Parallel()
-		f := apitest.Faker(t)
-		data := []string{
-			f.Word(),
-			f.Word(),
-		}
-		totalCount := f.IntRange(2, 100)
-		limit := f.IntRange(2, 50)
-		offset := f.IntRange(0, 50)
-		recorder := httptest.NewRecorder()
-		request := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/", nil)
-
-		newBareAPI().writePaginated(recorder, request, data, totalCount, limit, offset)
-
-		assert.Equal(t, http.StatusOK, recorder.Code)
-		var body PaginatedResponse[string]
-		require.NoError(t, json.Unmarshal(recorder.Body.Bytes(), &body))
-		assert.Equal(t, PaginatedResponse[string]{
-			Data: data,
-			Meta: PaginatedMeta{
-				TotalCount: totalCount,
-				Limit:      limit,
-				Offset:     offset,
-			},
-		}, body)
-	})
-}
 
 func TestAPI_WriteJSON(t *testing.T) {
 	t.Parallel()
@@ -106,13 +73,6 @@ func TestWriteJSON(t *testing.T) {
 				Timeout: time.Second,
 			},
 			body: `{"timeout":1000000000}`,
-		},
-		{
-			name: "drops a zero number with omitzero",
-			data: struct {
-				Count int `json:"count,omitzero"`
-			}{},
-			body: `{}`,
 		},
 		{
 			name: "does not escape html",

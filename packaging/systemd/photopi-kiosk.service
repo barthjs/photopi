@@ -6,7 +6,8 @@ Type=simple
 # Chromium does not reload its error page by itself, so it only starts once the application answers.
 # A failed wait ends the start, and Restart= tries again.
 ExecStartPre=/bin/sh -c 'command -v curl >/dev/null || { sleep 5; exit 0; }; for i in $$(seq 60); do curl -fsS -o /dev/null http://localhost:8080/healthz && exit 0; sleep 1; done; exit 1'
-ExecStart=/bin/sh -c 'exec "$(command -v chromium || command -v chromium-browser)" --kiosk --app=http://localhost:8080 --password-store=basic --no-first-run --noerrdialogs --disable-infobars --disable-session-crashed-bubble --disable-pinch --overscroll-history-navigation=0 --force-renderer-accessibility'
+# A profile of its own keeps every other Chromium window out of the kiosk, which would leave full screen otherwise.
+ExecStart=/bin/sh -c 'exec "$(command -v chromium || command -v chromium-browser)" --kiosk --app=http://localhost:8080 --user-data-dir=%S/photopi-kiosk --password-store=basic --no-first-run --noerrdialogs --disable-infobars --disable-session-crashed-bubble --disable-pinch --overscroll-history-navigation=0 --force-renderer-accessibility'
 Restart=always
 RestartSec=5
 

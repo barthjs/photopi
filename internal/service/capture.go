@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"image"
 	"image/draw"
-	"image/jpeg"
-	"image/png"
 	"sync"
 	"time"
 
@@ -25,9 +23,16 @@ const (
 	// storeTimeout bounds compositing and storing one capture in the background.
 	storeTimeout = time.Minute
 
-	// previewWidth and previewHeight bound the screen version of a capture, sized for the kiosk screen.
-	previewWidth  = 800
-	previewHeight = 480
+	// defaultScreenWidth and defaultScreenHeight bound the screen version until a kiosk reports its screen,
+	// the size of the Raspberry Pi touch display.
+	defaultScreenWidth  = 800
+	defaultScreenHeight = 480
+	// maxScreenEdge bounds the longest edge of the screen version, so a large display costs the booth no more than full HD.
+	maxScreenEdge = 1920
+	// thumbnailEdge bounds the longest edge of the thumbnail of a run, enough for the tiles of the gallery.
+	thumbnailEdge = 480
+	// thumbnailQuality is the JPEG quality of the thumbnail of a run.
+	thumbnailQuality = 80
 	// previewQuality is the JPEG quality of the screen version, which is only shown, never kept.
 	previewQuality = 80
 	// captureQuality is the JPEG quality of a stored capture with the overlay drawn in.
@@ -36,6 +41,13 @@ const (
 	// runIdleTimeout is how long an open run without a capture blocks another client from starting a run.
 	// A guest needs at most a countdown per capture, so a longer pause means the client that opened the run is gone.
 	runIdleTimeout = 2 * time.Minute
+
+	// MaxCaptureEdge bounds the pixel count of a capture and an overlay to a square with this edge,
+	// slightly above the 102 megapixels of the largest cameras gphoto2 drives and the 100 megapixels the rpicam settings allow.
+	MaxCaptureEdge = 10_500
+	// MaxCapturePixels is the pixel budget of a capture and an overlay, a square with MaxCaptureEdge.
+	// A decode allocates memory for every pixel the header claims, so a crafted image must not reach it.
+	MaxCapturePixels = MaxCaptureEdge * MaxCaptureEdge
 )
 
 var (
@@ -70,8 +82,8 @@ type CaptureOptions struct {
 	SaveOriginals bool
 	// OverlayPath is the storage path of the PNG drawn over every capture, empty for none.
 	OverlayPath string
-	// CaptureWidth and CaptureHeight are the size of the captures if the camera has a fixed one, zero otherwise.
-	// With a fixed size, PrepareOverlay scales the overlay before the first capture.
+	// CaptureWidth and CaptureHeight are the fixed size of the captures or zero,
+	// and PrepareOverlay scales the overlay to a fixed size.
 	CaptureWidth  int
 	CaptureHeight int
 }
@@ -107,8 +119,10 @@ type CaptureService struct {
 	// previewMu guards the screen versions of the captures of the current run,
 	// which the kiosk shows right after a shot and on the review screen.
 	// They live in memory only and are replaced by the next run.
-	previewMu     sync.Mutex
-	previewRun    int
+	previewMu  sync.Mutex
+	previewRun int
+	// previewSize bounds the screen versions of the current run, the screen of the kiosk that started it.
+	previewSize   image.Point
 	previews      map[int][]byte
 	previewsReady map[int]chan struct{}
 }
@@ -122,12 +136,13 @@ func NewCaptureService(
 	overlays *store.OverlayStore,
 ) *CaptureService {
 	return &CaptureService{
-		logger:    logger,
-		options:   options,
-		runs:      runs,
-		captures:  captures,
-		overlays:  overlays,
-		eventSlug: slugify(options.EventName),
+		logger:      logger,
+		options:     options,
+		runs:        runs,
+		captures:    captures,
+		overlays:    overlays,
+		eventSlug:   slugify(options.EventName),
+		previewSize: image.Pt(defaultScreenWidth, defaultScreenHeight),
 	}
 }
 
@@ -190,13 +205,17 @@ func (s *CaptureService) GetPreview(ctx context.Context, run, imageIndex int) ([
 		return nil, err
 	}
 
-	base, err := jpeg.Decode(bytes.NewReader(stored))
+	base, err := media.DecodeImage(
+		bytes.NewReader(stored),
+		media.WithFormats(media.ImageFormatJPEG),
+		media.WithMaxPixels(MaxCapturePixels),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("service: decoding run %d image %d: %w", run, imageIndex, err)
 	}
 
 	// The stored capture carries the overlay already
-	preview, err := s.renderPreview(ctx, base, false)
+	_, preview, err := s.renderPreview(ctx, base, false)
 	if err != nil {
 		return nil, err
 	}
@@ -233,9 +252,8 @@ type Capture struct {
 	ImagesPerRun int
 }
 
-// Create takes data as the next capture of the open run and returns ErrRunNotOpen for any other run.
-// It returns once the capture is checked and numbered and stores it in the background,
-// so the guests may move again as early as possible. A failed store fails the next Create with ErrCaptureNotStored.
+// Create checks and numbers data as the next capture of the open run and stores it in the background,
+// so the guests may move again early, and a failed store fails the next Create with ErrCaptureNotStored.
 func (s *CaptureService) Create(ctx context.Context, run int, data *[]byte) (Capture, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -311,13 +329,17 @@ func (s *CaptureService) expectPreview(run, imageIndex int) chan struct{} {
 func (s *CaptureService) store(ctx context.Context, run, imageIndex int, data *[]byte, previewReady chan struct{}) error {
 	started := time.Now()
 
-	base, err := jpeg.Decode(bytes.NewReader(*data))
+	base, err := media.DecodeImage(
+		bytes.NewReader(*data),
+		media.WithFormats(media.ImageFormatJPEG),
+		media.WithMaxPixels(MaxCapturePixels),
+	)
 	if err != nil {
 		close(previewReady)
 		return fmt.Errorf("service: decoding run %d image %d: %w", run, imageIndex, err)
 	}
 
-	preview, err := s.renderPreview(ctx, base, true)
+	previewImage, preview, err := s.renderPreview(ctx, base, true)
 	if err != nil {
 		s.logger.Warn().Err(err).Int("run", run).Int("image", imageIndex).Msg("rendering the screen version failed")
 	}
@@ -342,14 +364,23 @@ func (s *CaptureService) store(ctx context.Context, run, imageIndex int, data *[
 	if s.options.SaveOriginals && overlaid {
 		original = *data
 	}
-	if err := s.captures.Create(ctx, domain.Capture{
+	capture := domain.Capture{
 		Event:      s.eventSlug,
 		Prefix:     s.options.FilePrefix,
 		Run:        run,
 		ImageIndex: imageIndex,
 		TakenAt:    time.Now(),
-	}, *composited, original); err != nil {
+	}
+	if err := s.captures.Create(ctx, capture, *composited, original); err != nil {
 		return fmt.Errorf("service: storing run %d image %d: %w", run, imageIndex, err)
+	}
+
+	// The thumbnail of the run is scaled from the screen version of its first capture, which carries the overlay,
+	// so the gallery never decodes a capture while the booth takes photos.
+	if imageIndex == 1 && previewImage != nil {
+		if err := s.storeThumbnail(ctx, capture, previewImage); err != nil {
+			s.logger.Warn().Err(err).Int("run", run).Msg("storing the thumbnail failed")
+		}
 	}
 
 	s.logger.Info().
@@ -363,11 +394,13 @@ func (s *CaptureService) store(ctx context.Context, run, imageIndex int, data *[
 	return nil
 }
 
-// renderPreview scales base down to the screen version and encodes it, drawing the overlay in if withOverlay is set.
-// The approximate bilinear scaler is enough for the screen and much faster than the one for the stored captures.
-func (s *CaptureService) renderPreview(ctx context.Context, base image.Image, withOverlay bool) ([]byte, error) {
-	bounds := previewBounds(base.Bounds())
+// renderPreview scales base down to the screen version of the current run, with the overlay if withOverlay is set,
+// and returns it with its encoding.
+func (s *CaptureService) renderPreview(ctx context.Context, base image.Image, withOverlay bool) (*image.RGBA, []byte, error) {
+	size := s.currentPreviewSize()
+	bounds := fitBounds(base.Bounds(), size.X, size.Y)
 	preview := image.NewRGBA(bounds)
+	// The approximate bilinear scaler is enough for the screen and much faster than the one for the stored captures
 	xdraw.ApproxBiLinear.Scale(preview, bounds, base, base.Bounds(), xdraw.Src, nil)
 
 	if withOverlay && s.options.OverlayPath != "" {
@@ -379,9 +412,30 @@ func (s *CaptureService) renderPreview(ctx context.Context, base image.Image, wi
 
 	encoded, err := media.EncodeJPEG(preview, previewQuality)
 	if err != nil {
-		return nil, fmt.Errorf("service: encoding screen version: %w", err)
+		return nil, nil, fmt.Errorf("service: encoding screen version: %w", err)
 	}
-	return encoded, nil
+	return preview, encoded, nil
+}
+
+// currentPreviewSize returns the bounds of the screen versions of the current run.
+func (s *CaptureService) currentPreviewSize() image.Point {
+	s.previewMu.Lock()
+	defer s.previewMu.Unlock()
+
+	return s.previewSize
+}
+
+// storeThumbnail scales the screen version of the first capture of a run down to its thumbnail and stores it.
+func (s *CaptureService) storeThumbnail(ctx context.Context, capture domain.Capture, preview image.Image) error {
+	bounds := fitBounds(preview.Bounds(), thumbnailEdge, thumbnailEdge)
+	thumbnail := image.NewRGBA(bounds)
+	xdraw.ApproxBiLinear.Scale(thumbnail, bounds, preview, preview.Bounds(), xdraw.Src, nil)
+
+	encoded, err := media.EncodeJPEG(thumbnail, thumbnailQuality)
+	if err != nil {
+		return fmt.Errorf("service: encoding thumbnail: %w", err)
+	}
+	return s.captures.SaveThumbnail(ctx, capture, encoded)
 }
 
 // publishPreview keeps the screen version of a capture of the current run, nil keeps nothing.
@@ -398,9 +452,8 @@ func (s *CaptureService) publishPreview(run, imageIndex int, preview []byte) {
 	}
 }
 
-// compositeOverlay draws the overlay over the decoded base of capture and returns the result as JPEG,
-// together with whether an overlay was applied. Without an overlay, capture is returned unchanged.
-// An overlay that cannot be read is logged and skipped, so it never stops the booth from taking photos.
+// compositeOverlay draws the overlay over the decoded base of capture and returns the JPEG and whether it applied one,
+// logging an overlay it cannot read, so the booth keeps taking photos.
 func (s *CaptureService) compositeOverlay(ctx context.Context, base image.Image, capture *[]byte) (*[]byte, bool, error) {
 	if s.options.OverlayPath == "" {
 		return capture, false, nil
@@ -456,10 +509,10 @@ func exifSegments(data []byte) []byte {
 	return segments
 }
 
-// withoutThumbnail returns a copy of an EXIF segment without its thumbnail. The thumbnail lives in the second directory
-// of the TIFF structure, which the end of the first one links to, so clearing that link leaves it unreferenced.
-// It would show the photo without the overlay. A segment it cannot read stays as it is.
+// withoutThumbnail returns a copy of an EXIF segment without its thumbnail, which would show the photo without the overlay.
 func withoutThumbnail(segment []byte) []byte {
+	// The thumbnail lives in the second directory of the TIFF structure, which the end of the first one links to,
+	// so clearing that link leaves it unreferenced. A segment that cannot be read stays as it is.
 	result := bytes.Clone(segment)
 
 	// The TIFF structure starts after the marker, the length, and the EXIF header
@@ -505,15 +558,25 @@ func withExif(data, segments []byte) []byte {
 }
 
 // RunStart is returned when a new run is started.
+// RunCreateInput is the client that opens a run and the size of its screen in pixels,
+// which bounds the screen versions of the captures of the run.
+type RunCreateInput struct {
+	Owner        string
+	ScreenWidth  int
+	ScreenHeight int
+}
+
+// RunStart is an opened run with the number of captures it takes.
 type RunStart struct {
 	Run          int
 	ImagesPerRun int
 }
 
-// CreateRun opens the next run for owner, the client that takes its captures.
-// A run that owner left incomplete is discarded, and a run of another client blocks the start
-// with ErrRunBusy until it completes or has been idle for runIdleTimeout.
-func (s *CaptureService) CreateRun(ctx context.Context, owner string) (RunStart, error) {
+// CreateRun opens the next run for the owner, the client that takes its captures.
+// A run that the owner left incomplete is discarded, and a run of another client blocks the start with ErrRunBusy
+// until it completes or has been idle for runIdleTimeout.
+func (s *CaptureService) CreateRun(ctx context.Context, input RunCreateInput) (RunStart, error) {
+	owner := input.Owner
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -543,7 +606,7 @@ func (s *CaptureService) CreateRun(ctx context.Context, owner string) (RunStart,
 	s.openOwner = owner
 	s.nextIndex = 1
 	s.lastActivity = time.Now()
-	s.resetPreviews(run)
+	s.resetPreviews(run, screenBounds(input.ScreenWidth, input.ScreenHeight))
 
 	return RunStart{
 		Run:          run,
@@ -551,14 +614,25 @@ func (s *CaptureService) CreateRun(ctx context.Context, owner string) (RunStart,
 	}, nil
 }
 
-// resetPreviews drops the screen versions of the previous run when run starts.
-func (s *CaptureService) resetPreviews(run int) {
+// resetPreviews drops the screen versions of the previous run when run starts, whose screen versions fit size.
+func (s *CaptureService) resetPreviews(run int, size image.Point) {
 	s.previewMu.Lock()
 	defer s.previewMu.Unlock()
 
 	s.previewRun = run
+	s.previewSize = size
 	s.previews = make(map[int][]byte)
 	s.previewsReady = make(map[int]chan struct{})
+}
+
+// screenBounds returns the bounds of the screen versions for a screen, at most maxScreenEdge on its longest edge
+// and the default screen for a size that is not positive.
+func screenBounds(width, height int) image.Point {
+	if width <= 0 || height <= 0 {
+		return image.Pt(defaultScreenWidth, defaultScreenHeight)
+	}
+	bounds := fitBounds(image.Rect(0, 0, width, height), maxScreenEdge, maxScreenEdge)
+	return bounds.Size()
 }
 
 // AbortRun deletes every file stored for a run and, if it is the currently open run,
@@ -598,8 +672,8 @@ func (s *CaptureService) awaitStoreLocked(ctx context.Context) error {
 	}
 }
 
-// PrepareOverlay scales the overlay to the fixed capture size and to its screen version ahead of the first capture,
-// which would otherwise pay for it. Without an overlay or a fixed capture size, there is nothing to prepare.
+// PrepareOverlay scales the overlay to the fixed capture size and the screen version of the default screen,
+// so the first capture does not pay for it.
 func (s *CaptureService) PrepareOverlay(ctx context.Context) {
 	if s.options.OverlayPath == "" || s.options.CaptureWidth <= 0 || s.options.CaptureHeight <= 0 {
 		return
@@ -607,7 +681,7 @@ func (s *CaptureService) PrepareOverlay(ctx context.Context) {
 
 	started := time.Now()
 	captureBounds := image.Rect(0, 0, s.options.CaptureWidth, s.options.CaptureHeight)
-	for _, bounds := range []image.Rectangle{captureBounds, previewBounds(captureBounds)} {
+	for _, bounds := range []image.Rectangle{captureBounds, fitBounds(captureBounds, defaultScreenWidth, defaultScreenHeight)} {
 		if _, err := s.scaledOverlay(ctx, bounds); err != nil {
 			s.logger.Warn().Err(err).Str("overlay", s.options.OverlayPath).Msg("preparing the overlay failed")
 			return
@@ -616,15 +690,15 @@ func (s *CaptureService) PrepareOverlay(ctx context.Context) {
 	s.logger.Info().Int64("prepare_ms", time.Since(started).Milliseconds()).Msg("overlay prepared")
 }
 
-// previewBounds returns the largest size with the aspect ratio of bounds that fits previewWidth and previewHeight,
+// fitBounds returns the largest size with the aspect ratio of bounds that fits maxWidth and maxHeight,
 // and never enlarges a smaller image.
-func previewBounds(bounds image.Rectangle) image.Rectangle {
+func fitBounds(bounds image.Rectangle, maxWidth, maxHeight int) image.Rectangle {
 	width, height := bounds.Dx(), bounds.Dy()
 	if width <= 0 || height <= 0 {
 		return image.Rect(0, 0, 1, 1)
 	}
 
-	scale := min(float64(previewWidth)/float64(width), float64(previewHeight)/float64(height), 1)
+	scale := min(float64(maxWidth)/float64(width), float64(maxHeight)/float64(height), 1)
 	return image.Rect(0, 0, max(1, int(float64(width)*scale)), max(1, int(float64(height)*scale)))
 }
 
@@ -635,8 +709,7 @@ type overlayCache struct {
 	scaled map[image.Rectangle]*image.RGBA
 }
 
-// scaledOverlay returns the overlay scaled to bounds and caches it per size. The sharp but slow CatmullRom scaler
-// keeps the edges of text clean, and the cache pays its cost once. A failed read is not cached.
+// scaledOverlay returns the overlay scaled to bounds and caches each size, but not a failed read.
 func (s *CaptureService) scaledOverlay(ctx context.Context, bounds image.Rectangle) (*image.RGBA, error) {
 	s.overlayMu.Lock()
 	defer s.overlayMu.Unlock()
@@ -653,7 +726,11 @@ func (s *CaptureService) scaledOverlay(ctx context.Context, bounds image.Rectang
 			return nil, fmt.Errorf("reading overlay: %w", err)
 		}
 
-		decoded, err := png.Decode(bytes.NewReader(data))
+		decoded, err := media.DecodeImage(
+			bytes.NewReader(data),
+			media.WithFormats(media.ImageFormatPNG),
+			media.WithMaxPixels(MaxCapturePixels),
+		)
 		if err != nil {
 			return nil, fmt.Errorf("decoding overlay: %w", err)
 		}
@@ -664,6 +741,7 @@ func (s *CaptureService) scaledOverlay(ctx context.Context, bounds image.Rectang
 		}
 	}
 
+	// The sharp but slow CatmullRom scaler keeps the edges of text clean, which is why every size is cached
 	scaled := image.NewRGBA(bounds)
 	xdraw.CatmullRom.Scale(scaled, bounds, s.overlay.image, s.overlay.image.Bounds(), xdraw.Src, nil)
 	s.overlay.scaled[bounds] = scaled

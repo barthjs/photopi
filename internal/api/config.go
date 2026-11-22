@@ -29,17 +29,16 @@ func (a *API) configGetHandler(w http.ResponseWriter, r *http.Request) {
 	a.writeConfig(w, r)
 }
 
-// ConfigResponse is the effective configuration without its secrets, with the default and the source of every setting.
-// Secrets reports which secrets are set, since their values never leave the backend.
 type ConfigResponse struct {
 	ConfigSettings
-	Secrets  map[string]bool         `json:"secrets"`
-	Defaults ConfigSettings          `json:"defaults"`
-	Sources  map[string]ConfigSource `json:"sources"`
-	File     ConfigFile              `json:"file"`
+	// Secrets reports by path whether each secret is set, since their values never leave the backend.
+	Secrets  map[string]bool `json:"secrets"`
+	Defaults ConfigSettings  `json:"defaults"`
+	// Sources names by path where each setting comes from.
+	Sources map[string]ConfigSource `json:"sources"`
+	File    ConfigFile              `json:"file"`
 }
 
-// ConfigSettings are the sections of the configuration.
 type ConfigSettings struct {
 	App     AppSettings     `json:"app"`
 	Log     LogSettings     `json:"log"`
@@ -54,43 +53,40 @@ type ConfigSettings struct {
 	Theme   ThemeSettings   `json:"theme"`
 }
 
-// ConfigSource is where the value of a setting comes from. A flag or an environment variable
-// overrides the config file, so a change saved to the file has no effect on such a setting.
 type ConfigSource struct {
+	// Kind is the source of the value, where a flag or an environment variable overrides the config file,
+	// so a change saved to the file has no effect on such a setting.
 	Kind string `json:"kind" enums:"default,file,env,flag"`
 	// Name is the flag, the environment variable, or the file path, empty for the default.
 	Name string `json:"name"`
 }
 
-// ConfigFile is the config file a save writes to. Path is empty if none was found at startup,
-// a save then creates one. Exists is false until the file at Path is created.
 type ConfigFile struct {
-	Path   string `json:"path"`
-	Exists bool   `json:"exists"`
+	// Path is empty when a save creates a new config file.
+	Path string `json:"path"`
+	// Exists is false until the file at Path is created.
+	Exists bool `json:"exists"`
 }
 
-// AppSettings is the app section of the configuration.
 type AppSettings struct {
 	Name     string `json:"name" validate:"max=100"`
 	Env      string `json:"env" enums:"development,staging,production"`
-	Language string `json:"language" validate:"oneof=en de" enums:"en,de"`
+	Language string `json:"language" validate:"oneof=en de"`
 	Secret   string `json:"secret"`
 }
 
-// LogSettings is the log section of the configuration.
 type LogSettings struct {
 	Level      string `json:"level"`
-	Channel    string `json:"channel" validate:"oneof=stdout file both" enums:"stdout,file,both"`
+	Channel    string `json:"channel" validate:"oneof=stdout file both"`
 	Path       string `json:"path" validate:"max=1024"`
-	Format     string `json:"format" validate:"oneof=json console" enums:"json,console"`
+	Format     string `json:"format" validate:"oneof=json console"`
 	MaxSizeMB  int    `json:"maxSizeMb" validate:"min=0"`
 	MaxAgeDays int    `json:"maxAgeDays" validate:"min=-1"`
 	Compress   bool   `json:"compress"`
 }
 
-// CameraSettings is the camera section of the configuration.
 type CameraSettings struct {
-	Source        string `json:"source" validate:"oneof=webcam rpicam gphoto2" enums:"webcam,rpicam,gphoto2"`
+	Source        string `json:"source" validate:"oneof=webcam rpicam gphoto2"`
 	CaptureWidth  int    `json:"captureWidth" validate:"required_if=Source rpicam,max=10000"`
 	CaptureHeight int    `json:"captureHeight" validate:"required_if=Source rpicam,max=10000"`
 	PreviewWidth  int    `json:"previewWidth" validate:"required_if=Source rpicam,max=4000"`
@@ -98,20 +94,19 @@ type CameraSettings struct {
 	PreviewFPS    int    `json:"previewFps" validate:"required_if=Source rpicam,max=120"`
 	OverlayPath   string `json:"overlayPath" validate:"max=1024"`
 
-	ExposureTime         string  `json:"exposureTime" validate:"oneof=auto 1/15 1/20 1/30 1/40 1/50 1/60 1/80 1/100 1/125 1/160 1/200 1/250 1/320 1/400 1/500" enums:"auto,1/15,1/20,1/30,1/40,1/50,1/60,1/80,1/100,1/125,1/160,1/200,1/250,1/320,1/400,1/500"`
-	ExposureMode         string  `json:"exposureMode" validate:"oneof=normal short" enums:"normal,short"`
+	ExposureTime         string  `json:"exposureTime" validate:"oneof=auto 1/15 1/20 1/30 1/40 1/50 1/60 1/80 1/100 1/125 1/160 1/200 1/250 1/320 1/400 1/500"`
+	ExposureMode         string  `json:"exposureMode" validate:"oneof=normal short"`
 	AnalogueGain         float64 `json:"analogueGain" validate:"min=0,max=32"`
 	ExposureCompensation float64 `json:"exposureCompensation" validate:"min=-10,max=10"`
-	WhiteBalance         string  `json:"whiteBalance" validate:"oneof=auto incandescent tungsten fluorescent indoor daylight cloudy" enums:"auto,incandescent,tungsten,fluorescent,indoor,daylight,cloudy"`
+	WhiteBalance         string  `json:"whiteBalance" validate:"oneof=auto incandescent tungsten fluorescent indoor daylight cloudy"`
 	HorizontalFlip       bool    `json:"horizontalFlip"`
 	VerticalFlip         bool    `json:"verticalFlip"`
-	Rotation             int     `json:"rotation" validate:"oneof=0 180" enums:"0,180"`
+	Rotation             int     `json:"rotation" validate:"oneof=0 180"`
 	JPEGQuality          int     `json:"jpegQuality" validate:"required_if=Source rpicam,max=100"`
-	AutofocusMode        string  `json:"autofocusMode" validate:"oneof=default manual auto continuous" enums:"default,manual,auto,continuous"`
-	Denoise              string  `json:"denoise" validate:"oneof=auto off cdn_off cdn_fast cdn_hq" enums:"auto,off,cdn_off,cdn_fast,cdn_hq"`
+	AutofocusMode        string  `json:"autofocusMode" validate:"oneof=default manual auto continuous"`
+	Denoise              string  `json:"denoise" validate:"oneof=auto off cdn_off cdn_fast cdn_hq"`
 }
 
-// CaptureSettings is the capture section of the configuration.
 type CaptureSettings struct {
 	ImagesPerRun   int    `json:"imagesPerRun" validate:"min=1,max=20"`
 	FilePrefix     string `json:"filePrefix" validate:"required,max=100"`
@@ -121,17 +116,15 @@ type CaptureSettings struct {
 	SaveOriginals  bool   `json:"saveOriginals"`
 }
 
-// PrintSettings is the print section of the configuration.
 type PrintSettings struct {
 	Enabled        bool   `json:"enabled"`
 	PrinterName    string `json:"printerName" validate:"required_if=Enabled true"`
-	LayoutID       string `json:"layoutId" validate:"required_if=Enabled true,max=100"`
-	SubmissionMode string `json:"submissionMode" validate:"oneof=raw managed" enums:"raw,managed"`
+	Layout         string `json:"layout" validate:"required_if=Enabled true,max=60"`
+	SubmissionMode string `json:"submissionMode" validate:"oneof=raw managed"`
 }
 
-// MailSettings is the mail section of the configuration.
 type MailSettings struct {
-	Driver      string `json:"driver" validate:"oneof=log smtp" enums:"log,smtp"`
+	Driver      string `json:"driver" validate:"oneof=log smtp"`
 	Host        string `json:"host" validate:"required_if=Driver smtp"`
 	Port        int    `json:"port" validate:"min=1,max=65535"`
 	Username    string `json:"username"`
@@ -154,6 +147,27 @@ type ServerSettings struct {
 	SSLEnabled           bool     `json:"sslEnabled"`
 	SSLCertFile          string   `json:"sslCertFile" validate:"required_with=SSLKeyFile,max=1024"`
 	SSLKeyFile           string   `json:"sslKeyFile" validate:"required_with=SSLCertFile,max=1024"`
+}
+
+// init registers the rules of the configuration DTOs with the validator.
+func init() {
+	// A required_if tag only sees sibling fields, but the fields of StorageSettings.S3
+	// and CloudShareSettings.Nextcloud/Self depend on the driver one level up.
+	// A struct-level validation checks across that boundary,
+	// so a missing field is reported as a field error of the 422 like any other.
+	v.RegisterStructValidation(validateStorageSettings, StorageSettings{})
+	v.RegisterStructValidation(validateCloudShareSettings, CloudShareSettings{})
+
+	// The validator has no rule for a comma-separated list of networks, which the network settings are written as
+	if err := v.RegisterValidation("networks", validateNetworks); err != nil {
+		panic(err)
+	}
+
+	// The origins and the credentials of CORS follow the rules of the config package, see ServerSettings
+	if err := v.RegisterValidation("origin", validateOrigin); err != nil {
+		panic(err)
+	}
+	v.RegisterStructValidation(validateServerSettings, ServerSettings{})
 }
 
 // validateNetworks reports whether a text lists networks as the config package reads them. It is the "networks" tag,
@@ -187,13 +201,11 @@ func validateServerSettings(sl validator.StructLevel) {
 	}
 }
 
-// EmailShareSettings are the settings of sharing by email.
 type EmailShareSettings struct {
 	Enabled bool   `json:"enabled"`
 	Subject string `json:"subject" validate:"max=255"`
 }
 
-// NextcloudSettings are the settings of the Nextcloud share provider.
 type NextcloudSettings struct {
 	URL      string `json:"url"`
 	Username string `json:"username"`
@@ -201,14 +213,12 @@ type NextcloudSettings struct {
 	Folder   string `json:"folder" validate:"max=1024"`
 }
 
-// SelfShareSettings are the settings of the self share provider.
 type SelfShareSettings struct {
 	BaseURL string `json:"baseUrl"`
 }
 
-// CloudShareSettings selects the cloud share provider and holds its settings.
 type CloudShareSettings struct {
-	Driver    string            `json:"driver" validate:"omitempty,oneof=nextcloud self" enums:"nextcloud,self"`
+	Driver    string            `json:"driver" validate:"omitempty,oneof=nextcloud self"`
 	Nextcloud NextcloudSettings `json:"nextcloud"`
 	Self      SelfShareSettings `json:"self"`
 }
@@ -235,13 +245,11 @@ func validateCloudShareSettings(sl validator.StructLevel) {
 	}
 }
 
-// ShareSettings is the share section of the configuration.
 type ShareSettings struct {
 	Email EmailShareSettings `json:"email"`
 	Cloud CloudShareSettings `json:"cloud"`
 }
 
-// S3Settings are the settings of the S3 storage.
 type S3Settings struct {
 	Endpoint     string `json:"endpoint"`
 	Region       string `json:"region"`
@@ -251,9 +259,8 @@ type S3Settings struct {
 	UsePathStyle bool   `json:"usePathStyle"`
 }
 
-// StorageSettings is the storage section of the configuration.
 type StorageSettings struct {
-	Driver string     `json:"driver" validate:"oneof=local s3" enums:"local,s3"`
+	Driver string     `json:"driver" validate:"oneof=local s3"`
 	Path   string     `json:"path" validate:"max=1024"`
 	S3     S3Settings `json:"s3"`
 }
@@ -278,7 +285,6 @@ func validateStorageSettings(sl validator.StructLevel) {
 	}
 }
 
-// SystemSettings is the system section of the configuration.
 type SystemSettings struct {
 	ServerRestartCommand string `json:"serverRestartCommand" validate:"max=1024"`
 	ServerStopCommand    string `json:"serverStopCommand" validate:"max=1024"`
@@ -288,7 +294,6 @@ type SystemSettings struct {
 	AllStopCommand       string `json:"allStopCommand" validate:"max=1024"`
 }
 
-// ThemeSettings is the theme section of the configuration.
 type ThemeSettings struct {
 	Primary   string `json:"primary" validate:"omitempty,hexcolor"`
 	Secondary string `json:"secondary" validate:"omitempty,hexcolor"`
@@ -299,7 +304,6 @@ type ThemeSettings struct {
 	Neutral   string `json:"neutral" validate:"omitempty,hexcolor"`
 }
 
-// ConfigSaveRequest is the configuration to save. Its sections are the same as in ConfigResponse.
 type ConfigSaveRequest struct {
 	App     AppSettings     `json:"app"`
 	Log     LogSettings     `json:"log"`
@@ -316,9 +320,8 @@ type ConfigSaveRequest struct {
 	ClearSecrets []string `json:"clearSecrets" validate:"max=50,dive,max=255"`
 }
 
-// configSaveHandler validates and writes the application configuration to the config file that was loaded at startup.
-// It never applies to the running process. Every service reads its configuration once at startup,
-// so a restart is required to apply it.
+// configSaveHandler validates and writes the application configuration to its config file,
+// which takes effect after a restart, since every service reads its configuration once at startup.
 //
 //	@Summary		Save config
 //	@Description	Validates the submitted configuration and writes it to the config file. Does not apply to the running process, a restart is required (Admin only).
@@ -351,7 +354,7 @@ func (a *API) configSaveHandler(w http.ResponseWriter, r *http.Request) {
 func (a *API) writeConfig(w http.ResponseWriter, r *http.Request) {
 	view, err := a.configService.View()
 	if err != nil {
-		a.serverErrorResponse(w, r, err)
+		a.respondError(w, r, err)
 		return
 	}
 	a.writeJSON(w, r, http.StatusOK, toConfigResponse(view), nil)
@@ -440,7 +443,7 @@ func toConfigSettings(cfg config.Config) ConfigSettings {
 		Print: PrintSettings{
 			Enabled:        cfg.Print.Enabled,
 			PrinterName:    cfg.Print.PrinterName,
-			LayoutID:       cfg.Print.LayoutID,
+			Layout:         cfg.Print.Layout,
 			SubmissionMode: cfg.Print.SubmissionMode,
 		},
 		Server: ServerSettings{
@@ -558,7 +561,7 @@ func (r ConfigSaveRequest) toConfig() config.Config {
 		Print: config.PrintConfig{
 			Enabled:        r.Print.Enabled,
 			PrinterName:    r.Print.PrinterName,
-			LayoutID:       r.Print.LayoutID,
+			Layout:         r.Print.Layout,
 			SubmissionMode: r.Print.SubmissionMode,
 		},
 		Mail: config.MailConfig{
@@ -610,8 +613,7 @@ func (r ConfigSaveRequest) toConfig() config.Config {
 	}
 }
 
-// configStorageTestHandler builds the submitted storage configuration and verifies it is reachable,
-// without saving it. A saved configuration only takes effect after a restart.
+// configStorageTestHandler verifies that the submitted storage configuration is reachable without saving it.
 //
 //	@Summary		Test storage config
 //	@Description	Builds the submitted storage configuration and verifies it is reachable, without saving it (Admin only).
@@ -634,9 +636,8 @@ func (a *API) configStorageTestHandler(w http.ResponseWriter, r *http.Request) {
 	a.writeTestResult(w, r, a.configService.TestStorage(r.Context(), req.toConfig()))
 }
 
-// ConfigTestResponse reports whether a driver connection check succeeded.
-// A failure is reported with OK false rather than an HTTP error status,
-// since an unreachable destination is an expected, actionable outcome of the check.
+// ConfigTestResponse reports a failed check with OK false rather than an HTTP error status,
+// since an unreachable destination is an expected outcome of the check.
 type ConfigTestResponse struct {
 	OK      bool   `json:"ok"`
 	Message string `json:"message,omitempty"`
@@ -658,8 +659,7 @@ func (r StorageSettings) toConfig() config.StorageConfig {
 	}
 }
 
-// configShareTestHandler builds the submitted cloud share configuration and verifies it is reachable,
-// without saving it. A saved configuration only takes effect after a restart.
+// configShareTestHandler verifies that the submitted cloud share configuration is reachable without saving it.
 //
 //	@Summary		Test cloud share config
 //	@Description	Builds the submitted cloud share configuration and verifies it is reachable, without saving it (Admin only).

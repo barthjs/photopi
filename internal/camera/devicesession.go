@@ -5,13 +5,8 @@ import (
 	"sync"
 )
 
-// deviceSession coordinates exclusive access to a camera device that only tolerates one running process at a time
-// (rpicam-vid/gphoto2's live view both hold it exclusively): a running preview must be fully stopped,
-// and its process confirmed to have released the device, before a capture or a new preview claims it.
-// rpiCam and gphotoCam each wrap one of these around their own preview/capture commands.
-//
-// Every wait honors the caller's context, so a preview process that does not exit cannot block a capture
-// or a new preview forever.
+// deviceSession gives a capture or a new preview exclusive access to a camera device once a running preview
+// has stopped and its process released the device, or until the context of the caller ends.
 type deviceSession struct {
 	// owner is a one-slot semaphore, held while a caller stops the preview and, for a capture, until the still is taken.
 	// A channel instead of a mutex lets the wait for it end with the context.
@@ -65,9 +60,8 @@ func (d *deviceSession) startPreview(ctx context.Context) (context.Context, func
 	}, nil
 }
 
-// stopAndWait stops any currently running preview and waits for it to fully release the device,
-// then keeps the device owned until release is called, so a capture and a concurrent StreamPreview
-// can never both think they own the device at once.
+// stopAndWait stops a running preview, waits until it released the device, and keeps the device owned until release,
+// so a capture and a concurrent StreamPreview never both own it.
 func (d *deviceSession) stopAndWait(ctx context.Context) (func(), error) {
 	if err := d.acquire(ctx); err != nil {
 		return nil, err

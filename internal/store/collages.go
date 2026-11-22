@@ -34,7 +34,11 @@ func (s *CollageStore) Create(ctx context.Context, collage domain.Collage, data 
 
 // Delete removes every collage page of a run.
 func (s *CollageStore) Delete(ctx context.Context, run int) error {
-	if err := deleteRunFiles(ctx, s.storage, collagesFolder, run); err != nil {
+	files, err := listRunFiles(ctx, s.storage, collagesFolder)
+	if err != nil {
+		return err
+	}
+	if err := deleteRunFiles(ctx, s.storage, files, run); err != nil {
 		return fmt.Errorf("store: removing the collages of run %d: %w", run, err)
 	}
 

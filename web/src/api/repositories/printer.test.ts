@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { printerRepository } from '@/api/repositories/printer';
-import type { PrintCancelRequest, PrintResumeRequest, PrintTestRequest } from '@/api/types';
+import type { PrintCancelRequest, PrintResumeRequest, PrintTestRequest } from '@/api/types/printer';
 import { jsonResponse, useFetchMock } from '@/test/fetchMock';
 
 describe('printerRepository', () => {

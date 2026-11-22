@@ -15,7 +15,10 @@ describe('runRepository', () => {
         }),
       );
 
-      const result = await runRepository.create();
+      const result = await runRepository.create({
+        screenWidth: 1280,
+        screenHeight: 800,
+      });
 
       expect(result).toEqual({
         run: 3,
@@ -23,6 +26,10 @@ describe('runRepository', () => {
       });
       expect(lastRequest().url).toBe('/api/camera/runs');
       expect(lastRequest().init?.method).toBe('POST');
+      expect(JSON.parse(lastRequest().init?.body as string)).toEqual({
+        screenWidth: 1280,
+        screenHeight: 800,
+      });
     });
   });
 

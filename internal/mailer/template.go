@@ -37,10 +37,8 @@ type renderer struct {
 	templates map[string]mailTemplate
 }
 
-// newRenderer parses every content template of fsys against both layouts and makes missing values render as nothing.
-// The mailer passes the embedded templates with those of the templates package layered over them, tests their own.
-// The template function cid turns an image name into the "cid:" URL of an inline image
-// with the given Content-ID domain, see InlineImage.
+// newRenderer parses every content template of fsys against both layouts, with missing values rendering as nothing
+// and the function cid that turns an image name into the "cid:" URL of an inline image.
 func newRenderer(bundle *i18n.Bundle, fsys fs.FS, contentIDDomain string) (*renderer, error) {
 	// The functions that depend on the language take the locale first, as in {{ date .Locale .At }},
 	// since one template serves every locale.

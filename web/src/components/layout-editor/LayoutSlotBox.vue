@@ -1,21 +1,21 @@
 <script setup lang="ts">
-import type { LayoutSlotRequest } from '@/api/types';
-import type { SlotCorner } from '@/composables/useSlotDrag';
+import type { LayoutSlotRequest } from '@/api/types/layout';
+import type { SlotCorner } from '@/composables/layout/useSlotDrag';
 
 // A slot on the paper, positioned in fractions of the paper. Moving and resizing are left to the canvas,
 // which receives the presses on the slot and on its corner handles.
 defineProps<{
   layoutSlot: LayoutSlotRequest;
   index: number;
-  // Highlights the border of every selected slot, also within a multi-selection.
+  // Highlights the border of every selected slot, also within a multi-selection
   selected: boolean;
   // Shows the resize handles. Only a single selected, unlocked slot can be resized.
   showHandles: boolean;
-  // Shows the slot as the print fills it, without its number and outline, and ignores the pointer.
+  // Shows the slot as the print fills it, without its number and outline, and ignores the pointer
   preview: boolean;
-  // Draws only the outline, so the preview underneath stays visible.
+  // Draws only the outline, so the preview underneath stays visible
   outlineOnly: boolean;
-  // The sample photo, which fills the slot cropped from its center like the print, or null without one.
+  // The sample photo, which fills the slot cropped from its center like the print, or null without one
   image: string | null;
   imageOpacity: number;
 }>();
@@ -87,7 +87,7 @@ const cornerPositionClass: Record<SlotCorner, string> = {
         class="bg-primary ring-canvas-handle-ring absolute size-3 touch-none rounded-full ring-2"
         :class="cornerPositionClass[corner]"
         @pointerdown.left.stop="emit('cornerDown', $event, index, corner)"
-      />
+      ></div>
     </template>
   </div>
 </template>

@@ -3,17 +3,17 @@ import { watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import EditorPanel from '@/components/editor/EditorPanel.vue';
-import { useAspectRatioLock } from '@/composables/useAspectRatioLock';
+import { useAspectRatioLock } from '@/composables/layout/useAspectRatioLock';
 import {
   LAYOUT_LIMITS,
   PAPER_MAX_MM,
   PAPER_MIN_MM,
   useLayoutForm,
-} from '@/composables/useLayoutForm';
-import { roundMm } from '@/lib/layoutGeometry';
+} from '@/composables/layout/useLayoutForm';
+import { roundMm } from '@/lib/layout/layoutGeometry';
 import { countLabel } from '@/lib/form/validation';
 
-// Common paper sizes of photo printers, to set the paper directly.
+// Common paper sizes of photo printers, to set the paper directly
 const PAPER_PRESETS = [
   {
     label: '10 × 15 cm',
@@ -47,9 +47,9 @@ const PAPER_PRESETS = [
   },
 ];
 
-// The identity of the layout and its paper.
+// The identity of the layout and its paper
 const { t } = useI18n();
-const { state, fieldProps, isCreating, idManuallyEdited, openCount } = useLayoutForm();
+const { state, fieldProps, openCount, isDraft, isDirty } = useLayoutForm();
 
 // While the ratio is locked, the other dimension follows. Both fields stay in range,
 // also with the value the lock derives.
@@ -86,7 +86,7 @@ watch(
   },
 );
 
-// Every opened layout starts with the ratio of its paper locked, since a paper keeps its shape more often than not
+// Every opened layout starts with the ratio of its paper locked, since a paper keeps its shape more often than not.
 // The watcher runs at once, before the fields derive one dimension from the ratio of the previous layout.
 watch(openCount, () => lockPaperRatio(), {
   immediate: true,
@@ -94,8 +94,8 @@ watch(openCount, () => lockPaperRatio(), {
 });
 
 /**
- * applyPreset sets the paper to a common size and locks the ratio at it. Locking before the watchers of the fields
- * run keeps them from deriving one dimension from the previous ratio.
+ * Sets the paper to a common size and locks the ratio at it before the watchers of the fields run,
+ * so they do not derive one dimension from the previous ratio.
  */
 function applyPreset(preset: { widthMM: number; heightMM: number }): void {
   state.paper.widthMM = preset.widthMM;
@@ -103,13 +103,13 @@ function applyPreset(preset: { widthMM: number; heightMM: number }): void {
   lockPaperRatio();
 }
 
-/** isCurrentPreset reports whether the paper has the size of a common one. */
+/** Reports whether the paper has the size of a common one. */
 function isCurrentPreset(preset: { widthMM: number; heightMM: number }): boolean {
   return state.paper.widthMM === preset.widthMM && state.paper.heightMM === preset.heightMM;
 }
 
 /**
- * clampPaperDimension keeps a paper dimension in range. The input only clamps a parsed value,
+ * Keeps a paper dimension in range. The input only clamps a parsed value,
  * while an emptied field becomes undefined, so a value that is not a number falls back to the minimum.
  */
 function clampPaperDimension(mm: number): number {
@@ -124,6 +124,12 @@ function clampPaperDimension(mm: number): number {
     storage-key="layoutEditor.panel.layout"
     class="shrink-0"
   >
+    <!-- The name is a field below, so the header only marks an unsaved draft and unsaved changes. -->
+    <template #summary>
+      <UBadge v-if="isDraft" :label="t('pages.layouts.draft')" color="info" variant="solid" />
+      <UBadge v-if="isDirty" :label="t('pages.layouts.changed')" color="warning" variant="solid" />
+    </template>
+
     <UFormField
       :label="t('fields.name')"
       :hint="countLabel(state.name, LAYOUT_LIMITS.name)"
@@ -137,13 +143,17 @@ function clampPaperDimension(mm: number): number {
         class="w-full"
       />
     </UFormField>
-    <UFormField :label="t('fields.id')" name="id" required>
+    <UFormField
+      :label="t('fields.description')"
+      :hint="countLabel(state.description ?? '', LAYOUT_LIMITS.description)"
+      name="description"
+    >
       <UInput
-        v-model="state.id"
-        :disabled="!isCreating"
-        :placeholder="t('pages.layouts.idPlaceholder')"
+        :model-value="state.description ?? ''"
+        v-bind="fieldProps('description')"
+        :maxlength="LAYOUT_LIMITS.description"
         class="w-full"
-        @input="idManuallyEdited = true"
+        @update:model-value="(value: string) => (state.description = value || null)"
       />
     </UFormField>
 
@@ -151,8 +161,8 @@ function clampPaperDimension(mm: number): number {
       <div class="flex items-end gap-2">
         <UFormField :label="t('fields.paper.widthMM')" name="paper.widthMM" class="min-w-0 flex-1">
           <UInputNumber
-            orientation="vertical"
             v-model="state.paper.widthMM"
+            orientation="vertical"
             v-bind="fieldProps('paper.widthMM')"
             :min="PAPER_MIN_MM"
             :max="PAPER_MAX_MM"
@@ -162,15 +172,17 @@ function clampPaperDimension(mm: number): number {
         <UTooltip
           :text="t(paperRatioLocked ? 'pages.layouts.unlockRatio' : 'pages.layouts.lockRatio')"
         >
-          <UButton
+          <UToggle
+            :model-value="paperRatioLocked"
             :icon="paperRatioLocked ? 'i-lucide-link' : 'i-lucide-link-2-off'"
-            :color="paperRatioLocked ? 'primary' : 'neutral'"
+            color="neutral"
             variant="soft"
+            active-color="primary"
+            active-variant="soft"
             :aria-label="
               t(paperRatioLocked ? 'pages.layouts.unlockRatio' : 'pages.layouts.lockRatio')
             "
-            :aria-pressed="paperRatioLocked"
-            @click="togglePaperRatioLock"
+            @update:model-value="togglePaperRatioLock"
           />
         </UTooltip>
         <UFormField
@@ -179,8 +191,8 @@ function clampPaperDimension(mm: number): number {
           class="min-w-0 flex-1"
         >
           <UInputNumber
-            orientation="vertical"
             v-model="state.paper.heightMM"
+            orientation="vertical"
             v-bind="fieldProps('paper.heightMM')"
             :min="PAPER_MIN_MM"
             :max="PAPER_MAX_MM"

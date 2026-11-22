@@ -68,9 +68,9 @@ func (a *API) Routes() http.Handler {
 // apiRoutes registers the JSON API under "/api".
 func (a *API) apiRoutes(r chi.Router) {
 	r.Route("/api", func(r chi.Router) {
-		// Every route of the JSON API is logged. Compression is set per group, since the camera preview
-		// and the ZIP downloads stream and must not be compressed. State-changing requests from another origin
-		// are rejected unless CORS allows that origin explicitly.
+		// Every route of the JSON API is logged. Compression is set per group,
+		// since the camera preview and the ZIP downloads stream and must not be compressed.
+		// State-changing requests from another origin are rejected unless CORS allows that origin explicitly.
 		r.Use(
 			server.Timeout(server.DefaultRequestTimeout),
 			a.logRequest,
@@ -160,7 +160,11 @@ func (a *API) galleryRoutes(r chi.Router) {
 
 		r.With(gorillaHandlers.CompressHandler).Get("/", a.galleryListHandler)
 		r.With(gorillaHandlers.CompressHandler).Delete("/{run}", a.galleryDeleteHandler)
-		r.With(server.Timeout(downloadTimeout)).Get("/{run}/zip", a.galleryZipHandler)
+		r.With(gorillaHandlers.CompressHandler).Post("/bulk", a.galleryBulkHandler)
+		r.With(server.Timeout(eventDownloadTimeout)).Get("/zip", a.galleryZipHandler)
+		r.With(server.Timeout(downloadTimeout)).Get("/{run}/zip", a.galleryRunZipHandler)
+
+		r.With(gorillaHandlers.CompressHandler).Get("/days", a.galleryDayListHandler)
 
 		r.With(gorillaHandlers.CompressHandler).Get("/events", a.galleryEventListHandler)
 		r.With(server.Timeout(eventDownloadTimeout)).Get("/events/{event}/zip", a.galleryEventZipHandler)
@@ -168,6 +172,7 @@ func (a *API) galleryRoutes(r chi.Router) {
 		// The images are JPEGs, which compression does not shrink any further
 		r.Get("/{run}/captures/{index}", a.galleryCaptureGetHandler)
 		r.Get("/{run}/originals/{index}", a.galleryOriginalGetHandler)
+		r.Get("/{run}/thumbnail", a.galleryThumbnailGetHandler)
 	})
 }
 
@@ -177,9 +182,9 @@ func (a *API) overlayRoutes(r chi.Router) {
 		r.Use(gorillaHandlers.CompressHandler, a.sm.LoadAndSave, a.requireAuthentication)
 
 		r.Get("/", a.overlayListHandler)
+		r.Get("/{name}", a.overlayGetHandler)
 		r.With(server.BodyLimit(uploadBodyLimit(maxOverlayUploadMB)), server.Timeout(uploadTimeout)).Post("/", a.overlayCreateHandler)
 		r.Delete("/{name}", a.overlayDeleteHandler)
-		r.Get("/{name}", a.overlayDownloadHandler)
 	})
 }
 
@@ -190,9 +195,9 @@ func (a *API) printRoutes(r chi.Router) {
 
 		r.Get("/printers", a.printerListHandler)
 		r.Get("/layouts", a.layoutListHandler)
-		r.Get("/layouts/{id}", a.layoutGetHandler)
-		r.Put("/layouts/{id}", a.layoutSaveHandler)
-		r.Delete("/layouts/{id}", a.layoutDeleteHandler)
+		r.Get("/layouts/{name}", a.layoutGetHandler)
+		r.Put("/layouts/{name}", a.layoutSaveHandler)
+		r.Delete("/layouts/{name}", a.layoutDeleteHandler)
 		r.Post("/test", a.printTestHandler)
 		r.Post("/resume", a.printResumeHandler)
 		r.Post("/cancel", a.printCancelHandler)
@@ -273,8 +278,8 @@ func (a *API) updateRoutes(r chi.Router) {
 	})
 }
 
-// docsRoutes serves the embedded documentation with the API reference under "/docs". Its bundles carry a hash
-// in their names, so they are cached like the assets of the SPA.
+// docsRoutes serves the embedded documentation with the API reference under "/docs".
+// Its bundles carry a hash in their names, so they are cached like the assets of the SPA.
 func (a *API) docsRoutes(r chi.Router) {
 	if !a.options.Docs {
 		return

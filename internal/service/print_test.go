@@ -137,6 +137,300 @@ func TestPrintService_Enabled(t *testing.T) {
 	}
 }
 
+func TestPrintService_TestConnection(t *testing.T) {
+	t.Parallel()
+
+	printer := apitest.Faker(t).LetterN(8)
+
+	tests := []struct {
+		name    string
+		printer string
+		output  string
+		err     error
+		wantOK  bool
+		message string
+	}{
+		{
+			name:    "reports an idle printer",
+			printer: printer,
+			output:  lpstatIdle(printer),
+			wantOK:  true,
+			message: "is idle",
+		},
+		{
+			name:    "reports a disabled printer",
+			printer: printer,
+			output:  "printer " + printer + " disabled since Mon 12 Oct 2026 09:20:11 CEST -\n\treason unknown\n",
+			wantOK:  false,
+			message: "is disabled",
+		},
+		{
+			name:    "reports a printer holding new jobs",
+			printer: printer,
+			output:  "printer " + printer + " is holding new jobs.  enabled since Mon 12 Oct 2026 09:21:00 CEST\n",
+			wantOK:  false,
+			message: "is holding new jobs",
+		},
+		{
+			name:    "reports a missing printer for unexpected output",
+			printer: printer,
+			output:  "something else\n",
+			wantOK:  false,
+			message: "not found",
+		},
+		{
+			name:    "reports the output of a failing lpstat",
+			printer: printer,
+			output:  "lpstat: Invalid destination name in list \"" + printer + "\".\n",
+			err:     errors.New("exit status 1"),
+			wantOK:  false,
+			message: "Invalid destination name",
+		},
+		{
+			name:    "rejects a missing printer selection",
+			printer: "",
+			wantOK:  false,
+			message: "no printer selected",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			f := newPrintFixture(t, PrintOptions{}, twoSlotLayout(1), 0)
+			f.commands.respond = func(commandCall) ([]byte, error) { return []byte(tt.output), tt.err }
+
+			ok, message := f.svc.TestConnection(t.Context(), tt.printer)
+
+			assert.Equal(t, tt.wantOK, ok)
+			assert.Contains(t, message, tt.message)
+		})
+	}
+}
+
+// squareLayout has one page of 1 x 1 inch with a single slot covering it.
+func squareLayout() domain.Layout {
+	return domain.Layout{
+		Name: "square",
+		Paper: domain.LayoutPaper{
+			WidthMM:  25.4,
+			HeightMM: 25.4,
+		},
+		Pages: []domain.LayoutPage{
+			{
+				Slots: []domain.LayoutSlot{
+					{
+						X: 0,
+						Y: 0,
+						W: 1,
+						H: 1,
+					},
+				},
+			},
+		},
+	}
+}
+
+// fillRect fills rect of img with c.
+func fillRect(img *image.RGBA, rect image.Rectangle, c color.Color) {
+	for y := rect.Min.Y; y < rect.Max.Y; y++ {
+		for x := rect.Min.X; x < rect.Max.X; x++ {
+			img.Set(x, y, c)
+		}
+	}
+}
+
+// testJPEGOf encodes img as JPEG.
+func testJPEGOf(t *testing.T, img image.Image) []byte {
+	t.Helper()
+
+	var buf bytes.Buffer
+	require.NoError(t, jpeg.Encode(&buf, img, &jpeg.Options{
+		Quality: 95,
+	}))
+	return buf.Bytes()
+}
+
+func TestPrintService_Begin(t *testing.T) {
+	t.Parallel()
+
+	t.Run("marks the run as pending", func(t *testing.T) {
+		t.Parallel()
+
+		f := newPrintFixture(t, PrintOptions{}, twoSlotLayout(1), 0)
+
+		started := f.svc.Begin(1)
+
+		assert.True(t, started)
+		state, found := f.svc.Get(1)
+		require.True(t, found)
+		assert.Equal(t, JobPending, state.Status)
+	})
+
+	t.Run("starts another run on its own", func(t *testing.T) {
+		t.Parallel()
+
+		f := newPrintFixture(t, PrintOptions{}, twoSlotLayout(1), 0)
+		require.True(t, f.svc.Begin(1))
+
+		started := f.svc.Begin(2)
+
+		assert.True(t, started, "another run prints on its own")
+	})
+
+	t.Run("rejects a second start while the print is in flight", func(t *testing.T) {
+		t.Parallel()
+
+		f := newPrintFixture(t, PrintOptions{}, twoSlotLayout(1), 0)
+		require.True(t, f.svc.Begin(1))
+
+		started := f.svc.Begin(1)
+
+		assert.False(t, started, "a print in flight is not started twice")
+	})
+}
+
+func TestPrintService_Print(t *testing.T) {
+	t.Parallel()
+
+	printer := apitest.Faker(t).LetterN(8)
+
+	t.Run("sends every page as one PDF job filling the paper in managed mode", func(t *testing.T) {
+		t.Parallel()
+
+		f := newPrintFixture(t, PrintOptions{
+			Enabled:        true,
+			PrinterName:    printer,
+			SubmissionMode: PrintSubmissionManaged,
+		}, twoSlotLayout(2), 3)
+		f.commands.respond = cupsAnswers(lpstatIdle(printer), "")
+
+		err := f.svc.Print(t.Context(), 1)
+
+		require.NoError(t, err)
+		calls := lpCalls(f.commands.Calls())
+		require.Len(t, calls, 1)
+		assert.Equal(t, []string{"-d", printer, "-o", "media=Custom.2.00x1.00in", "-o", "print-scaling=fill"}, calls[0].Args[:6])
+		assert.True(t, bytes.HasPrefix(calls[0].File, []byte("%PDF-1.4")))
+		assert.Contains(t, string(calls[0].File), "/Count 2", "both pages are in one document")
+		assertTempFileRemoved(t, calls[0])
+		state, found := f.svc.Get(1)
+		require.True(t, found)
+		assert.Equal(t, JobState{
+			Status: JobDone,
+		}, state)
+	})
+
+	t.Run("sends the PDF untouched in raw mode", func(t *testing.T) {
+		t.Parallel()
+
+		f := newPrintFixture(t, PrintOptions{
+			Enabled:        true,
+			PrinterName:    printer,
+			SubmissionMode: PrintSubmissionRaw,
+		}, twoSlotLayout(1), 2)
+		f.commands.respond = cupsAnswers(lpstatIdle(printer), "")
+
+		err := f.svc.Print(t.Context(), 1)
+
+		require.NoError(t, err)
+		calls := lpCalls(f.commands.Calls())
+		require.Len(t, calls, 1)
+		assert.Equal(t, []string{"-d", printer, "-o", "raw"}, calls[0].Args[:4])
+		assert.Contains(t, string(calls[0].File), "/MediaBox [0 0 144.00 72.00]", "2 x 1 inch in points")
+		assertTempFileRemoved(t, calls[0])
+	})
+
+	t.Run("rejects printing while it is off", func(t *testing.T) {
+		t.Parallel()
+
+		f := newPrintFixture(t, PrintOptions{
+			Enabled:     false,
+			PrinterName: printer,
+		}, twoSlotLayout(1), 1)
+
+		err := f.svc.Print(t.Context(), 1)
+
+		assert.ErrorContains(t, err, "not enabled")
+		assert.Empty(t, f.commands.Calls())
+	})
+
+	t.Run("rejects printing without a printer", func(t *testing.T) {
+		t.Parallel()
+
+		f := newPrintFixture(t, PrintOptions{
+			Enabled: true,
+		}, twoSlotLayout(1), 1)
+
+		err := f.svc.Print(t.Context(), 1)
+
+		assert.ErrorContains(t, err, "no printer configured")
+		assert.Empty(t, f.commands.Calls())
+	})
+
+	t.Run("returns not found without captures", func(t *testing.T) {
+		t.Parallel()
+
+		f := newPrintFixture(t, PrintOptions{
+			Enabled:     true,
+			PrinterName: printer,
+		}, twoSlotLayout(1), 0)
+		f.commands.respond = cupsAnswers(lpstatIdle(printer), "")
+
+		err := f.svc.Print(t.Context(), 1)
+
+		assert.ErrorIs(t, err, apperr.ErrNotFound)
+	})
+
+	t.Run("rejects an unavailable queue without printing", func(t *testing.T) {
+		t.Parallel()
+
+		f := newPrintFixture(t, PrintOptions{
+			Enabled:     true,
+			PrinterName: printer,
+		}, twoSlotLayout(1), 2)
+		f.commands.respond = cupsAnswers(lpstatIdle(printer), queuedJobs(printer, maxPendingPrintJobs+1))
+
+		err := f.svc.Print(t.Context(), 1)
+
+		assert.ErrorIs(t, err, ErrPrintQueueUnavailable)
+		assert.Empty(t, lpCalls(f.commands.Calls()))
+		state, found := f.svc.Get(1)
+		require.True(t, found)
+		assert.Equal(t, JobState{
+			Status: JobFailed,
+			Reason: JobReasonQueueUnavailable,
+		}, state)
+	})
+
+	t.Run("reports the output of a failing lp", func(t *testing.T) {
+		t.Parallel()
+
+		f := newPrintFixture(t, PrintOptions{
+			Enabled:     true,
+			PrinterName: printer,
+		}, twoSlotLayout(1), 2)
+		answers := cupsAnswers(lpstatIdle(printer), "")
+		f.commands.respond = func(call commandCall) ([]byte, error) {
+			if call.Name == "lp" {
+				return []byte("lp: Destination \"" + printer + "\" is not accepting jobs.\n"),
+					errors.New("exit status 1")
+			}
+			return answers(call)
+		}
+
+		err := f.svc.Print(t.Context(), 1)
+
+		assert.ErrorContains(t, err, "is not accepting jobs")
+		state, _ := f.svc.Get(1)
+		assert.Equal(t, JobState{
+			Status: JobFailed,
+			Reason: JobReasonFailed,
+		}, state)
+	})
+}
+
 func TestPrintService_RenderCollage(t *testing.T) {
 	t.Parallel()
 
@@ -345,7 +639,7 @@ func TestPrintService_RenderCollage(t *testing.T) {
 		require.NoError(t, err)
 		changed := twoSlotLayout(1)
 		changed.Pages[0].Slots[1].W = 0.4
-		err = f.layouts.Save(t.Context(), changed.ID, changed)
+		err = f.layouts.Save(t.Context(), changed.Name, changed)
 		require.NoError(t, err)
 
 		paths, err := f.svc.RenderCollage(t.Context(), 1)
@@ -406,7 +700,7 @@ func TestPrintService_RenderCollage(t *testing.T) {
 		t.Parallel()
 
 		f := newPrintFixture(t, PrintOptions{
-			LayoutID: "missing",
+			Layout: "missing",
 		}, twoSlotLayout(1), 1)
 
 		_, err := f.svc.RenderCollage(t.Context(), 1)
@@ -435,300 +729,6 @@ func TestPrintService_RenderCollage(t *testing.T) {
 
 		assert.ErrorContains(t, err, "no slot to fill")
 		assert.Empty(t, listFiles(t, f.storage, "prints/"), "no page is rendered")
-	})
-}
-
-// squareLayout has one page of 1 x 1 inch with a single slot covering it.
-func squareLayout() domain.Layout {
-	return domain.Layout{
-		ID: "square",
-		Paper: domain.LayoutPaper{
-			WidthMM:  25.4,
-			HeightMM: 25.4,
-		},
-		Pages: []domain.LayoutPage{
-			{
-				Slots: []domain.LayoutSlot{
-					{
-						X: 0,
-						Y: 0,
-						W: 1,
-						H: 1,
-					},
-				},
-			},
-		},
-	}
-}
-
-// fillRect fills rect of img with c.
-func fillRect(img *image.RGBA, rect image.Rectangle, c color.Color) {
-	for y := rect.Min.Y; y < rect.Max.Y; y++ {
-		for x := rect.Min.X; x < rect.Max.X; x++ {
-			img.Set(x, y, c)
-		}
-	}
-}
-
-// testJPEGOf encodes img as JPEG.
-func testJPEGOf(t *testing.T, img image.Image) []byte {
-	t.Helper()
-
-	var buf bytes.Buffer
-	require.NoError(t, jpeg.Encode(&buf, img, &jpeg.Options{
-		Quality: 95,
-	}))
-	return buf.Bytes()
-}
-
-func TestPrintService_TestConnection(t *testing.T) {
-	t.Parallel()
-
-	printer := apitest.Faker(t).LetterN(8)
-
-	tests := []struct {
-		name    string
-		printer string
-		output  string
-		err     error
-		wantOK  bool
-		message string
-	}{
-		{
-			name:    "reports an idle printer",
-			printer: printer,
-			output:  lpstatIdle(printer),
-			wantOK:  true,
-			message: "is idle",
-		},
-		{
-			name:    "reports a disabled printer",
-			printer: printer,
-			output:  "printer " + printer + " disabled since Mon 12 Oct 2026 09:20:11 CEST -\n\treason unknown\n",
-			wantOK:  false,
-			message: "is disabled",
-		},
-		{
-			name:    "reports a printer holding new jobs",
-			printer: printer,
-			output:  "printer " + printer + " is holding new jobs.  enabled since Mon 12 Oct 2026 09:21:00 CEST\n",
-			wantOK:  false,
-			message: "is holding new jobs",
-		},
-		{
-			name:    "reports a missing printer for unexpected output",
-			printer: printer,
-			output:  "something else\n",
-			wantOK:  false,
-			message: "not found",
-		},
-		{
-			name:    "reports the output of a failing lpstat",
-			printer: printer,
-			output:  "lpstat: Invalid destination name in list \"" + printer + "\".\n",
-			err:     errors.New("exit status 1"),
-			wantOK:  false,
-			message: "Invalid destination name",
-		},
-		{
-			name:    "rejects a missing printer selection",
-			printer: "",
-			wantOK:  false,
-			message: "no printer selected",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			f := newPrintFixture(t, PrintOptions{}, twoSlotLayout(1), 0)
-			f.commands.respond = func(commandCall) ([]byte, error) { return []byte(tt.output), tt.err }
-
-			ok, message := f.svc.TestConnection(t.Context(), tt.printer)
-
-			assert.Equal(t, tt.wantOK, ok)
-			assert.Contains(t, message, tt.message)
-		})
-	}
-}
-
-func TestPrintService_Begin(t *testing.T) {
-	t.Parallel()
-
-	t.Run("marks the run as pending", func(t *testing.T) {
-		t.Parallel()
-
-		f := newPrintFixture(t, PrintOptions{}, twoSlotLayout(1), 0)
-
-		started := f.svc.Begin(1)
-
-		assert.True(t, started)
-		state, found := f.svc.Get(1)
-		require.True(t, found)
-		assert.Equal(t, JobPending, state.Status)
-	})
-
-	t.Run("starts another run on its own", func(t *testing.T) {
-		t.Parallel()
-
-		f := newPrintFixture(t, PrintOptions{}, twoSlotLayout(1), 0)
-		require.True(t, f.svc.Begin(1))
-
-		started := f.svc.Begin(2)
-
-		assert.True(t, started, "another run prints on its own")
-	})
-
-	t.Run("rejects a second start while the print is in flight", func(t *testing.T) {
-		t.Parallel()
-
-		f := newPrintFixture(t, PrintOptions{}, twoSlotLayout(1), 0)
-		require.True(t, f.svc.Begin(1))
-
-		started := f.svc.Begin(1)
-
-		assert.False(t, started, "a print in flight is not started twice")
-	})
-}
-
-func TestPrintService_Print(t *testing.T) {
-	t.Parallel()
-
-	printer := apitest.Faker(t).LetterN(8)
-
-	t.Run("sends every page as one PDF job filling the paper in managed mode", func(t *testing.T) {
-		t.Parallel()
-
-		f := newPrintFixture(t, PrintOptions{
-			Enabled:        true,
-			PrinterName:    printer,
-			SubmissionMode: PrintSubmissionManaged,
-		}, twoSlotLayout(2), 3)
-		f.commands.respond = cupsAnswers(lpstatIdle(printer), "")
-
-		err := f.svc.Print(t.Context(), 1)
-
-		require.NoError(t, err)
-		calls := lpCalls(f.commands.Calls())
-		require.Len(t, calls, 1)
-		assert.Equal(t, []string{"-d", printer, "-o", "media=Custom.2.00x1.00in", "-o", "print-scaling=fill"}, calls[0].Args[:6])
-		assert.True(t, bytes.HasPrefix(calls[0].File, []byte("%PDF-1.4")))
-		assert.Contains(t, string(calls[0].File), "/Count 2", "both pages are in one document")
-		assertTempFileRemoved(t, calls[0])
-		state, found := f.svc.Get(1)
-		require.True(t, found)
-		assert.Equal(t, JobState{
-			Status: JobDone,
-		}, state)
-	})
-
-	t.Run("sends the PDF untouched in raw mode", func(t *testing.T) {
-		t.Parallel()
-
-		f := newPrintFixture(t, PrintOptions{
-			Enabled:        true,
-			PrinterName:    printer,
-			SubmissionMode: PrintSubmissionRaw,
-		}, twoSlotLayout(1), 2)
-		f.commands.respond = cupsAnswers(lpstatIdle(printer), "")
-
-		err := f.svc.Print(t.Context(), 1)
-
-		require.NoError(t, err)
-		calls := lpCalls(f.commands.Calls())
-		require.Len(t, calls, 1)
-		assert.Equal(t, []string{"-d", printer, "-o", "raw"}, calls[0].Args[:4])
-		assert.Contains(t, string(calls[0].File), "/MediaBox [0 0 144.00 72.00]", "2 x 1 inch in points")
-		assertTempFileRemoved(t, calls[0])
-	})
-
-	t.Run("rejects printing while it is off", func(t *testing.T) {
-		t.Parallel()
-
-		f := newPrintFixture(t, PrintOptions{
-			Enabled:     false,
-			PrinterName: printer,
-		}, twoSlotLayout(1), 1)
-
-		err := f.svc.Print(t.Context(), 1)
-
-		assert.ErrorContains(t, err, "not enabled")
-		assert.Empty(t, f.commands.Calls())
-	})
-
-	t.Run("rejects printing without a printer", func(t *testing.T) {
-		t.Parallel()
-
-		f := newPrintFixture(t, PrintOptions{
-			Enabled: true,
-		}, twoSlotLayout(1), 1)
-
-		err := f.svc.Print(t.Context(), 1)
-
-		assert.ErrorContains(t, err, "no printer configured")
-		assert.Empty(t, f.commands.Calls())
-	})
-
-	t.Run("returns not found without captures", func(t *testing.T) {
-		t.Parallel()
-
-		f := newPrintFixture(t, PrintOptions{
-			Enabled:     true,
-			PrinterName: printer,
-		}, twoSlotLayout(1), 0)
-		f.commands.respond = cupsAnswers(lpstatIdle(printer), "")
-
-		err := f.svc.Print(t.Context(), 1)
-
-		assert.ErrorIs(t, err, apperr.ErrNotFound)
-	})
-
-	t.Run("rejects an unavailable queue without printing", func(t *testing.T) {
-		t.Parallel()
-
-		f := newPrintFixture(t, PrintOptions{
-			Enabled:     true,
-			PrinterName: printer,
-		}, twoSlotLayout(1), 2)
-		f.commands.respond = cupsAnswers(lpstatIdle(printer), queuedJobs(printer, maxPendingPrintJobs+1))
-
-		err := f.svc.Print(t.Context(), 1)
-
-		assert.ErrorIs(t, err, ErrPrintQueueUnavailable)
-		assert.Empty(t, lpCalls(f.commands.Calls()))
-		state, found := f.svc.Get(1)
-		require.True(t, found)
-		assert.Equal(t, JobState{
-			Status: JobFailed,
-			Reason: JobReasonQueueUnavailable,
-		}, state)
-	})
-
-	t.Run("reports the output of a failing lp", func(t *testing.T) {
-		t.Parallel()
-
-		f := newPrintFixture(t, PrintOptions{
-			Enabled:     true,
-			PrinterName: printer,
-		}, twoSlotLayout(1), 2)
-		answers := cupsAnswers(lpstatIdle(printer), "")
-		f.commands.respond = func(call commandCall) ([]byte, error) {
-			if call.Name == "lp" {
-				return []byte("lp: Destination \"" + printer + "\" is not accepting jobs.\n"),
-					errors.New("exit status 1")
-			}
-			return answers(call)
-		}
-
-		err := f.svc.Print(t.Context(), 1)
-
-		assert.ErrorContains(t, err, "is not accepting jobs")
-		state, _ := f.svc.Get(1)
-		assert.Equal(t, JobState{
-			Status: JobFailed,
-			Reason: JobReasonFailed,
-		}, state)
 	})
 }
 
@@ -1529,7 +1529,7 @@ func newPrintFixture(t *testing.T, cfg PrintOptions, layout domain.Layout, captu
 	storage := newTestStorage(t)
 	commands := &fakeCommands{}
 	layouts := store.NewLayoutStore(storage)
-	require.NoError(t, layouts.Save(t.Context(), layout.ID, layout))
+	require.NoError(t, layouts.Save(t.Context(), layout.Name, layout))
 
 	colors := []color.Color{
 		color.RGBA{
@@ -1549,18 +1549,19 @@ func newPrintFixture(t *testing.T, cfg PrintOptions, layout domain.Layout, captu
 		putCapture(t, storage, 1, i+1, testJPEG(t, 40, 40, colors[i%len(colors)]))
 	}
 
-	if cfg.LayoutID == "" {
-		cfg.LayoutID = layout.ID
+	if cfg.Layout == "" {
+		cfg.Layout = layout.Name
 	}
 	cfg.EventName = fixtureEventName
 	cfg.FilePrefix = "x"
+	runs, captureStore := newTestStores(storage)
 	return printFixture{
 		svc: NewPrintService(
 			zerolog.Nop(),
 			cfg,
 			commands,
-			store.NewRunStore(storage),
-			store.NewCaptureStore(storage),
+			runs,
+			captureStore,
 			store.NewCollageStore(storage),
 			layouts,
 		),
@@ -1575,36 +1576,6 @@ func putCapture(t *testing.T, storage media.Storage, run, index int, data []byte
 	t.Helper()
 
 	putFile(t, storage, fmt.Sprintf("captures/summer-party/x_%06d-%02d_20261014-120000.jpg", run, index), data)
-}
-
-// twoSlotLayout has pages of 2 x 1 inch with a slot on the left and a slot on the right half.
-func twoSlotLayout(pages int) domain.Layout {
-	layout := domain.Layout{
-		ID: "two",
-		Paper: domain.LayoutPaper{
-			WidthMM:  50.8,
-			HeightMM: 25.4,
-		},
-	}
-	for range pages {
-		layout.Pages = append(layout.Pages, domain.LayoutPage{
-			Slots: []domain.LayoutSlot{
-				{
-					X: 0,
-					Y: 0,
-					W: 0.5,
-					H: 1,
-				},
-				{
-					X: 0.5,
-					Y: 0,
-					W: 0.5,
-					H: 1,
-				},
-			},
-		})
-	}
-	return layout
 }
 
 // cupsAnswers answers lpstat -p with status, lpstat -o with jobs, and lp with its request ID.

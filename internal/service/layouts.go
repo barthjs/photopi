@@ -30,39 +30,39 @@ func NewLayoutService(store *store.LayoutStore) *LayoutService {
 	}
 }
 
-// List returns all layouts, sorted by ID.
+// List returns all layouts, sorted by name.
 func (s *LayoutService) List(ctx context.Context) ([]domain.Layout, error) {
 	return s.store.List(ctx)
 }
 
-// Get returns the layout with the given ID, or apperr.ErrNotFound if it does not exist
-// or id cannot address a layout file.
-func (s *LayoutService) Get(ctx context.Context, id string) (*domain.Layout, error) {
-	layout, err := s.store.Get(ctx, id)
+// Get returns the layout with the given name, or apperr.ErrNotFound if it does not exist
+// or name cannot address a layout file.
+func (s *LayoutService) Get(ctx context.Context, name string) (*domain.Layout, error) {
+	layout, err := s.store.Get(ctx, name)
 	if errors.Is(err, store.ErrInvalidName) {
 		return nil, apperr.ErrNotFound
 	}
 	return layout, err
 }
 
-// Save creates or replaces the layout with the given ID, which has to match the layout's own ID,
+// Save creates or replaces the layout with the given name, which has to match the layout's own name,
 // so a stored layout always carries its file name.
-func (s *LayoutService) Save(ctx context.Context, id string, layout domain.Layout) error {
-	if layout.ID != id {
-		return apperr.NewValidationError("id", "invalid")
+func (s *LayoutService) Save(ctx context.Context, name string, layout domain.Layout) error {
+	if layout.Name != name {
+		return apperr.NewValidationError("name", "invalid")
 	}
 
-	err := s.store.Save(ctx, id, layout)
+	err := s.store.Save(ctx, name, layout)
 	if errors.Is(err, store.ErrInvalidName) {
-		return apperr.NewValidationError("id", "invalid")
+		return apperr.NewValidationError("name", "invalid")
 	}
 	return err
 }
 
-// Delete removes the layout with the given ID, or returns apperr.ErrNotFound if it does not exist
-// or id cannot address a layout file.
-func (s *LayoutService) Delete(ctx context.Context, id string) error {
-	err := s.store.Delete(ctx, id)
+// Delete removes the layout with the given name, or returns apperr.ErrNotFound if it does not exist
+// or name cannot address a layout file.
+func (s *LayoutService) Delete(ctx context.Context, name string) error {
+	err := s.store.Delete(ctx, name)
 	if errors.Is(err, store.ErrInvalidName) {
 		return apperr.ErrNotFound
 	}
@@ -93,7 +93,7 @@ func (s *LayoutService) EnsureDefaults(ctx context.Context, translator *i18n.Bun
 		}
 
 		// T returns the key itself when no translation exists, the embedded English name then stays
-		key := "layout." + layout.ID
+		key := "layout." + strings.TrimSuffix(entry.Name(), ".json")
 		if translated := translator.T(locale, key, nil); translated != key {
 			layout.Name = translated
 		}

@@ -16,7 +16,7 @@ import (
 	"github.com/barthjs/photopi/internal/mailer"
 )
 
-// usedKey matches a catalog key a template translates, such as `t .Locale "email.automated" .`.
+// usedKey matches a catalog key a template translates.
 var usedKey = regexp.MustCompile(`t(?:html)? \.Locale "([^"]+)"`)
 
 // discardTransport accepts every message, so a test sends emails without delivering them.
@@ -101,18 +101,4 @@ func locales(t *testing.T) []string {
 	}
 	require.NotEmpty(t, names)
 	return names
-}
-
-// sampleData fills every field the templates may reference, so each renders completely.
-func sampleData(locale string) map[string]any {
-	return map[string]any{
-		"Locale":         locale,
-		"AppName":        "Sample App",
-		"Subject":        "",
-		"EventName":      "Sample Event",
-		"Name":           "Sample Name",
-		"Email":          "sample@example.test",
-		"ExpiresMinutes": 30,
-		"URL":            "https://example.test/link",
-	}
 }

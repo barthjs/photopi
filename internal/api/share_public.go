@@ -3,8 +3,6 @@ package api
 import (
 	"fmt"
 	"net/http"
-
-	"github.com/go-chi/chi/v5"
 )
 
 // publicShareGetHandler lists the files of a shared run as signed URLs.
@@ -36,7 +34,6 @@ func (a *API) publicShareGetHandler(w http.ResponseWriter, r *http.Request) {
 	}, nil)
 }
 
-// PublicShareResponse lists the files of a shared run.
 type PublicShareResponse struct {
 	// ImageURLs are signed URLs of the captures followed by the collage pages, valid for a limited time.
 	ImageURLs []string `json:"imageUrls"`
@@ -66,15 +63,21 @@ func (a *API) publicShareZipHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/zip")
-	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="run-%06d.zip"`, run))
-	w.Header().Set("Cache-Control", "no-store")
-
-	if err := a.shareService.ZipSharedFiles(r.Context(), w, paths); err != nil {
-		// The headers and part of the archive may already be sent, so the client may only see a broken download
-		a.serverErrorResponse(w, r, err)
+	download := &downloadWriter{
+		writer:      w,
+		contentType: "application/zip",
+		filename:    fmt.Sprintf("run-%06d.zip", run),
+	}
+	err = a.shareService.ZipSharedFiles(r.Context(), download, paths)
+	if err == nil {
 		return
 	}
+	if !download.started {
+		a.respondError(w, r, err)
+		return
+	}
+	// The headers and part of the archive are already sent, so the client may only see a broken download
+	logRequestFields(a.logger.Warn().Err(err), r).Msg("streaming the shared archive failed")
 }
 
 // resolvePublicShareRun verifies the {token} URL parameter and returns the run number it was signed for.
@@ -82,7 +85,7 @@ func (a *API) publicShareZipHandler(w http.ResponseWriter, r *http.Request) {
 // a bad signature, an expired link, and an unknown run are indistinguishable to the caller,
 // so forged tokens cannot be used to probe which run numbers exist.
 func (a *API) resolvePublicShareRun(w http.ResponseWriter, r *http.Request) (int, bool) {
-	run, ok := a.shareService.ResolveSelfShareToken(chi.URLParam(r, "token"), a.now())
+	run, ok := a.shareService.ResolveSelfShareToken(pathParam(r, "token"), a.now())
 	if !ok {
 		a.notFoundResponse(w, r)
 		return 0, false

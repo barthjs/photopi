@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
 import { cameraRepository } from '@/api/repositories/camera';
 import { captureRepository } from '@/api/repositories/capture';
 
-import { useApiError } from '@/composables/useApiError';
-import { useCountdown } from '@/composables/useCountdown';
-import { useInactivityTimer } from '@/composables/useInactivityTimer';
+import { useApiError } from '@/composables/form/useApiError';
+import { useCountdown } from '@/composables/timer/useCountdown';
+import { useInactivityTimer } from '@/composables/timer/useInactivityTimer';
 
 import { useBoothStore } from '@/stores/booth';
 import { useMetaStore } from '@/stores/meta';
@@ -20,13 +20,16 @@ const PRE_START_TIMEOUT_MS = 60_000;
 // How long the next countdown waits for the preview stream to reconnect after a shot.
 // The sequence goes on without it, since the capture does not need the preview.
 const PREVIEW_READY_TIMEOUT_MS = 5_000;
-// How long a broken preview stream waits before it connects again, so a camera that keeps failing is not hammered.
+// How long a broken preview stream waits before it connects again, so a camera that keeps failing is not hammered
 const PREVIEW_RETRY_DELAY_MS = 2_000;
 const COUNTDOWN_SECONDS = 10;
 // How long the webcam gets to adjust its exposure to the white screen before its frame is grabbed.
 // The browser offers no way to learn when it settled, so this is a fixed allowance.
 const WEBCAM_LIGHT_SETTLE_MS = 500;
 const CAPTURE_ERROR_COUNTDOWN_SECONDS = 10;
+// The size a webcam is asked for, so the browser picks the largest mode up to 4K
+const WEBCAM_IDEAL_WIDTH = 3840;
+const WEBCAM_IDEAL_HEIGHT = 2160;
 // How long the photo just taken is shown before the next countdown, so the guests see that it worked.
 // The live view connects again meanwhile.
 const SHOT_DISPLAY_MS = 3_000;
@@ -57,20 +60,21 @@ const phase = ref<Phase>('idle');
 // A backend camera needs a moment to switch from the live view to the photo,
 // and the white screen also asks the guests to hold still until then and covers the stopped live view.
 const lighting = ref(false);
-// The image index of the photo just taken while it is shown, null otherwise.
+// The image index of the photo just taken while it is shown, null otherwise
 const shownShot = ref<number | null>(null);
 // True from the start of a countdown until its light,
 // so the ring stays hidden while waitForPreviewReady waits for the backend.
 const ringVisible = ref(false);
 const errorMessage = ref('');
-// Only the webcam source needs the browser to open the camera. The backend drives every other source,
-// so they start out ready.
+// Only the webcam source needs the browser to open the camera.
+// The backend drives every other source, so they start out ready.
+// eslint-disable-next-line vue/no-ref-object-reactivity-loss -- set once from the source.
 const cameraReady = ref(source.value !== 'webcam');
 
 // A source driven by the backend holds one connection to the camera at a time, so a shot stops the live view.
 // Increasing this makes the image open a new connection for the next shot of the run.
 const previewReloadKey = ref(0);
-// Whether the preview stream delivered its first frame, so a loading overlay covers the gap while the connection opens.
+// Whether the preview stream delivered its first frame, so a loading overlay covers the gap while the connection opens
 const previewLoaded = ref(false);
 watch(previewReloadKey, () => {
   previewLoaded.value = false;
@@ -78,11 +82,7 @@ watch(previewReloadKey, () => {
 
 let previewRetryTimer: ReturnType<typeof setTimeout> | null = null;
 
-/**
- * onPreviewError connects the preview stream again after a delay,
- * for example after the camera process or the backend restarted.
- * A photo in progress reconnects the stream itself afterward.
- */
+/** Connects the preview stream again after a delay, unless a photo in progress reconnects it afterward. */
 function onPreviewError(): void {
   if (lighting.value || previewRetryTimer !== null) return;
 
@@ -92,16 +92,16 @@ function onPreviewError(): void {
   }, PREVIEW_RETRY_DELAY_MS);
 }
 
-const videoEl = ref<HTMLVideoElement | null>(null);
-const previewImgEl = ref<HTMLImageElement | null>(null);
+const videoEl = useTemplateRef<HTMLVideoElement>('videoEl');
+const previewImgEl = useTemplateRef<HTMLImageElement>('previewImgEl');
 let mediaStream: MediaStream | null = null;
 // Set on unmount, so work that finishes later, such as opening the webcam, releases what it got
 let unmounted = false;
 
 // The full-screen box the media and its overlay fit into without cropping.
 // It is measured once the ratio of the media is known, since the kiosk window does not resize.
-const previewContainer = ref<HTMLElement | null>(null);
-// The width to height ratio of the delivered frames, since not every source has a configured resolution.
+const previewContainer = useTemplateRef<HTMLElement>('previewContainer');
+// The width to height ratio of the delivered frames, since not every source has a configured resolution
 const mediaAspectRatio = ref<number | null>(null);
 // The largest rectangle of mediaAspectRatio inside previewContainer. It is computed by hand
 // instead of with object-fit, since the overlay has to fill the same rectangle as the media.
@@ -110,7 +110,7 @@ const mediaBoxStyle = ref<{ width: string; height: string }>({
   height: '100%',
 });
 
-/** updateMediaBox sizes the media box to the largest rectangle of the given ratio that fits the preview container. */
+/** Sizes the media box to the largest rectangle of the given ratio that fits the preview container. */
 function updateMediaBox(ratio: number): void {
   mediaAspectRatio.value = ratio;
 
@@ -131,26 +131,26 @@ function updateMediaBox(ratio: number): void {
         };
 }
 
-/** onVideoMetadata sizes the media box once the webcam reports its resolution. */
+/** Sizes the media box once the webcam reports its resolution. */
 function onVideoMetadata(): void {
   const video = videoEl.value;
-  if (video?.videoWidth && video.videoHeight) {
+  if (video && video.videoWidth > 0 && video.videoHeight > 0) {
     updateMediaBox(video.videoWidth / video.videoHeight);
   }
 }
 
-/** onPreviewLoad marks the preview as loaded and sizes the media box to its frame. */
+/** Marks the preview as loaded and sizes the media box to its frame. */
 function onPreviewLoad(event: Event): void {
   previewLoaded.value = true;
 
-  const img = event.target as HTMLImageElement;
-  if (img.naturalWidth && img.naturalHeight) {
+  const img = event.target;
+  if (img instanceof HTMLImageElement && img.naturalWidth > 0 && img.naturalHeight > 0) {
     updateMediaBox(img.naturalWidth / img.naturalHeight);
   }
 }
 
 const inactivity = useInactivityTimer(() => {
-  void booth.abort().finally(() =>
+  void booth.abort().finally(async () =>
     router.push({
       name: 'welcome',
     }),
@@ -170,26 +170,17 @@ onMounted(async () => {
   if (source.value === 'webcam') {
     try {
       // Without constraints, browsers often pick a low resolution.
-      // An ideal instead of an exact size lets the browser choose the closest mode
+      // An ideal instead of an exact size lets the browser choose the largest mode up to it
       // without failing on cameras that lack it.
-      const captureWidth = metaStore.meta?.camera.captureWidth;
-      const captureHeight = metaStore.meta?.camera.captureHeight;
-
       const stream = await navigator.mediaDevices.getUserMedia({
-        video:
-          captureWidth && captureHeight
-            ? {
-                width: {
-                  ideal: captureWidth,
-                },
-                height: {
-                  ideal: captureHeight,
-                },
-                aspectRatio: {
-                  ideal: captureWidth / captureHeight,
-                },
-              }
-            : true,
+        video: {
+          width: {
+            ideal: WEBCAM_IDEAL_WIDTH,
+          },
+          height: {
+            ideal: WEBCAM_IDEAL_HEIGHT,
+          },
+        },
       });
       // The page may be gone by the time the browser granted the camera, which must not stay on then
       if (unmounted) {
@@ -216,11 +207,11 @@ onBeforeUnmount(() => {
 });
 
 /**
- * waitForPreviewReady waits until the preview stream delivered its first frame after a shot,
+ * Waits until the preview stream delivered its first frame after a shot,
  * so the next countdown does not start while the backend switches back to the live view.
  * The webcam stream never stops, so it does not wait for it.
  */
-function waitForPreviewReady(): Promise<void> {
+async function waitForPreviewReady(): Promise<void> {
   if (source.value === 'webcam' || previewLoaded.value) return Promise.resolve();
 
   return new Promise((resolve) => {
@@ -244,7 +235,7 @@ function waitForPreviewReady(): Promise<void> {
 }
 
 /**
- * grabFrame returns the current webcam frame as a JPEG. Every other source takes its photo on the backend.
+ * Returns the current webcam frame as a JPEG. Every other source takes its photo on the backend.
  */
 async function grabFrame(): Promise<Blob> {
   const video = videoEl.value;
@@ -265,7 +256,7 @@ async function grabFrame(): Promise<Blob> {
 }
 
 /**
- * takeShot takes one photo of the run while the screen lights the guests.
+ * Takes one photo of the run while the screen lights the guests.
  * The light stays on until the photo is taken, and the webcam first gets time to adjust to it.
  */
 async function takeShot(): Promise<void> {
@@ -280,9 +271,9 @@ async function takeShot(): Promise<void> {
       await new Promise((resolve) => setTimeout(resolve, WEBCAM_LIGHT_SETTLE_MS));
       const blob = await grabFrame();
       lighting.value = false;
-      await captureRepository.create(booth.run as number, blob);
+      await captureRepository.create(booth.run!, blob);
     } else {
-      await captureRepository.create(booth.run as number);
+      await captureRepository.create(booth.run!);
     }
   } finally {
     lighting.value = false;
@@ -296,28 +287,28 @@ async function takeShot(): Promise<void> {
   }
 }
 
-/** showShot shows the screen version of the photo just taken for SHOT_DISPLAY_MS. */
+/** Shows the screen version of the photo just taken for SHOT_DISPLAY_MS. */
 async function showShot(imageIndex: number): Promise<void> {
   shownShot.value = imageIndex;
   await new Promise((resolve) => setTimeout(resolve, SHOT_DISPLAY_MS));
   shownShot.value = null;
 }
 
-/** nextPaint resolves once the browser painted the current state of the page. */
-function nextPaint(): Promise<void> {
+/** Resolves once the browser painted the current state of the page. */
+async function nextPaint(): Promise<void> {
   return new Promise((resolve) =>
     requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
   );
 }
 
-/** runCountdown shows the countdown ring and resolves at zero. */
-function runCountdown(): Promise<void> {
+/** Shows the countdown ring and resolves at zero. */
+async function runCountdown(): Promise<void> {
   ringVisible.value = true;
   return new Promise((resolve) => countdown.start(COUNTDOWN_SECONDS, () => resolve()));
 }
 
 /**
- * failAndReturnToWelcome shows a failure with a visible countdown, so the booth does not look frozen,
+ * Shows a failure with a visible countdown, so the booth does not look frozen,
  * then discards the run and returns to the welcome screen.
  */
 async function failAndReturnToWelcome(err: unknown): Promise<void> {
@@ -330,7 +321,7 @@ async function failAndReturnToWelcome(err: unknown): Promise<void> {
   });
 }
 
-/** runSequence takes every photo of the run and moves on to the review. */
+/** Takes every photo of the run and moves on to the review. */
 async function runSequence(): Promise<void> {
   try {
     await runCountdown();
@@ -351,7 +342,7 @@ async function runSequence(): Promise<void> {
   }
 }
 
-/** onStartPressed starts the photo sequence. */
+/** Starts the photo sequence. */
 function onStartPressed(): void {
   // The sequence runs without the guest, so the inactivity timeout no longer applies
   inactivity.clear();
@@ -390,7 +381,7 @@ function onStartPressed(): void {
           playsinline
           class="absolute inset-0 h-full w-full object-contain"
           @loadedmetadata="onVideoMetadata"
-        />
+        ></video>
 
         <!-- The backend stretches the overlay to the bounds of the capture, so the preview stretches
              it too instead of keeping its ratio. -->
@@ -428,7 +419,7 @@ function onStartPressed(): void {
       <Transition name="countdown-ring">
         <div
           v-if="ringVisible"
-          class="flex h-44 w-44 items-center justify-center rounded-full shadow-xl transition-[background] duration-1000 ease-linear"
+          class="flex h-44 w-44 items-center justify-center rounded-full shadow-lg"
           :style="countdownRingStyle"
         >
           <div class="bg-elevated flex h-36 w-36 flex-col items-center justify-center rounded-full">
@@ -454,8 +445,8 @@ function onStartPressed(): void {
         :label="t('pages.capture.startButton')"
         icon="i-lucide-camera"
         size="xl"
-        @click="onStartPressed"
         class="h-20 w-72 justify-center text-2xl"
+        @click="onStartPressed"
       />
     </div>
 

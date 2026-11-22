@@ -125,8 +125,8 @@ func (s *OverlayStore) Delete(ctx context.Context, name string) error {
 	return nil
 }
 
-// Path returns the storage path of the overlay with the given name, or ErrInvalidName for a name
-// without the overlay extension or one that cannot address an overlay file.
+// Path returns the storage path of the overlay with the given name,
+// or ErrInvalidName for a name without the overlay extension or one that cannot address an overlay file.
 func (s *OverlayStore) Path(name string) (string, error) {
 	base, found := strings.CutSuffix(name, overlayExtension)
 	if !found {

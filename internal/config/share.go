@@ -40,7 +40,6 @@ type ShareConfig struct {
 }
 
 // validateShare normalizes and checks the share settings.
-// The cloud driver has no values tag, since its empty value disables the cloud share.
 func validateShare(cfg *ShareConfig) error {
 	var p structconf.Problems
 
@@ -49,6 +48,7 @@ func validateShare(cfg *ShareConfig) error {
 		p.Addf("share.email.subject must be at most %d characters", maxText)
 	}
 
+	// The cloud driver has no values tag, since its empty value disables the cloud share
 	switch cfg.Cloud.Driver {
 	case share.DriverNone:
 	case share.DriverNextcloud:

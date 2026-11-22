@@ -3,22 +3,21 @@ import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { configRepository } from '@/api/repositories/config';
-import type { CloudShareDriver } from '@/api/types';
+import type { CloudShareDriver } from '@/api/types/config';
 import ConfigFieldHint from '@/components/config/ConfigFieldHint.vue';
-import HelpHint from '@/components/form/HelpHint.vue';
 import SecretField from '@/components/form/SecretField.vue';
-import { CONFIG_LIMITS, useConfigForm } from '@/composables/useConfigForm';
-import { useConnectionTestReport } from '@/composables/useConnectionTestReport';
+import { CONFIG_LIMITS, useConfigForm } from '@/composables/config/useConfigForm';
+import { useConnectionTestReport } from '@/composables/config/useConnectionTestReport';
 import { useMutation } from '@/composables/form/useMutation';
 import { countLabel } from '@/lib/form/validation';
 
-// How guests receive their photos by mail or through a cloud link, with a test of the cloud share.
+// How guests receive their photos by mail or through a cloud link, with a test of the cloud share
 const { t } = useI18n();
 const { state, fieldProps, savedSecrets, clearedSecrets, keepsSecret, hasSecret } = useConfigForm();
 const { reportTestConnection } = useConnectionTestReport();
 
 const { mutate: testShare, pending: testingShare } = useMutation(
-  () => configRepository.testShare(state.share.cloud),
+  async () => configRepository.testShare(state.share.cloud),
   {
     onSuccess: reportTestConnection,
   },
@@ -49,7 +48,7 @@ const cloudDriverSelection = computed<CloudShareDriver | null>({
   },
 });
 
-const cloudDriverItems = computed(() => [
+const cloudDriverItems = computed((): { label: string; value: CloudShareDriver | null }[] => [
   {
     label: t('pages.config.share.cloudNone'),
     value: null,
@@ -74,15 +73,18 @@ const cloudDriverDefaults = computed(() =>
 </script>
 
 <template>
-  <UCard variant="subtle" class="mt-4">
+  <UCard variant="subtle">
     <div class="flex flex-col gap-4">
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <UFormField :label="t('fields.share.email.enabled')" name="share.email.enabled">
-          <template #hint>
-            <ConfigFieldHint
-              path="share.email.enabled"
-              :help="t('pages.config.share.emailEnabledHint')"
-            />
+          <template #label="{ label }">
+            <span class="inline-flex items-center gap-1.5">
+              {{ label }}
+              <ConfigFieldHint
+                path="share.email.enabled"
+                :help="t('pages.config.share.emailEnabledHint')"
+              />
+            </span>
           </template>
           <USwitch v-model="state.share.email.enabled" v-bind="fieldProps('share.email.enabled')" />
         </UFormField>
@@ -100,11 +102,9 @@ const cloudDriverDefaults = computed(() =>
             class="w-full"
           />
         </UFormField>
-        <UFormField
-          :label="t('fields.share.cloud.driver')"
-          name="share.cloud.driver"
-          class="sm:col-span-2"
-        >
+      </div>
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <UFormField :label="t('fields.share.cloud.driver')" name="share.cloud.driver">
           <template #hint>
             <ConfigFieldHint
               path="share.cloud.driver"
@@ -116,11 +116,10 @@ const cloudDriverDefaults = computed(() =>
             v-model="cloudDriverSelection"
             v-bind="fieldProps('share.cloud.driver')"
             :items="cloudDriverItems"
-            class="w-full sm:w-1/2"
+            class="w-full"
           />
         </UFormField>
       </div>
-
       <div
         v-if="state.share.cloud.driver === 'nextcloud'"
         class="grid grid-cols-1 gap-4 sm:grid-cols-2"
@@ -224,7 +223,6 @@ const cloudDriverDefaults = computed(() =>
           :disabled="shareTestDisabled"
           @click="testShare()"
         />
-        <HelpHint :text="t('pages.config.share.testHint')" />
       </div>
     </div>
   </UCard>

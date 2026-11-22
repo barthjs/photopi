@@ -26,9 +26,9 @@ func TestValidatePrint(t *testing.T) {
 				change: func(c *Config) {
 					c.Print.Enabled = true
 					c.Print.PrinterName = "p"
-					c.Print.LayoutID = " "
+					c.Print.Layout = " "
 				},
-				wantErr: "print.layout_id",
+				wantErr: "print.layout",
 			},
 			{
 				name: "unknown submission mode",

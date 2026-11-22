@@ -21,7 +21,7 @@ onMounted(() => {
   booth.reset();
 });
 
-const { mutate: start, pending } = useMutation(() => booth.startRun(), {
+const { mutate: start, pending } = useMutation(async () => booth.startRun(), {
   onSuccess: () => {
     void router.push({
       name: 'capture',
@@ -34,7 +34,7 @@ const { mutate: start, pending } = useMutation(() => booth.startRun(), {
   <div class="relative flex flex-1 flex-col items-center justify-center gap-12 px-6 text-center">
     <!-- The welcome message is free text, so the heading scales with the viewport and is cut after
          three lines to fit the screen, which does not scroll. -->
-    <h1 class="text-highlighted line-clamp-3 text-[clamp(1.75rem,6vw,3.75rem)] font-semibold">
+    <h1 class="text-highlighted text-display line-clamp-3 font-semibold">
       {{ title }}
     </h1>
 

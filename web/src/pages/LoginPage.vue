@@ -1,16 +1,17 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref, useTemplateRef } from 'vue';
+import { onMounted, reactive, useTemplateRef } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
-import { ApiError } from '@/api/errors';
+import { ApiError } from '@/api/client/errors';
 import { authRepository } from '@/api/repositories/auth';
-import type { AuthLoginRequest } from '@/api/types';
+import type { AuthLoginRequest } from '@/api/types/auth';
 import PasswordField from '@/components/form/PasswordField.vue';
 import VirtualKeyboard from '@/components/form/VirtualKeyboard.vue';
-import { useInactivityTimer } from '@/composables/useInactivityTimer';
 import type { FormErrorTarget } from '@/composables/form/useFormValidation';
 import { useMutation } from '@/composables/form/useMutation';
+import { useOnScreenKeyboard } from '@/composables/kiosk/useOnScreenKeyboard';
+import { useInactivityTimer } from '@/composables/timer/useInactivityTimer';
 import { redirectTarget } from '@/lib/auth/redirect';
 import { FORM_VALIDATE_ON } from '@/lib/form/validation';
 import { useAuthStore } from '@/stores/auth';
@@ -24,31 +25,23 @@ const authStore = useAuthStore();
 // The kiosk has no keyboard, a guest who opened the login by accident gets back to the welcome screen
 const LOGIN_TIMEOUT_MS = 60_000;
 
-const inactivity = useInactivityTimer(() =>
-  router.push({
-    name: 'welcome',
-  }),
+const inactivity = useInactivityTimer(
+  () =>
+    void router.push({
+      name: 'welcome',
+    }),
 );
 
 onMounted(() => {
   inactivity.arm(LOGIN_TIMEOUT_MS);
 });
 
-// The keyboard of the system stays hidden behind the kiosk browser in full screen,
-// so a touchscreen gets the on-screen keyboard of the application.
-// It opens with the focus on a device that is used by touch and can be toggled on any device.
-const keyboardOpen = ref(false);
-const touchDevice = window.matchMedia('(pointer: coarse)').matches;
-
-/** onPasswordFocus opens the on-screen keyboard on a device that is used by touch. */
-function onPasswordFocus(): void {
-  if (touchDevice) keyboardOpen.value = true;
-}
-
-/** toggleKeyboard opens or closes the on-screen keyboard. */
-function toggleKeyboard(): void {
-  keyboardOpen.value = !keyboardOpen.value;
-}
+const {
+  open: keyboardOpen,
+  touchDevice,
+  onFocus: onPasswordFocus,
+  toggle: toggleKeyboard,
+} = useOnScreenKeyboard();
 
 // The server accepts an empty password while no admin password is set, so the form has no client validation
 const state = reactive<AuthLoginRequest>({
@@ -103,14 +96,14 @@ const {
       <UCard class="w-full max-w-sm">
         <!-- The title gives way to the keyboard, which needs the height of the small touchscreen -->
         <template v-if="!keyboardOpen" #header>
-          <h1 class="text-highlighted text-center text-xl font-semibold">
+          <h1 class="text-highlighted heading-page text-center">
             {{ t('pages.login.title') }}
           </h1>
         </template>
 
         <UForm
-          :validate-on="FORM_VALIDATE_ON"
           ref="form"
+          :validate-on="FORM_VALIDATE_ON"
           :state="state"
           class="space-y-4"
           @submit="login()"

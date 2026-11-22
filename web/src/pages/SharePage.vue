@@ -1,24 +1,35 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, reactive, ref, useTemplateRef, watch } from 'vue';
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  reactive,
+  ref,
+  useTemplateRef,
+  watch,
+} from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import QRCode from 'qrcode';
 
-import { ApiError } from '@/api/errors';
+import { ApiError } from '@/api/client/errors';
 import { shareRepository } from '@/api/repositories/share';
-import type { ShareEmailRequest } from '@/api/types';
+import type { ShareEmailRequest } from '@/api/types/share';
 import VirtualKeyboard from '@/components/form/VirtualKeyboard.vue';
-import { useApiError } from '@/composables/useApiError';
+import { useApiError } from '@/composables/form/useApiError';
 import { useFormValidation, type FormErrorTarget } from '@/composables/form/useFormValidation';
-import { useInactivityTimer } from '@/composables/useInactivityTimer';
 import { useMutation } from '@/composables/form/useMutation';
-import { useShareJob } from '@/composables/useShareJob';
+import { useOnScreenKeyboard } from '@/composables/kiosk/useOnScreenKeyboard';
+import { useShareJob } from '@/composables/kiosk/useShareJob';
+import { useInactivityTimer } from '@/composables/timer/useInactivityTimer';
+import { useConfirm } from '@/composables/ui/useConfirm';
 import { FORM_VALIDATE_ON } from '@/lib/form/validation';
 import { useBoothStore } from '@/stores/booth';
 import { useMetaStore } from '@/stores/meta';
 
 const GENERAL_TIMEOUT_MS = 90_000;
-const DISABLED_TIMEOUT_MS = 30_000;
+const DISABLED_TIMEOUT_MS = 10_000;
 const SUCCESS_TIMEOUT_MS = 10_000;
 const LOCKOUT_TIMEOUT_MS = 60_000;
 
@@ -27,6 +38,7 @@ const router = useRouter();
 const booth = useBoothStore();
 const metaStore = useMetaStore();
 const { messageFor } = useApiError();
+const { confirm, settle } = useConfirm();
 
 const emailEnabled = computed(() => metaStore.meta?.share.emailEnabled ?? false);
 const cloudEnabled = computed(() => metaStore.meta?.share.cloudEnabled ?? false);
@@ -35,10 +47,11 @@ const sharingConfigured = computed(
   () => emailEnabled.value || cloudEnabled.value || printEnabled.value,
 );
 
-const inactivity = useInactivityTimer(() =>
-  router.push({
-    name: 'welcome',
-  }),
+const inactivity = useInactivityTimer(
+  () =>
+    void router.push({
+      name: 'welcome',
+    }),
 );
 
 const emailState = reactive<ShareEmailRequest>({
@@ -46,28 +59,24 @@ const emailState = reactive<ShareEmailRequest>({
 });
 const emailForm = useTemplateRef<FormErrorTarget>('emailForm');
 
-// The server also checks the format of the address, the client only that it is given.
+// The server also checks the format of the address, the client only that it is given
 const { validate: validateEmail } = useFormValidation<ShareEmailRequest>(() => ({
   email: {
     required: 'required',
   },
 }));
 const emailError = ref('');
-const emailFocused = ref(false);
-const emailJob = useShareJob(() => shareRepository.getEmail(booth.run as number));
+// A guest with a real keyboard types right into the field
+const {
+  open: keyboardOpen,
+  onFocus: onEmailFocus,
+  toggle: toggleKeyboard,
+  close: closeKeyboard,
+} = useOnScreenKeyboard();
+const emailJob = useShareJob(async () => shareRepository.getEmail(booth.run!));
 const emailSent = computed(() => emailJob.phase.value === 'done');
 
-/** focusEmail shows the virtual keyboard for the address field. */
-function focusEmail(): void {
-  emailFocused.value = true;
-}
-
-/** unfocusEmail hides the virtual keyboard. */
-function unfocusEmail(): void {
-  emailFocused.value = false;
-}
-
-/** emailFailedMessage returns the message for a failed email, naming the admin contact if there is one. */
+/** Returns the message for a failed email, naming the admin contact if there is one. */
 function emailFailedMessage(): string {
   const adminEmail = metaStore.meta?.share.adminEmail;
   return adminEmail
@@ -79,8 +88,8 @@ function emailFailedMessage(): string {
 }
 
 const { mutate: sendEmail, pending: sendingEmail } = useMutation(
-  () =>
-    shareRepository.sendEmail(booth.run as number, {
+  async () =>
+    shareRepository.sendEmail(booth.run!, {
       email: emailState.email,
     }),
   {
@@ -89,7 +98,7 @@ const { mutate: sendEmail, pending: sendingEmail } = useMutation(
     toast: false,
     onSuccess: () => {
       emailError.value = '';
-      emailFocused.value = false;
+      closeKeyboard();
       emailJob.track();
     },
     onError: (err) => {
@@ -128,11 +137,11 @@ watch(emailJob.phase, (phase) => {
   }
 });
 
-const printJob = useShareJob(() => shareRepository.getPrint(booth.run as number));
+const printJob = useShareJob(async () => shareRepository.getPrint(booth.run!));
 const printSent = computed(() => printJob.phase.value === 'done');
 
 const { mutate: submitPrint, pending: submittingPrint } = useMutation(
-  () => shareRepository.print(booth.run as number),
+  async () => shareRepository.print(booth.run!),
   {
     toast: false,
     onSuccess: () => {
@@ -172,20 +181,21 @@ const printMessage = computed(() => {
   }
 });
 
-const cloudJob = useShareJob(() => shareRepository.getCloudUpload(booth.run as number));
-const qrCanvas = ref<HTMLCanvasElement | null>(null);
+const cloudJob = useShareJob(async () => shareRepository.getCloudUpload(booth.run!));
+const qrCanvas = useTemplateRef<HTMLCanvasElement>('qrCanvas');
 
 watch(cloudJob.url, async (url) => {
   if (!url) return;
   await nextTick();
-  if (qrCanvas.value)
+  if (qrCanvas.value) {
     await QRCode.toCanvas(qrCanvas.value, url, {
       width: 176,
       margin: 1,
     });
+  }
 });
 
-/** startCloudUpload starts sharing the run as a link and follows it until the QR code can be shown. */
+/** Starts sharing the run as a link and follows it until the QR code can be shown. */
 async function startCloudUpload(run: number): Promise<void> {
   try {
     await shareRepository.startCloudUpload(run);
@@ -203,8 +213,9 @@ onMounted(async () => {
     return;
   }
 
+  // Without sharing, the screen offers nothing to do, so input does not keep it open
   if (!sharingConfigured.value) {
-    inactivity.arm(DISABLED_TIMEOUT_MS);
+    inactivity.armFixed(DISABLED_TIMEOUT_MS);
     return;
   }
 
@@ -215,16 +226,22 @@ onMounted(async () => {
   }
 });
 
-const showFinishDialog = ref(false);
+// A timeout leaves the page while the dialog may still be open, which only belongs to this page
+onBeforeUnmount(() => settle(false));
 
-/** openFinishDialog asks before the guest finishes. */
-function openFinishDialog(): void {
-  showFinishDialog.value = true;
+/** Asks before the guest finishes and then returns to the welcome screen. */
+async function confirmFinish(): Promise<void> {
+  const confirmed = await confirm({
+    title: t('pages.share.finishDialog.title'),
+    description: t('pages.share.finishDialog.text'),
+    confirmLabel: t('pages.share.finishDialog.confirm'),
+    cancelLabel: t('pages.share.finishDialog.back'),
+  });
+  if (confirmed) onFinish();
 }
 
-/** onFinish returns to the welcome screen. */
+/** Returns to the welcome screen. */
 function onFinish(): void {
-  showFinishDialog.value = false;
   void router.push({
     name: 'welcome',
   });
@@ -239,6 +256,7 @@ function onFinish(): void {
     >
       <UIcon name="i-lucide-heart" class="text-primary size-12" />
       <p class="text-highlighted text-2xl font-semibold">{{ t('pages.share.disabledMessage') }}</p>
+      <UButton :label="t('pages.share.finish')" size="xl" class="mt-6" @click="onFinish" />
     </div>
 
     <template v-else>
@@ -252,8 +270,8 @@ function onFinish(): void {
         </p>
 
         <UForm
-          :validate-on="FORM_VALIDATE_ON"
           ref="emailForm"
+          :validate-on="FORM_VALIDATE_ON"
           :state="emailState"
           :validate="validateEmail"
           class="flex w-full shrink-0 flex-col items-center gap-3"
@@ -266,15 +284,26 @@ function onFinish(): void {
             class="w-full shrink-0"
           >
             <UInput
-              :model-value="emailState.email"
-              readonly
+              v-model="emailState.email"
+              type="email"
+              autocomplete="off"
+              :inputmode="keyboardOpen ? 'none' : 'email'"
               icon="i-lucide-mail"
               size="xl"
               :placeholder="t('pages.share.emailPrompt')"
-              class="w-full cursor-pointer [&_input]:cursor-pointer"
-              @focus="focusEmail"
-              @click="focusEmail"
-            />
+              class="w-full"
+              @focus="onEmailFocus"
+            >
+              <template #trailing>
+                <UButton
+                  icon="i-lucide-keyboard"
+                  :color="keyboardOpen ? 'primary' : 'neutral'"
+                  variant="link"
+                  :aria-label="t('keyboard.toggle')"
+                  @click="toggleKeyboard"
+                />
+              </template>
+            </UInput>
           </UFormField>
           <p v-if="emailError" class="text-error shrink-0 text-center text-base font-medium">
             {{ emailError }}
@@ -285,7 +314,7 @@ function onFinish(): void {
               :label="t('pages.share.finish')"
               color="neutral"
               variant="outline"
-              @click="openFinishDialog"
+              @click="confirmFinish"
             />
             <UButton
               v-if="emailEnabled && !emailSent"
@@ -321,7 +350,7 @@ function onFinish(): void {
               <p class="text-muted text-sm">{{ t('pages.share.cloudPreparing') }}</p>
             </template>
             <template v-else-if="cloudJob.phase.value === 'done'">
-              <canvas ref="qrCanvas" class="rounded-lg" />
+              <canvas ref="qrCanvas" class="rounded-lg"></canvas>
               <p class="text-muted text-sm">{{ t('pages.share.cloudQrLabel') }}</p>
             </template>
             <template v-else-if="cloudJob.phase.value === 'failed'">
@@ -336,9 +365,9 @@ function onFinish(): void {
             </template>
           </div>
 
-          <div v-if="emailFocused" class="absolute inset-0 z-10 flex items-center justify-center">
+          <div v-if="keyboardOpen" class="absolute inset-0 z-10 flex items-center justify-center">
             <div
-              class="bg-elevated ring-default flex w-full flex-col items-center gap-1 rounded-2xl p-2 ring-1"
+              class="bg-elevated ring-default flex w-full flex-col items-center gap-1 rounded-lg p-2 ring-1"
             >
               <div class="flex w-full shrink-0 justify-center">
                 <UButton
@@ -347,7 +376,7 @@ function onFinish(): void {
                   color="neutral"
                   variant="ghost"
                   :aria-label="t('keyboard.hide')"
-                  @click="unfocusEmail"
+                  @click="closeKeyboard"
                 />
               </div>
               <VirtualKeyboard v-model="emailState.email" class="w-full" />
@@ -356,22 +385,5 @@ function onFinish(): void {
         </div>
       </div>
     </template>
-
-    <UModal
-      v-model:open="showFinishDialog"
-      :title="t('pages.share.finishDialog.title')"
-      :description="t('pages.share.finishDialog.text')"
-      :ui="{ footer: 'justify-end' }"
-    >
-      <template #footer="{ close }">
-        <UButton
-          :label="t('pages.share.finishDialog.back')"
-          color="neutral"
-          variant="outline"
-          @click="close"
-        />
-        <UButton :label="t('pages.share.finishDialog.confirm')" @click="onFinish" />
-      </template>
-    </UModal>
   </div>
 </template>

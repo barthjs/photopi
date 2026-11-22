@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { configRepository } from '@/api/repositories/config';
-import type { CloudShareSettings, ConfigSaveRequest, StorageSettings } from '@/api/types';
+import type { CloudShareSettings, ConfigSaveRequest, StorageSettings } from '@/api/types/config';
 import { jsonResponse, useFetchMock } from '@/test/fetchMock';
 
 describe('configRepository', () => {

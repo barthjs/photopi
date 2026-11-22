@@ -134,10 +134,9 @@ func (p *nextcloudProvider) Upload(ctx context.Context, remoteFolder string, fil
 	return p.createShare(ctx, remotePath)
 }
 
-// mkcol ensures a folder exists with a WebDAV MKCOL request.
-// An existing folder answers 405, which counts as success. Any other failure is reported,
-// since the uploads into the folder would otherwise fail with a status that does not name the folder.
+// mkcol ensures a folder exists with a WebDAV MKCOL request, which answers 405 for an existing one.
 func (p *nextcloudProvider) mkcol(ctx context.Context, url string) error {
+	// Any other failure is reported, since the uploads would otherwise fail with a status that does not name the folder
 	req, err := http.NewRequestWithContext(ctx, "MKCOL", url, nil)
 	if err != nil {
 		return err

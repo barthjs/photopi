@@ -13,9 +13,9 @@ const defaultEventSlug = "event"
 
 var germanTransliterations = strings.NewReplacer("ä", "ae", "ö", "oe", "ü", "ue", "ß", "ss", "Ä", "Ae", "Ö", "Oe", "Ü", "Ue")
 
-// slugify converts s into a lowercase slug that is safe for file names and URLs. Umlauts are transliterated,
-// other accents dropped, and every run of other characters becomes one hyphen. An empty slug is defaultEventSlug.
+// slugify converts s into a lowercase slug for file names and URLs, or defaultEventSlug for an empty one.
 func slugify(s string) string {
+	// Umlauts are transliterated, other accents dropped, and every run of other characters becomes one hyphen
 	s = germanTransliterations.Replace(s)
 	s = removeDiacritics(s)
 	s = strings.ToLower(s)

@@ -23,4 +23,6 @@ type CaptureFile struct {
 	Event      string
 	Run        int
 	ImageIndex int
+	// TakenAt is read from the file name in the local time zone, zero if it cannot be parsed.
+	TakenAt time.Time
 }
