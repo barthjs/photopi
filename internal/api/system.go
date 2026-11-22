@@ -1,6 +1,9 @@
 package api
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json/v2"
 	"errors"
 	"net/http"
 	"time"
@@ -18,10 +21,31 @@ import (
 //	@Failure		500	{object}	ErrorResponse
 //	@Router			/meta [get]
 func (a *API) metaGetHandler(w http.ResponseWriter, r *http.Request) {
-	a.writeJSON(w, r, http.StatusOK, MetaResponse{
+	a.writeJSON(w, r, http.StatusOK, a.meta(), nil)
+}
+
+type MetaResponse struct {
+	Name     string        `json:"name"`
+	Version  string        `json:"version"`
+	Language string        `json:"language"`
+	Camera   CameraMeta    `json:"camera"`
+	Capture  CaptureMeta   `json:"capture"`
+	Share    ShareMeta     `json:"share"`
+	Theme    ThemeSettings `json:"theme"`
+}
+
+// MetaRevision returns a hash of the meta response, which changes with every setting the web interface reads.
+func (a *API) MetaRevision() string {
+	data, _ := json.Marshal(a.meta())
+	sum := sha256.Sum256(data)
+	return hex.EncodeToString(sum[:8])
+}
+
+// meta returns the public settings of the application.
+func (a *API) meta() MetaResponse {
+	return MetaResponse{
 		Name:     a.options.Name,
 		Version:  a.health.Version(),
-		Instance: a.instance,
 		Language: a.options.Language,
 		Camera: CameraMeta{
 			Source:     string(a.options.Camera.Source),
@@ -38,21 +62,7 @@ func (a *API) metaGetHandler(w http.ResponseWriter, r *http.Request) {
 			AdminEmail:   a.options.Capture.AdminEmail,
 		},
 		Theme: a.options.Theme,
-	}, nil)
-}
-
-// MetaResponse exposes public, non-sensitive configuration.
-type MetaResponse struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
-	// Instance changes with every start of the backend, so the kiosk notices a restart that applied a new configuration
-	// although the version stayed the same.
-	Instance string        `json:"instance"`
-	Language string        `json:"language"`
-	Camera   CameraMeta    `json:"camera"`
-	Capture  CaptureMeta   `json:"capture"`
-	Share    ShareMeta     `json:"share"`
-	Theme    ThemeSettings `json:"theme"`
+	}
 }
 
 type CameraMeta struct {

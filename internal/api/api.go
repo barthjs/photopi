@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"strconv"
 	"sync"
 	"time"
 
@@ -17,6 +16,7 @@ import (
 	"github.com/barthjs/photopi/internal/mailer"
 	"github.com/barthjs/photopi/internal/ratelimiter"
 	"github.com/barthjs/photopi/internal/service"
+	"github.com/barthjs/photopi/internal/ws"
 )
 
 // MediaPath is where the signed URLs of the local storage are served, see media.SignedHandler.
@@ -25,13 +25,12 @@ const MediaPath = "/media"
 // API holds the HTTP handlers and the services they call.
 type API struct {
 	// ctx ends with the application, so background work started by a request stops with it.
-	ctx context.Context
-	// instance identifies this start of the backend, see MetaResponse.Instance.
-	instance string
-	options  Options
-	logger   zerolog.Logger
-	now      func() time.Time
-	wg       *sync.WaitGroup
+	ctx     context.Context
+	hub     *ws.Hub
+	options Options
+	logger  zerolog.Logger
+	now     func() time.Time
+	wg      *sync.WaitGroup
 
 	health      *health.Checker
 	rateLimiter ratelimiter.Limiter
@@ -63,6 +62,8 @@ type Options struct {
 	Language string
 	// Theme holds the accent colors of the user interface.
 	Theme ThemeSettings
+	// SplashColor is the background of the splash screen of the installed app, the theme color when empty.
+	SplashColor string
 	// Camera holds the camera settings the frontend and the preview need.
 	Camera CameraOptions
 	// Capture holds the capture settings the frontend shows.
@@ -101,6 +102,7 @@ type Deps struct {
 	WG  *sync.WaitGroup
 
 	Health      *health.Checker
+	Hub         *ws.Hub
 	RateLimiter ratelimiter.Limiter
 	Session     *scs.SessionManager
 
@@ -131,12 +133,12 @@ func New(ctx context.Context, d Deps) *API {
 	}
 
 	return &API{
-		ctx:      ctx,
-		instance: strconv.FormatInt(time.Now().UnixNano(), 36),
-		options:  d.Options,
-		logger:   d.Logger,
-		now:      now,
-		wg:       d.WG,
+		ctx:     ctx,
+		hub:     d.Hub,
+		options: d.Options,
+		logger:  d.Logger,
+		now:     now,
+		wg:      d.WG,
 
 		health:       d.Health,
 		cameraHealth: d.CameraHealth,

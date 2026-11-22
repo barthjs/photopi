@@ -16,6 +16,8 @@ declare module 'vue-router' {
     titleKey?: string;
     // Resolves the interpolation values of the title from the route
     titleParams?: (route: RouteLocationNormalizedLoaded) => Record<string, string>;
+    // Nobody reads the page interactively, so it loads a new version as soon as nothing on it would be lost
+    unattended?: boolean;
     requiresAuth?: boolean;
     requiresGuest?: boolean;
     // From lg up, the page fills the height of the panel instead of scrolling,
@@ -28,6 +30,9 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/',
     component: KioskLayout,
+    meta: {
+      unattended: true,
+    },
     children: [
       {
         path: '',

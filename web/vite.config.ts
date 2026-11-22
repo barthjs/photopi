@@ -6,6 +6,7 @@ import tailwindcss from '@tailwindcss/vite';
 import vue from '@vitejs/plugin-vue';
 import ui from '@nuxt/ui/vite';
 
+import { pwa } from './pwa/plugin.ts';
 import uiOptions from './ui.config.ts';
 
 /** The optional certificate of the dev server, which serves HTTPS once both files exist. */
@@ -28,7 +29,36 @@ function devHttps(): { key: Buffer; cert: Buffer } | undefined {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [tailwindcss(), vue(), ui(uiOptions)],
+  plugins: [
+    tailwindcss(),
+    vue(),
+    ui(uiOptions),
+    pwa({
+      srcDir: fileURLToPath(new URL('./src', import.meta.url)),
+      locales: {
+        de: fileURLToPath(new URL('./src/locales/de.json', import.meta.url)),
+        en: fileURLToPath(new URL('./src/locales/en.json', import.meta.url)),
+      },
+      defaultLanguage: 'en',
+      // The default colors of the theme, since the service worker knows no configured ones
+      theme: {
+        light: {
+          background: '#ffffff',
+          text: '#1e293b',
+          muted: '#475569',
+          primary: '#0f766e',
+          onPrimary: '#ffffff',
+        },
+        dark: {
+          background: '#0f172a',
+          text: '#f1f5f9',
+          muted: '#cbd5e1',
+          primary: '#14b8a6',
+          onPrimary: '#020617',
+        },
+      },
+    }),
+  ],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -38,11 +68,14 @@ export default defineConfig({
     host: true,
     https: devHttps(),
     proxy: {
+      // ws forwards the upgrade of the realtime connection as well
       '/api': {
         target: 'http://127.0.0.1:8080',
         changeOrigin: true,
+        ws: true,
       },
-      '/readyz': {
+      // The backend writes the manifest with the name and the colors of the configuration
+      '/site.webmanifest': {
         target: 'http://127.0.0.1:8080',
         changeOrigin: true,
       },

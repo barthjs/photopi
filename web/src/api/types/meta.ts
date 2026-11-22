@@ -20,8 +20,6 @@ export type ShareMeta = {
 export type MetaResponse = {
   name: string;
   version: string;
-  // Changes with every start of the backend
-  instance: string;
   language: string;
   camera: CameraMeta;
   capture: CaptureMeta;

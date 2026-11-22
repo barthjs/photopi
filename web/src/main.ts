@@ -5,15 +5,17 @@ import { createPinia } from 'pinia';
 import ui from '@nuxt/ui/vue-plugin';
 
 import App from '@/App.vue';
-import { setupAppRecovery } from '@/appRecovery';
 import { setAuthenticationRequiredHandler } from '@/api/client/client';
 import { loginLocation } from '@/lib/auth/redirect';
 import { applyThemeColors } from '@/lib/app/theme';
+import { syncThemeColor } from '@/lib/browser/themeColor';
+import { catchFatalErrors } from '@/lib/pwa/fatalError';
+import { registerServiceWorker } from '@/lib/pwa/serviceWorker';
 import { i18n, setLocaleFromBackend } from '@/i18n';
 import { router } from '@/router';
 import { useAuthStore } from '@/stores/auth';
-import { useCameraHealthStore } from '@/stores/cameraHealth';
 import { useMetaStore } from '@/stores/meta';
+import { useRealtimeStore } from '@/stores/realtime';
 
 const app = createApp(App);
 const pinia = createPinia();
@@ -22,8 +24,6 @@ app.use(pinia);
 app.use(i18n);
 app.use(router);
 app.use(ui);
-
-setupAppRecovery(app);
 
 // Only an expired or missing admin session bounces to the login page
 setAuthenticationRequiredHandler(() => {
@@ -38,9 +38,14 @@ setAuthenticationRequiredHandler(() => {
   );
 });
 
-useCameraHealthStore().start();
+catchFatalErrors(app, router);
 
+syncThemeColor();
+registerServiceWorker();
 app.mount('#app');
+
+// Every page learns a new version of the server through the realtime connection
+useRealtimeStore().connect();
 
 void useMetaStore()
   .load()

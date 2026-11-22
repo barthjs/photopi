@@ -10,6 +10,7 @@ import (
 	"github.com/barthjs/photopi/internal/camera"
 	"github.com/barthjs/photopi/internal/cmdline"
 	"github.com/barthjs/photopi/internal/config"
+	"github.com/barthjs/photopi/internal/domain"
 	"github.com/barthjs/photopi/internal/health"
 	"github.com/barthjs/photopi/internal/i18n"
 	"github.com/barthjs/photopi/internal/mailer"
@@ -85,10 +86,17 @@ func (a *App) newInfra(logger zerolog.Logger, cfg config.Config, deps Deps) (inf
 		}
 	}
 
-	in.CameraHealth = health.NewRecorder()
+	// The camera reports every change of its health, so the clients learn the state of the dependencies without polling.
+	// It is built before the checker, which pings it.
+	in.CameraHealth = health.NewRecorder(health.WithOnChange(func(bool) { in.Health.Refresh() }))
 	// Without the camera, the gallery and the shared links keep working,
 	// so a failing camera degrades the application instead of making it unavailable.
-	in.Health = health.NewChecker(deps.Version, nil, health.WithOptional("camera", in.CameraHealth))
+	in.Health = health.NewChecker(deps.Version, nil,
+		health.WithOptional("camera", in.CameraHealth),
+		health.WithOnChecksChange(func(checks map[string]string) {
+			broadcast(logger, a.hub, domain.NewMessage(domain.MessageHealth, checks))
+		}),
+	)
 
 	if in.CloudProvider == nil {
 		if in.CloudProvider, err = share.New(cloudProviderOptions(cfg.Share.Cloud)); err != nil {

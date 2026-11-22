@@ -16,7 +16,6 @@ vi.mock('@/api/repositories/meta', () => ({
 const meta: MetaResponse = {
   name: 'PhotoPi',
   version: '1.0.0',
-  instance: 'a1b2c3',
   language: 'de',
   camera: {
     source: 'webcam',

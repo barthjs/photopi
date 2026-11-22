@@ -10,6 +10,7 @@ require (
 	github.com/go-chi/chi/v5 v5.5.0
 	github.com/go-playground/validator/v10 v10.30.6
 	github.com/gorilla/handlers v1.5.2
+	github.com/gorilla/websocket v1.5.3
 	github.com/johannesboyne/gofakes3 v1.2.0
 	github.com/joho/godotenv v1.5.1
 	github.com/minio/minio-go/v7 v7.4.1

@@ -58,11 +58,18 @@ func (a *API) Routes() http.Handler {
 
 	r.With(server.Timeout(downloadTimeout)).Handle(MediaPath+"/*", http.StripPrefix(MediaPath, a.mediaHandler))
 
+	a.realtimeRoutes(r)
 	a.apiRoutes(r)
 	a.docsRoutes(r)
 	a.staticRoutes(r)
 
 	return r
+}
+
+// realtimeRoutes registers the public WebSocket endpoint outside the "/api" group,
+// whose timeout and compression do not fit a connection that stays open.
+func (a *API) realtimeRoutes(r chi.Router) {
+	r.With(a.logRequest).Get("/api/ws", a.realtimeConnectHandler)
 }
 
 // apiRoutes registers the JSON API under "/api".
@@ -305,6 +312,8 @@ func (a *API) staticRoutes(r chi.Router) {
 	fileServer := http.FileServerFS(staticFS)
 
 	r.With(gorillaHandlers.CompressHandler, a.cacheHeaderMiddleware).Handle("/assets/*", fileServer)
+	r.With(gorillaHandlers.CompressHandler, a.noCacheHeaderMiddleware).Handle("/sw.js", fileServer)
+	r.With(gorillaHandlers.CompressHandler).Get("/site.webmanifest", a.manifestGetHandler)
 	r.With(gorillaHandlers.CompressHandler).Get("/", a.indexGetHandler)
 
 	r.NotFound(func(w http.ResponseWriter, req *http.Request) {

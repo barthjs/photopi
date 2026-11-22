@@ -508,4 +508,11 @@ func TestAPI_StaticRoutes(t *testing.T) {
 
 		h.Client.GET("/assets/"+assets[0].Name()).AssertOK().AssertHeader("Cache-Control", "public, max-age=31536000, immutable")
 	})
+
+	t.Run("revalidates the service worker", func(t *testing.T) {
+		t.Parallel()
+		h := newHarness(t)
+
+		h.Client.GET("/sw.js").AssertOK().AssertHeader("Cache-Control", "no-cache")
+	})
 }

@@ -5,14 +5,14 @@ import { useRouter } from 'vue-router';
 
 import { useMutation } from '@/composables/form/useMutation';
 import { useBoothStore } from '@/stores/booth';
-import { useCameraHealthStore } from '@/stores/cameraHealth';
+import { useHealthStore } from '@/stores/health';
 import { useMetaStore } from '@/stores/meta';
 
 const { t } = useI18n();
 const router = useRouter();
 const booth = useBoothStore();
 const metaStore = useMetaStore();
-const cameraHealth = useCameraHealthStore();
+const health = useHealthStore();
 
 const title = computed(() => metaStore.meta?.capture.welcomeMessage || t('pages.welcome.title'));
 
@@ -39,18 +39,15 @@ const { mutate: start, pending } = useMutation(async () => booth.startRun(), {
     </h1>
 
     <UButton
+      v-if="health.isReady('camera')"
       size="xl"
       :label="t('pages.welcome.start')"
       :loading="pending"
-      :disabled="!cameraHealth.available"
-      @click="start()"
       class="h-20 w-64 justify-center text-4xl"
+      @click="start()"
     />
 
-    <p
-      v-if="!cameraHealth.available"
-      class="text-error flex items-center gap-2 text-lg font-medium"
-    >
+    <p v-else class="text-error flex items-center gap-2 text-lg font-medium">
       <UIcon name="i-lucide-circle-alert" class="size-5 shrink-0" />
       {{ t('pages.welcome.cameraUnavailable') }}
     </p>

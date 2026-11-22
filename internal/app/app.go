@@ -6,6 +6,7 @@ package app
 import (
 	"context"
 	"crypto/rand"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -19,11 +20,14 @@ import (
 	"github.com/barthjs/photopi/internal/camera"
 	"github.com/barthjs/photopi/internal/config"
 	"github.com/barthjs/photopi/internal/config/structconf"
+	"github.com/barthjs/photopi/internal/domain"
+	"github.com/barthjs/photopi/internal/health"
 	"github.com/barthjs/photopi/internal/mailer"
 	"github.com/barthjs/photopi/internal/media"
 	"github.com/barthjs/photopi/internal/ratelimiter"
 	"github.com/barthjs/photopi/internal/service"
 	"github.com/barthjs/photopi/internal/share"
+	"github.com/barthjs/photopi/internal/ws"
 )
 
 // rateLimitCleanupInterval is how often expired rate limit entries are removed.
@@ -62,6 +66,7 @@ type App struct {
 	handler http.Handler
 
 	rateLimiter    ratelimiter.Limiter
+	hub            *ws.Hub
 	captureService *service.CaptureService
 	shareService   *service.ShareService
 
@@ -89,6 +94,8 @@ func New(ctx context.Context, logger zerolog.Logger, cfg config.Config, deps Dep
 		return nil, err
 	}
 	a.rateLimiter = in.RateLimiter
+	var server *api.API
+	a.hub = ws.New(logger, func() ([][]byte, error) { return realtimeSnapshot(deps.Version, server, in.Health) })
 	stores := NewStores(in.Storage)
 
 	shareSigningKey, err := selfShareSigningKey(cfg.App.Secret)
@@ -124,12 +131,13 @@ func New(ctx context.Context, logger zerolog.Logger, cfg config.Config, deps Dep
 	)
 	a.shareService = shareService
 
-	a.handler = api.New(ctx, api.Deps{
+	server = api.New(ctx, api.Deps{
 		Options: apiOptions(cfg),
 		Logger:  logger,
 		WG:      &a.background,
 
 		Health:      in.Health,
+		Hub:         a.hub,
 		RateLimiter: in.RateLimiter,
 		Session:     in.Session,
 
@@ -152,7 +160,10 @@ func New(ctx context.Context, logger zerolog.Logger, cfg config.Config, deps Dep
 		ShareService:      shareService,
 		SystemService:     service.NewSystemService(systemOptions(cfg.System), in.Health, in.Commands, deps.Stop),
 		UpdateService:     service.NewUpdateService(logger, in.Updater, deps.OnUpdated),
-	}).Routes()
+	})
+	a.handler = server.Routes()
+	// The snapshot of a new client sends the states the checker found last, so it finds them once now
+	in.Health.Refresh()
 
 	return a, nil
 }
@@ -164,7 +175,7 @@ func (a *App) Handler() http.Handler {
 
 // Start runs the background work until ctx is canceled.
 func (a *App) Start(ctx context.Context) {
-	a.background.Go(func() { ratelimiter.RunCleanup(ctx, a.rateLimiter, rateLimitCleanupInterval) })
+	a.background.Go(func() { a.hub.Run(ctx) })
 	a.background.Go(func() { a.shareService.RunCloudCheck(ctx) })
 	a.background.Go(func() { a.captureService.PrepareOverlay(ctx) })
 	a.background.Go(func() { ratelimiter.RunCleanup(ctx, a.rateLimiter, rateLimitCleanupInterval) })
@@ -208,4 +219,37 @@ type closerFunc func() error
 // Close calls the function.
 func (f closerFunc) Close() error {
 	return f()
+}
+
+// realtimeSnapshot returns the messages a newly connected client receives:
+// the greeting with the version and the settings of the application, and the state of its dependencies.
+func realtimeSnapshot(version string, server *api.API, checker *health.Checker) ([][]byte, error) {
+	hello, err := json.Marshal(domain.NewMessage(domain.MessageHello, domain.Hello{
+		Version: version,
+		Meta:    server.MetaRevision(),
+	}))
+	if err != nil {
+		return nil, err
+	}
+
+	checks, err := json.Marshal(domain.NewMessage(domain.MessageHealth, checker.Reported()))
+	if err != nil {
+		return nil, err
+	}
+
+	return [][]byte{
+		hello,
+		checks,
+	}, nil
+}
+
+// broadcast sends a message to every connected client. A failed message is only logged,
+// since the clients receive the current state again on their next connect.
+func broadcast(logger zerolog.Logger, hub *ws.Hub, message domain.Message) {
+	data, err := json.Marshal(message)
+	if err != nil {
+		logger.Error().Err(err).Str("type", string(message.Type)).Msg("failed to encode message")
+		return
+	}
+	hub.Broadcast(data)
 }

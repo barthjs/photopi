@@ -89,7 +89,22 @@ The web interface in `web/` is a Vue application with Nuxt UI and Tailwind CSS:
 | `src/locales`     | The texts of the interface in every language.                                 |
 
 The screens for the guests run in the kiosk browser or on any device, and the admin pages manage the booth.
-Everything goes through the JSON API under `/api`, which the [API reference](/api/) describes.
+Everything goes through the JSON API under `/api`, which the [API reference](/api/) describes,
+except what the server announces itself through the websocket under `/api/ws`:
+
+| Message  | Sent                                            | Data                                                           |
+| -------- | ----------------------------------------------- | -------------------------------------------------------------- |
+| `hello`  | on connect                                      | the version and a hash of the settings the web interface reads |
+| `health` | on connect and when the camera fails or returns | the state of every dependency, as `/readyz` names it           |
+
+- A page reloads once `hello` names another version or other settings, as soon as a reload loses nothing
+  and nobody reads the page, since it is hidden or its route sets `meta.unattended`. Until then it offers the reload,
+  and the next navigation loads a new page. Unsaved changes that `useUnloadGuard` or `useDiscardConfirm` watch,
+  and every other `useReloadHold`, keep it from reloading on its own.
+- An uncaught error shows a screen that reloads the page after 10 seconds, and after twice as long for every error
+  that returns. A navigation that finds a module of an older build missing loads its target as a new page.
+- A navigation without an answer from the server, or with a gateway error of a reverse proxy in front of it,
+  shows the offline page of the service worker, which tries again every 10 seconds.
 
 ## Translations
 

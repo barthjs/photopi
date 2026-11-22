@@ -2753,6 +2753,26 @@
                     }
                 }
             }
+        },
+        "/ws": {
+            "get": {
+                "description": "Upgrades the request to a WebSocket that receives JSON messages with a type and optional data. On connect, a client receives hello with the version and a hash of the settings, and health with the state of every dependency. Afterward it receives health whenever a dependency changes, such as the camera.",
+                "tags": [
+                    "realtime"
+                ],
+                "summary": "Connect realtime",
+                "responses": {
+                    "101": {
+                        "description": "Switching Protocols"
+                    },
+                    "400": {
+                        "description": "Not a WebSocket upgrade",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -3686,10 +3706,6 @@
                 },
                 "capture": {
                     "$ref": "#/definitions/CaptureMeta"
-                },
-                "instance": {
-                    "description": "Instance changes with every start of the backend, so the kiosk notices a restart that applied a new configuration\nalthough the version stayed the same.",
-                    "type": "string"
                 },
                 "language": {
                     "type": "string"

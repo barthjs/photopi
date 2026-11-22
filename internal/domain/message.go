@@ -1,0 +1,38 @@
+package domain
+
+import "time"
+
+// MessageType names what a websocket message announces.
+type MessageType string
+
+const (
+	// MessageHello greets a client that just connected with the version and the settings of the application.
+	MessageHello MessageType = "hello"
+	// MessageHealth carries the state of every dependency, on connect and whenever one of them changes.
+	MessageHealth MessageType = "health"
+)
+
+// Message is the envelope of every websocket message, sent as it is.
+type Message struct {
+	Type MessageType `json:"type"`
+	// ServerTime is the clock of the application when the message was built.
+	ServerTime time.Time `json:"serverTime"`
+	// Data is left out when a message carries none.
+	Data any `json:"data,omitzero"`
+}
+
+// Hello is the data of the hello message. Meta changes with every setting the web interface reads,
+// so a client notices a restart that applied changed settings.
+type Hello struct {
+	Version string `json:"version"`
+	Meta    string `json:"meta"`
+}
+
+// NewMessage returns a message of the given type, stamped with the current time of the application.
+func NewMessage(typ MessageType, data any) Message {
+	return Message{
+		Type:       typ,
+		ServerTime: time.Now(),
+		Data:       data,
+	}
+}
