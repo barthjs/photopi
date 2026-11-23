@@ -13,6 +13,9 @@ import (
 	"github.com/barthjs/photopi/internal/share"
 )
 
+// splashColor is the background of the app icon, which the splash screen of the installed app shows around it.
+const splashColor = "#115e59"
+
 // apiOptions maps the configuration onto the options of the API.
 func apiOptions(cfg config.Config) api.Options {
 	return api.Options{
@@ -27,6 +30,7 @@ func apiOptions(cfg config.Config) api.Options {
 			Error:     cfg.Theme.Error,
 			Neutral:   cfg.Theme.Neutral,
 		},
+		SplashColor: splashColor,
 		Camera: api.CameraOptions{
 			Source:      cfg.Camera.Source,
 			OverlayPath: cfg.Camera.OverlayPath,

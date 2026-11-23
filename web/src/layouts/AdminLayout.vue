@@ -107,7 +107,10 @@ const { mutate: logout, pending: loggingOut } = useMutation(async () => authStor
     :desktop-navbar="false"
   >
     <template #logo>
-      <span class="text-highlighted font-semibold">{{ appName }}</span>
+      <span class="text-highlighted flex items-center gap-2 font-semibold">
+        <img src="/icons/icon.svg" alt="" class="size-6" />
+        {{ appName }}
+      </span>
     </template>
 
     <template #footer="{ collapsed }">

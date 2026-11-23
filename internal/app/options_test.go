@@ -53,6 +53,7 @@ func TestAPIOptions(t *testing.T) {
 				Error:     cfg.Theme.Error,
 				Neutral:   cfg.Theme.Neutral,
 			},
+			SplashColor: splashColor,
 			Camera: api.CameraOptions{
 				Source:      cfg.Camera.Source,
 				OverlayPath: cfg.Camera.OverlayPath,

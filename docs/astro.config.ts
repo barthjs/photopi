@@ -60,6 +60,7 @@ export default defineConfig({
     },
     starlight({
       title: 'PhotoPi',
+      favicon: '/favicon.svg',
       // src/pages/404.astro replaces the 404 page of Starlight
       disable404Route: true,
       // English is the main language, so its pages stay at the root, and pages without a translation fall back to it

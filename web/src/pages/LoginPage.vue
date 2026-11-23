@@ -96,9 +96,12 @@ const {
       <UCard class="w-full max-w-sm">
         <!-- The title gives way to the keyboard, which needs the height of the small touchscreen -->
         <template v-if="!keyboardOpen" #header>
-          <h1 class="text-highlighted heading-page text-center">
-            {{ t('pages.login.title') }}
-          </h1>
+          <div class="flex flex-col items-center gap-3">
+            <img src="/icons/icon.svg" alt="" class="size-12" />
+            <h1 class="text-highlighted heading-page text-center">
+              {{ t('pages.login.title') }}
+            </h1>
+          </div>
         </template>
 
         <UForm

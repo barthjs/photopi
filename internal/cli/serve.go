@@ -19,6 +19,7 @@ import (
 	"github.com/barthjs/photopi/internal/config/structconf"
 	"github.com/barthjs/photopi/internal/i18n"
 	"github.com/barthjs/photopi/internal/server"
+	"github.com/barthjs/photopi/web"
 )
 
 // supervisedEnv marks a process that a service manager runs and restarts once it exits. The systemd units,
@@ -147,6 +148,7 @@ func runTray(logger zerolog.Logger, options trayOptions, quit func()) {
 	}
 
 	systray.Run(func() {
+		systray.SetIcon(web.Icon)
 		systray.SetTitle(options.Title)
 
 		// Without a handler, every left click opens the menu, and the second click of a double click opens it again

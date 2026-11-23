@@ -43,8 +43,9 @@ func TestManifestGetHandler(t *testing.T) {
 		assert.Equal(t, h.Config.App.Name, manifest.ShortName)
 		assert.Equal(t, "/", manifest.StartURL)
 		assert.Equal(t, "standalone", manifest.Display)
+		assert.NotEmpty(t, manifest.Icons)
 		assert.Equal(t, "#0f172a", manifest.ThemeColor)
-		assert.Equal(t, manifest.ThemeColor, manifest.BackgroundColor, "the splash screen has no color of its own")
+		assert.Equal(t, "#115e59", manifest.BackgroundColor, "the splash screen shows the background of the app icon")
 	})
 
 	t.Run("colors the bars with the dark background of the neutral color", func(t *testing.T) {

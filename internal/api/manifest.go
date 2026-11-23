@@ -37,7 +37,24 @@ func (a *API) manifestGetHandler(w http.ResponseWriter, r *http.Request) {
 		Display:         "standalone",
 		BackgroundColor: cmp.Or(a.options.SplashColor, themeColor),
 		ThemeColor:      themeColor,
-		Icons:           []ManifestIcon{},
+		Icons: []ManifestIcon{
+			{
+				Src:   "/icons/icon-192.png",
+				Sizes: "192x192",
+				Type:  "image/png",
+			},
+			{
+				Src:   "/icons/icon-512.png",
+				Sizes: "512x512",
+				Type:  "image/png",
+			},
+			{
+				Src:     "/icons/icon-512.png",
+				Sizes:   "512x512",
+				Type:    "image/png",
+				Purpose: "maskable",
+			},
+		},
 	}, http.Header{
 		"Cache-Control": {"no-cache"},
 	})
